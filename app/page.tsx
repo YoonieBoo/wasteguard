@@ -57,7 +57,9 @@ export default function Home() {
             <QuickInput onSave={handleDailyInputSave} onViewResults={() => setCurrentScreen('insights')} />
           )}
           {currentScreen === 'insights' && <WeeklyInsights dailyInputs={dailyInputs} />}
-          {currentScreen === 'carbon' && <CarbonImpact dailyInputs={dailyInputs} />}
+          {currentScreen === 'carbon' && (
+            <CarbonImpact dailyInputs={dailyInputs} onAddToday={() => setCurrentScreen('input')} />
+          )}
         </div>
       </div>
 

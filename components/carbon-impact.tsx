@@ -1,22 +1,49 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowRight, Leaf, Sprout } from 'lucide-react'
 import { getImpactData, type FoodRow, type TimeRange } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
 
 interface CarbonImpactProps {
   dailyInputs?: FoodRow[]
+  onAddToday?: () => void
 }
 
-export function CarbonImpact({ dailyInputs = [] }: CarbonImpactProps) {
+const dailyInputsKey = 'wasteGuardDailyInputs'
+
+function todayDate() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function hasTodayInput(inputRows: FoodRow[]) {
+  return inputRows.some((input) => input.date === todayDate())
+}
+
+export function CarbonImpact({ dailyInputs = [], onAddToday }: CarbonImpactProps) {
   const [range, setRange] = useState<TimeRange>('month')
+  const [todaySavedFromStorage, setTodaySavedFromStorage] = useState(false)
   const impact = getImpactData(range, dailyInputs)
+  const isTodaySaved = hasTodayInput(dailyInputs) || todaySavedFromStorage
   const circleSize = 232
   const strokeWidth = 12
   const radius = (circleSize - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const progressOffset = circumference - (Math.min(impact.percentComplete, 100) / 100) * circumference
+
+  useEffect(() => {
+    const savedInputs = window.localStorage.getItem(dailyInputsKey)
+
+    if (!savedInputs) {
+      return
+    }
+
+    try {
+      setTodaySavedFromStorage(hasTodayInput(JSON.parse(savedInputs) as FoodRow[]))
+    } catch {
+      setTodaySavedFromStorage(false)
+    }
+  }, [dailyInputs])
 
   return (
     <main className="py-5 md:py-6">
@@ -72,10 +99,17 @@ export function CarbonImpact({ dailyInputs = [] }: CarbonImpactProps) {
           </div>
         </div>
 
-        <button className="flex h-14 w-full items-center justify-center gap-2 rounded-[1.25rem] bg-emerald-400 text-lg font-black text-emerald-950 shadow-[0_14px_30px_rgba(71,211,137,0.25)] transition hover:bg-emerald-300">
-          Add today’s result
-          <ArrowRight className="h-5 w-5" />
-        </button>
+        {isTodaySaved ? (
+          <p className="text-center text-sm font-black text-emerald-200">Today&apos;s result saved</p>
+        ) : (
+          <button
+            onClick={onAddToday}
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-[1.25rem] bg-emerald-400 text-lg font-black text-emerald-950 shadow-[0_14px_30px_rgba(71,211,137,0.25)] transition hover:bg-emerald-300"
+          >
+            Add today&apos;s result
+            <ArrowRight className="h-5 w-5" />
+          </button>
+        )}
       </section>
 
       <section className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-7">
