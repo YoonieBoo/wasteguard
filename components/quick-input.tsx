@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { getText, type Language } from '@/lib/i18n'
 import type { FoodRow } from '@/lib/mock-data'
 
 interface QuickInputProps {
+  language: Language
   onSave?: (input: FoodRow) => void
   onViewResults?: () => void
 }
@@ -37,19 +39,20 @@ const wasteLevelMap: Record<string, string> = {
 
 const checkResultKey = 'wasteGuardCheckResult'
 
-export function QuickInput({ onSave, onViewResults }: QuickInputProps) {
+export function QuickInput({ language, onSave, onViewResults }: QuickInputProps) {
+  const t = getText(language)
   const [demand, setDemand] = useState<string | null>(null)
   const [waste, setWaste] = useState<string | null>(null)
   const [result, setResult] = useState<CheckResult | null>(null)
   const demandOptions = [
-    { label: 'Quiet', value: 'few' },
-    { label: 'Normal', value: 'normal' },
-    { label: 'Busy', value: 'many' },
+    { label: t.quiet, value: 'few' },
+    { label: t.normal, value: 'normal' },
+    { label: t.busy, value: 'many' },
   ]
   const wasteOptions = [
-    { label: 'Almost none', value: 'little' },
-    { label: 'Some left', value: 'some' },
-    { label: 'Many left', value: 'a lot' },
+    { label: t.almostNone, value: 'little' },
+    { label: t.someLeft, value: 'some' },
+    { label: t.manyLeft, value: 'a lot' },
   ]
 
   function handleDone() {
@@ -92,25 +95,25 @@ export function QuickInput({ onSave, onViewResults }: QuickInputProps) {
     return (
       <main className="py-7 md:py-6">
         <div className="mb-7 pt-5 md:mb-6 md:pt-4">
-          <p className="mb-2 text-sm font-bold text-primary">Before closing</p>
-          <h1 className="text-4xl font-black leading-tight text-foreground">Saved for today</h1>
+          <p className="mb-2 text-sm font-bold text-primary">{t.beforeClosing}</p>
+          <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">{t.savedForToday}</h1>
         </div>
 
         <section className="mb-7 divide-y divide-secondary md:mb-6">
           <div className="flex items-center justify-between gap-4 py-4 first:pt-1">
-            <p className="text-base font-bold text-muted-foreground">Customers today</p>
+            <p className="text-base font-bold text-muted-foreground">{t.customersResult}</p>
             <p className="text-xl font-black text-foreground">{result.customers}</p>
           </div>
           <div className="flex items-center justify-between gap-4 py-4">
-            <p className="text-base font-bold text-muted-foreground">Unsold items</p>
+            <p className="text-base font-bold text-muted-foreground">{t.unsoldResult}</p>
             <p className="text-xl font-black text-foreground">{result.leftover}</p>
           </div>
           <div className="flex items-center justify-between gap-4 py-4">
-            <p className="text-base font-bold text-muted-foreground">Estimated waste</p>
-            <p className="text-xl font-black text-primary">{result.wasteLevel}</p>
+            <p className="text-base font-bold text-muted-foreground">{t.estimatedWaste}</p>
+            <p className="text-xl font-black text-primary">{result.wasteLevel === 'Low' ? t.low : result.wasteLevel === 'High' ? t.high : t.medium}</p>
           </div>
           <div className="flex items-center justify-between gap-4 py-4 last:pb-1">
-            <p className="text-base font-bold text-muted-foreground">Money saved today</p>
+            <p className="text-base font-bold text-muted-foreground">{t.moneySavedToday}</p>
             <p className="text-xl font-black text-primary">{result.moneySaved}</p>
           </div>
         </section>
@@ -119,7 +122,7 @@ export function QuickInput({ onSave, onViewResults }: QuickInputProps) {
           onClick={onViewResults}
           className="h-16 w-full rounded-[1.4rem] bg-primary text-lg font-bold text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90"
         >
-          View results
+          {t.viewResults}
         </Button>
       </main>
     )
@@ -128,16 +131,16 @@ export function QuickInput({ onSave, onViewResults }: QuickInputProps) {
   return (
     <main className="py-7 md:py-6">
       <div className="mb-7 md:mb-6 md:pt-2">
-        <p className="mb-2 text-sm font-bold text-primary">Before closing</p>
-        <h1 className="text-4xl font-black leading-tight text-foreground">How was today?</h1>
+        <p className="mb-2 text-sm font-bold text-primary">{t.beforeClosing}</p>
+        <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">{t.howWasToday}</h1>
         <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">
-          Just estimate — no need to be exact
+          {t.estimateHelper}
         </p>
       </div>
 
       <div className="mb-7 space-y-8 md:mb-6 md:space-y-6">
         <section>
-          <h2 className="mb-4 text-2xl font-black text-foreground">Customers today</h2>
+          <h2 className="mb-4 text-xl font-black text-foreground sm:text-2xl">{t.customersToday}</h2>
           <div className="grid grid-cols-3 gap-2 md:gap-3">
             {demandOptions.map((option) => (
               <Button
@@ -145,7 +148,7 @@ export function QuickInput({ onSave, onViewResults }: QuickInputProps) {
                 onClick={() => {
                   setDemand(option.value)
                 }}
-                className={`h-14 rounded-[1.1rem] text-base font-bold transition-all ${
+                className={`min-h-14 whitespace-normal rounded-[1.1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all sm:text-base ${
                   demand === option.value
                     ? 'bg-primary text-primary-foreground shadow-[0_10px_20px_rgba(68,179,126,0.2)]'
                     : 'bg-white text-foreground shadow-sm hover:bg-secondary'
@@ -158,7 +161,7 @@ export function QuickInput({ onSave, onViewResults }: QuickInputProps) {
         </section>
 
         <section>
-          <h2 className="mb-4 text-2xl font-black text-foreground">Unsold bakery items</h2>
+          <h2 className="mb-4 text-xl font-black text-foreground sm:text-2xl">{t.unsoldItems}</h2>
           <div className="grid grid-cols-3 gap-2 md:gap-3">
             {wasteOptions.map((option) => (
               <Button
@@ -166,7 +169,7 @@ export function QuickInput({ onSave, onViewResults }: QuickInputProps) {
                 onClick={() => {
                   setWaste(option.value)
                 }}
-                className={`h-14 rounded-[1.1rem] text-base font-bold transition-all ${
+                className={`min-h-14 whitespace-normal rounded-[1.1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all sm:text-base ${
                   waste === option.value
                     ? 'bg-accent text-accent-foreground shadow-[0_10px_20px_rgba(199,168,76,0.18)]'
                     : 'bg-white text-foreground shadow-sm hover:bg-secondary'
@@ -184,7 +187,7 @@ export function QuickInput({ onSave, onViewResults }: QuickInputProps) {
         disabled={!demand || !waste}
         className="h-16 w-full rounded-[1.4rem] bg-primary text-lg font-bold text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90 disabled:opacity-45"
       >
-        Save today
+        {t.saveToday}
       </Button>
     </main>
   )

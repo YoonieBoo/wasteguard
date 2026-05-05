@@ -3,11 +3,13 @@
 import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Coins, TrendingDown } from 'lucide-react'
+import { getText, type Language } from '@/lib/i18n'
 import { getSavingsData, type FoodRow, type TimeRange } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
 
 interface WeeklyInsightsProps {
   dailyInputs?: FoodRow[]
+  language: Language
 }
 
 const fills = [
@@ -21,30 +23,33 @@ const fills = [
 ]
 
 const weekDayLabels = ['Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed']
+const thaiWeekDayLabels = ['พฤ', 'ศ', 'ส', 'อา', 'จ', 'อ', 'พ']
 
-export function WeeklyInsights({ dailyInputs = [] }: WeeklyInsightsProps) {
+export function WeeklyInsights({ dailyInputs = [], language }: WeeklyInsightsProps) {
+  const t = getText(language)
   const [range, setRange] = useState<TimeRange>('week')
   const savings = getSavingsData(range, dailyInputs)
+  const title = range === 'day' ? t.todayPeriod : range === 'week' ? t.thisWeek : t.thisMonth
 
   const chartRows = savings.chartRows.map((item, index) => ({
     ...item,
     day:
       range === 'month'
-        ? `Week ${index + 1}`
+        ? `${t.week} ${index + 1}`
         : range === 'week'
-          ? weekDayLabels[index] ?? item.day
+          ? (language === 'th' ? thaiWeekDayLabels[index] : weekDayLabels[index]) ?? item.day
           : item.day,
   }))
 
   return (
     <main className="py-7 md:py-6">
       <div className="mb-7 md:mb-6 md:pt-2">
-        <p className="mb-2 text-sm font-bold text-primary">{savings.title}</p>
-        <h1 className="text-4xl font-black leading-tight text-foreground">Your Savings</h1>
+        <p className="mb-2 text-sm font-bold text-primary">{title}</p>
+        <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">{t.yourSavings}</h1>
         <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">
-          See your wins.
+          {t.seeWins}
         </p>
-        <TimeFilterToggle value={range} onChange={setRange} />
+        <TimeFilterToggle value={range} onChange={setRange} language={language} />
       </div>
 
       <div className="mb-7 grid grid-cols-2 gap-3 md:mb-6 md:gap-4">
@@ -52,11 +57,11 @@ export function WeeklyInsights({ dailyInputs = [] }: WeeklyInsightsProps) {
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
             <TrendingDown className="h-5 w-5" />
           </div>
-          <p className="mt-2 text-4xl font-black text-foreground">
+          <p className="mt-2 text-3xl font-black text-foreground sm:text-4xl">
             {savings.lessWaste}%
           </p>
           <p className="text-sm font-bold text-muted-foreground">
-            Low waste
+            {t.lowWaste}
           </p>
         </div>
 
@@ -64,11 +69,11 @@ export function WeeklyInsights({ dailyInputs = [] }: WeeklyInsightsProps) {
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/20 text-accent-foreground">
             <Coins className="h-5 w-5" />
           </div>
-          <p className="mt-2 text-4xl font-black text-foreground">
+          <p className="mt-2 text-3xl font-black text-foreground sm:text-4xl">
             {savings.moneySaved.toLocaleString()}
           </p>
           <p className="text-sm font-bold text-muted-foreground">
-            THB saved
+            {t.thbSaved}
           </p>
         </div>
       </div>
@@ -76,9 +81,9 @@ export function WeeklyInsights({ dailyInputs = [] }: WeeklyInsightsProps) {
       <section className="rounded-[2rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-7">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black text-foreground">{savings.title}</h2>
+            <h2 className="text-xl font-black text-foreground sm:text-2xl">{title}</h2>
             <p className="mt-1 text-sm font-bold text-muted-foreground">
-              Higher bar means less waste
+              {t.higherBar}
             </p>
           </div>
         </div>
@@ -107,7 +112,7 @@ export function WeeklyInsights({ dailyInputs = [] }: WeeklyInsightsProps) {
 
               <Tooltip
                 cursor={{ fill: 'rgba(68, 179, 126, 0.08)' }}
-                formatter={(value) => [`${value}% sold`, 'Bakery items']}
+                formatter={(value) => [`${value}% ${t.sold}`, t.bakeryItems]}
                 labelFormatter={(label) => `${label}`}
                 contentStyle={{
                   border: '0',
