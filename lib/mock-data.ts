@@ -227,7 +227,7 @@ export function getImpactData(range: TimeRange, inputRows: FoodRow[] = []) {
           : index === 1
             ? 'Yesterday'
             : new Date(row.date).toLocaleDateString('en-US', { weekday: 'short' }),
-      value: `${Math.max(1, Math.round(row.food_sold * (1 - row.waste_percent / 100) * co2PerGoodPortion * 10) / 10)} kg CO2`,
+      value: `${(Math.max(1, Math.round(row.food_sold * (1 - row.waste_percent / 100) * co2PerGoodPortion * 10) / 10) / 1000).toFixed(2)} tons CO2`,
       note: index === 0 ? 'Based on your data' : 'Less food left',
     })),
   }

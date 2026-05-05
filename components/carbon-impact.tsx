@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowRight, Leaf, Sprout } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { getImpactData, type FoodRow, type TimeRange } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
 
@@ -23,8 +23,12 @@ function hasTodayInput(inputRows: FoodRow[]) {
 export function CarbonImpact({ dailyInputs = [], onAddToday }: CarbonImpactProps) {
   const [range, setRange] = useState<TimeRange>('month')
   const [todaySavedFromStorage, setTodaySavedFromStorage] = useState(false)
+  const [showGoalDetail, setShowGoalDetail] = useState(false)
   const impact = getImpactData(range, dailyInputs)
   const isTodaySaved = hasTodayInput(dailyInputs) || todaySavedFromStorage
+  const impactTons = (impact.co2Reduced / 1000).toFixed(2)
+  const goalTons = (impact.goal / 1000).toFixed(2)
+  const goalPercent = Math.min(Math.round(impact.percentComplete), 100)
   const circleSize = 232
   const strokeWidth = 12
   const radius = (circleSize - strokeWidth) / 2
@@ -46,15 +50,21 @@ export function CarbonImpact({ dailyInputs = [], onAddToday }: CarbonImpactProps
   }, [dailyInputs])
 
   return (
-    <main className="py-5 md:py-6">
-      <div className="mb-5 pt-2 md:mb-6">
-        <h1 className="text-4xl font-black leading-tight text-foreground">Your Impact</h1>
-        <p className="mt-2 text-base font-bold text-muted-foreground">Waste less. Help more.</p>
-        <TimeFilterToggle value={range} onChange={setRange} />
-      </div>
+    <main className="min-h-screen w-full bg-[radial-gradient(circle_at_50%_12%,rgba(91,211,151,0.3),transparent_17rem),linear-gradient(180deg,#073f3f_0%,#0b322f_100%)] px-4 pb-32 pt-5 text-white sm:px-5 md:px-6 md:pt-6">
+      <div className="mx-auto w-full max-w-[430px] md:max-w-[620px]">
+        <div className="mb-5 pt-2 md:mb-6">
+          <h1 className="text-4xl font-black leading-tight text-white">Your Impact</h1>
+          <p className="mt-2 text-base font-bold text-emerald-100">Waste less. Help more.</p>
+          <TimeFilterToggle value={range} onChange={setRange} />
+        </div>
 
-      <section className="overflow-hidden rounded-[2rem] bg-[radial-gradient(circle_at_50%_18%,rgba(91,211,151,0.3),transparent_17rem),linear-gradient(180deg,#073f3f_0%,#0b322f_100%)] px-5 pb-6 pt-6 text-white shadow-[0_18px_45px_rgba(15,82,62,0.22)] md:px-7">
-        <div className="relative mx-auto mb-5 flex h-[232px] w-[232px] items-center justify-center">
+      <section className="pb-2 pt-3 text-white md:pt-4">
+        <button
+          onClick={() => setShowGoalDetail((isOpen) => !isOpen)}
+          className="relative mx-auto mb-4 flex h-[232px] w-[232px] items-center justify-center rounded-full text-white outline-none transition hover:scale-[1.01] focus-visible:ring-4 focus-visible:ring-emerald-300/40"
+          aria-expanded={showGoalDetail}
+          aria-label="Show goal detail"
+        >
           <svg className="absolute inset-0 -rotate-90" width={circleSize} height={circleSize} viewBox={`0 0 ${circleSize} ${circleSize}`}>
             <circle
               cx={circleSize / 2}
@@ -78,26 +88,18 @@ export function CarbonImpact({ dailyInputs = [], onAddToday }: CarbonImpactProps
           </svg>
           <div className="relative text-center">
             <p className="text-sm font-black text-emerald-300">{impact.periodLabel}</p>
-            <p className="mt-2 text-5xl font-black leading-none">{impact.co2Reduced} kg</p>
+            <p className="mt-2 text-5xl font-black leading-none">{impactTons}</p>
+            <p className="mt-1 text-xl font-black text-white">tons</p>
             <p className="mt-2 text-base font-bold text-emerald-200">CO₂ saved</p>
           </div>
-        </div>
+        </button>
 
-        <div className="mb-5 grid grid-cols-3 items-center gap-3 text-center">
-          <div className="flex flex-col items-center">
-            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 text-emerald-300">
-              <Sprout className="h-5 w-5" />
-            </div>
-            <p className="text-xs font-bold text-emerald-100">Less waste</p>
+        {showGoalDetail && (
+          <div className="mb-5 text-center">
+            <p className="text-base font-black text-emerald-100">Goal: {goalTons} tons</p>
+            <p className="mt-1 text-sm font-bold text-emerald-200">You&apos;re {goalPercent}% there</p>
           </div>
-          <div className="rounded-full bg-emerald-400/15 px-3 py-3 text-lg font-black text-emerald-300">
-            {impact.wasteDown}% less waste
-          </div>
-          <div>
-            <p className="text-xs font-bold text-emerald-100">Goal</p>
-            <p className="mt-1 text-lg font-black">{impact.goal} kg</p>
-          </div>
-        </div>
+        )}
 
         {isTodaySaved ? (
           <p className="text-center text-sm font-black text-emerald-200">Today&apos;s result saved</p>
@@ -112,30 +114,26 @@ export function CarbonImpact({ dailyInputs = [], onAddToday }: CarbonImpactProps
         )}
       </section>
 
-      <section className="mt-5 rounded-[2rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-7">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-black text-foreground">{impact.listTitle}</h2>
-            <p className="mt-1 text-sm font-bold text-muted-foreground">Less waste helps the planet</p>
-          </div>
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-            <Leaf className="h-5 w-5" />
-          </div>
+      <section className="mt-8 md:mt-10">
+        <div className="mb-4">
+          <h2 className="text-2xl font-black text-white">{impact.listTitle}</h2>
+          <p className="mt-1 text-sm font-bold text-emerald-100">Less waste helps the planet</p>
         </div>
 
-        <div className="divide-y divide-secondary">
+        <div className="divide-y divide-white/12 rounded-[2rem] bg-white/[0.08] p-5 text-white md:p-7">
           {impact.items.map((item) => (
             <div key={item.day} className="flex items-center justify-between gap-4 py-4 first:pt-2 last:pb-1">
               <div>
-                <p className="text-base font-black text-foreground">{item.day}</p>
-                <p className="mt-1 text-sm font-bold text-muted-foreground">CO₂ saved</p>
-                <p className="mt-1 text-xs font-bold text-muted-foreground">{item.note}</p>
+                <p className="text-base font-black text-white">{item.day}</p>
+                <p className="mt-1 text-sm font-bold text-emerald-100">CO₂ saved</p>
+                <p className="mt-1 text-xs font-bold text-emerald-200/80">{item.note}</p>
               </div>
-              <p className="shrink-0 text-right text-base font-black text-primary">{item.value}</p>
+              <p className="shrink-0 text-right text-base font-black text-emerald-200">{item.value}</p>
             </div>
           ))}
         </div>
       </section>
+      </div>
     </main>
   )
 }

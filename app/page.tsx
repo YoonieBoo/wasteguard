@@ -38,11 +38,17 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white text-foreground flex flex-col">
-      <div className={`flex-1 flex justify-center w-full ${showNavigation ? 'pb-28 md:pb-30' : 'pb-6'}`}>
+      <div
+        className={`flex-1 flex justify-center w-full ${
+          currentScreen === 'carbon' ? 'pb-0' : showNavigation ? 'pb-28 md:pb-30' : 'pb-6'
+        }`}
+      >
         <div
           className={
             currentScreen === 'welcome'
               ? 'w-full'
+              : currentScreen === 'carbon'
+                ? 'w-full'
               : 'w-full max-w-[430px] px-4 sm:px-5 md:max-w-[620px] md:px-6'
           }
         >
