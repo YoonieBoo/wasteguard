@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Coins, TrendingDown } from 'lucide-react'
 import { getText, type Language } from '@/lib/i18n'
-import { getSavingsData, type FoodRow, type TimeRange } from '@/lib/mock-data'
+import { getSavingsData, type FoodRow, type TimeRange, type WasteGuardRole } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
 
 interface WeeklyInsightsProps {
   dailyInputs?: FoodRow[]
   language: Language
+  role?: WasteGuardRole
 }
 
 const fills = [
@@ -25,11 +26,12 @@ const fills = [
 const weekDayLabels = ['Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed']
 const thaiWeekDayLabels = ['พฤ', 'ศ', 'ส', 'อา', 'จ', 'อ', 'พ']
 
-export function WeeklyInsights({ dailyInputs = [], language }: WeeklyInsightsProps) {
+export function WeeklyInsights({ dailyInputs = [], language, role = 'staff' }: WeeklyInsightsProps) {
   const t = getText(language)
   const [range, setRange] = useState<TimeRange>('week')
   const savings = getSavingsData(range, dailyInputs)
   const title = range === 'day' ? t.todayPeriod : range === 'week' ? t.thisWeek : t.thisMonth
+  const canSeeMoney = role === 'owner'
 
   const chartRows = savings.chartRows.map((item, index) => ({
     ...item,
@@ -52,7 +54,7 @@ export function WeeklyInsights({ dailyInputs = [], language }: WeeklyInsightsPro
         <TimeFilterToggle value={range} onChange={setRange} language={language} />
       </div>
 
-      <div className="mb-7 grid grid-cols-2 gap-3 md:mb-6 md:gap-4">
+      <div className={`mb-7 grid gap-3 md:mb-6 md:gap-4 ${canSeeMoney ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
             <TrendingDown className="h-5 w-5" />
@@ -65,17 +67,19 @@ export function WeeklyInsights({ dailyInputs = [], language }: WeeklyInsightsPro
           </p>
         </div>
 
-        <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
-          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/20 text-accent-foreground">
-            <Coins className="h-5 w-5" />
+        {canSeeMoney && (
+          <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/20 text-accent-foreground">
+              <Coins className="h-5 w-5" />
+            </div>
+            <p className="mt-2 text-3xl font-black text-foreground sm:text-4xl">
+              {savings.moneySaved.toLocaleString()}
+            </p>
+            <p className="text-sm font-bold text-muted-foreground">
+              {t.thbSaved}
+            </p>
           </div>
-          <p className="mt-2 text-3xl font-black text-foreground sm:text-4xl">
-            {savings.moneySaved.toLocaleString()}
-          </p>
-          <p className="text-sm font-bold text-muted-foreground">
-            {t.thbSaved}
-          </p>
-        </div>
+        )}
       </div>
 
       <section className="rounded-[2rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-7">

@@ -4,26 +4,50 @@ import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
-import { getPrepList, type FoodRow } from '@/lib/mock-data'
+import { getDashboardData, getPrepList, type FoodRow, type IngredientEstimate, type WasteGuardRole } from '@/lib/mock-data'
 
 interface DashboardHomeProps {
   dailyInputs?: FoodRow[]
   language: Language
+  role?: WasteGuardRole
+  bakeryName?: string
+  inviteCode?: string
 }
 
-export function DashboardHome({ dailyInputs = [], language }: DashboardHomeProps) {
+export function DashboardHome({ dailyInputs = [], language, role = 'staff', bakeryName, inviteCode }: DashboardHomeProps) {
   const t = getText(language)
   const prepList = getPrepList(dailyInputs).slice(0, 4)
+  const dashboard = getDashboardData(dailyInputs)
   const [mainItem, ...secondaryItems] = prepList
   const [view, setView] = useState<'overview' | 'list' | 'done'>('overview')
   const [doneTasks, setDoneTasks] = useState<Record<string, boolean>>({})
   const doneCount = prepList.filter((item) => doneTasks[item.name]).length
+  const canSeeMoney = role === 'owner'
 
   function toggleTask(itemName: string) {
     setDoneTasks((currentTasks) => ({
       ...currentTasks,
       [itemName]: !currentTasks[itemName],
     }))
+  }
+
+  function IngredientList({ ingredients }: { ingredients?: IngredientEstimate[] }) {
+    if (!ingredients || ingredients.length === 0) {
+      return null
+    }
+
+    return (
+      <div className="mt-3">
+        <p className="text-xs font-black uppercase tracking-normal text-muted-foreground">{t.estimatedIngredients}</p>
+        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+          {ingredients.map((ingredient) => (
+            <span key={`${ingredient.name}-${ingredient.amount}`} className="text-sm font-bold text-muted-foreground">
+              {ingredient.name}: {ingredient.amount}
+            </span>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   if (view === 'done') {
@@ -94,8 +118,11 @@ export function DashboardHome({ dailyInputs = [], language }: DashboardHomeProps
                 >
                   {isDone && <Check className="h-5 w-5" />}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-lg font-black text-foreground sm:text-xl">
-                  {translateItemName(item.name, language)}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-lg font-black text-foreground sm:text-xl">
+                    {translateItemName(item.name, language)}
+                  </span>
+                  <IngredientList ingredients={item.ingredients} />
                 </span>
                 <span className="shrink-0 text-right text-base font-black text-primary sm:text-lg">
                   {item.quantity.toLocaleString()} {t.pieces}
@@ -119,7 +146,9 @@ export function DashboardHome({ dailyInputs = [], language }: DashboardHomeProps
     <main className="py-7 md:py-6">
       <div className="mb-7 pt-5 md:mb-6 md:pt-4">
         <p className="mb-2 text-sm font-bold text-primary">{t.today}</p>
-        <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">{t.whatToBake}</h1>
+        <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">
+          {bakeryName ? t.bakeryReady.replace('{bakery}', bakeryName) : t.whatToBake}
+        </h1>
         <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">
           {t.startMainBake}
         </p>
@@ -138,15 +167,17 @@ export function DashboardHome({ dailyInputs = [], language }: DashboardHomeProps
               <span className="text-5xl font-black text-primary md:text-6xl">{mainItem.quantity.toLocaleString()}</span>
               <span className="pb-1 text-xl font-black text-foreground sm:text-2xl md:pb-1.5 md:text-3xl">{t.pieces}</span>
             </div>
+            <IngredientList ingredients={mainItem.ingredients} />
           </div>
         )}
 
         <div className="mt-5 divide-y divide-secondary">
           {secondaryItems.slice(0, 5).map((item) => (
-            <div key={item.name} className="flex items-center justify-between gap-4 py-4 first:pt-1 last:pb-1">
+            <div key={item.name} className="flex items-start justify-between gap-4 py-4 first:pt-1 last:pb-1">
               <div className="min-w-0">
                 <p className="truncate text-lg font-black text-foreground">{translateItemName(item.name, language)}</p>
                 <p className="mt-1 text-sm font-bold text-muted-foreground">{language === 'th' ? t.highDemandToday : item.label}</p>
+                <IngredientList ingredients={item.ingredients} />
               </div>
               <p className="shrink-0 text-right text-lg font-black text-primary">
                 {item.quantity.toLocaleString()} {t.pieces}
@@ -155,6 +186,27 @@ export function DashboardHome({ dailyInputs = [], language }: DashboardHomeProps
           ))}
         </div>
       </section>
+
+      {canSeeMoney && (
+        <section className="mb-7 grid grid-cols-2 gap-3 md:mb-6 md:gap-4">
+          <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
+            <p className="text-sm font-black text-primary">{t.wasteAnalytics}</p>
+            <p className="mt-3 text-3xl font-black text-foreground">{dashboard.wasteYesterday}%</p>
+            <p className="mt-1 text-sm font-bold text-muted-foreground">{t.lessWasteToday}</p>
+          </div>
+          <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
+            <p className="text-sm font-black text-primary">{t.moneyInsights}</p>
+            <p className="mt-3 text-3xl font-black text-foreground">{dashboard.moneySaved.toLocaleString()}</p>
+            <p className="mt-1 text-sm font-bold text-muted-foreground">{t.thbSaved}</p>
+          </div>
+          {inviteCode && (
+            <div className="col-span-2 rounded-[1.6rem] bg-secondary/70 p-5 md:p-6">
+              <p className="text-sm font-black text-primary">{t.staffInviteCode}</p>
+              <p className="mt-2 text-2xl font-black tracking-normal text-foreground">{inviteCode}</p>
+            </div>
+          )}
+        </section>
+      )}
 
       <Button
         onClick={() => setView('list')}

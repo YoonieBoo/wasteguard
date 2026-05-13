@@ -15,6 +15,12 @@ export type FoodRow = {
 }
 
 export type TimeRange = 'day' | 'week' | 'month'
+export type WasteGuardRole = 'staff' | 'owner'
+
+export type IngredientEstimate = {
+  name: string
+  amount: string
+}
 
 const rows = data as FoodRow[]
 
@@ -77,6 +83,7 @@ export function getPrepList(inputRows: FoodRow[] = []) {
       action: item.action,
       label: item.label,
       image: item.image,
+      ingredients: getIngredientEstimate(item.name, item.quantity),
     }))
   }
 
@@ -109,9 +116,47 @@ export function getPrepList(inputRows: FoodRow[] = []) {
       label: item.total > 500 ? 'High demand' : 'Bake today',
       image: '🥐',
       total: item.total,
+      ingredients: getIngredientEstimate(name, Math.max(1, Math.round((item.latest || item.total / item.count) * 0.9))),
     }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 5)
+}
+
+export function getIngredientEstimate(itemName: string, quantity: number): IngredientEstimate[] {
+  const rounded = Math.max(1, quantity)
+
+  if (itemName === 'Croissant') {
+    return [
+      { name: 'Flour', amount: `${Math.max(1, Math.round((rounded / 55) * 4))} kg` },
+      { name: 'Butter', amount: `${Math.max(1, Math.round((rounded / 55) * 2))} kg` },
+    ]
+  }
+
+  if (itemName === 'Banana Bread') {
+    return [
+      { name: 'Flour', amount: `${Math.max(1, Math.round((rounded / 12) * 2))} kg` },
+      { name: 'Banana', amount: `${Math.max(1, Math.round((rounded / 12) * 8))} pcs` },
+    ]
+  }
+
+  if (itemName === 'Muffin') {
+    return [
+      { name: 'Flour', amount: `${Math.max(1, Math.round((rounded / 30) * 3))} kg` },
+      { name: 'Eggs', amount: `${Math.max(6, Math.round((rounded / 30) * 18))} pcs` },
+    ]
+  }
+
+  if (itemName === 'Chocolate Cake') {
+    return [
+      { name: 'Flour', amount: `${Math.max(1, Math.round((rounded / 8) * 2))} kg` },
+      { name: 'Chocolate', amount: `${Math.max(1, Math.round((rounded / 8) * 1))} kg` },
+    ]
+  }
+
+  return [
+    { name: 'Flour', amount: `${Math.max(1, Math.round(rounded / 18))} kg` },
+    { name: 'Butter', amount: `${Math.max(1, Math.round(rounded / 30))} kg` },
+  ]
 }
 
 export function getTodayRecommendations(inputRows: FoodRow[] = []) {

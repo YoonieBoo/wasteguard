@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { getText, type Language } from '@/lib/i18n'
-import type { FoodRow } from '@/lib/mock-data'
+import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
 
 interface QuickInputProps {
   language: Language
+  role?: WasteGuardRole
   onSave?: (input: FoodRow) => void
   onViewResults?: () => void
 }
@@ -20,39 +21,45 @@ type CheckResult = {
 }
 
 const orderMap: Record<string, number> = {
-  few: 80,
-  normal: 150,
-  many: 250,
+  '0-50': 25,
+  '50-100': 75,
+  '100-150': 125,
+  '150+': 175,
 }
 
 const leftoverMap: Record<string, number> = {
-  little: 5,
-  some: 15,
-  'a lot': 35,
+  '0-5': 3,
+  '5-15': 10,
+  '15-30': 22,
+  '30+': 35,
 }
 
 const wasteLevelMap: Record<string, string> = {
-  little: 'Low',
-  some: 'Medium',
-  'a lot': 'High',
+  '0-5': 'Low',
+  '5-15': 'Medium',
+  '15-30': 'High',
+  '30+': 'High',
 }
 
 const checkResultKey = 'wasteGuardCheckResult'
 
-export function QuickInput({ language, onSave, onViewResults }: QuickInputProps) {
+export function QuickInput({ language, role = 'staff', onSave, onViewResults }: QuickInputProps) {
   const t = getText(language)
   const [demand, setDemand] = useState<string | null>(null)
   const [waste, setWaste] = useState<string | null>(null)
   const [result, setResult] = useState<CheckResult | null>(null)
+  const canSeeMoney = role === 'owner'
   const demandOptions = [
-    { label: t.quiet, value: 'few' },
-    { label: t.normal, value: 'normal' },
-    { label: t.busy, value: 'many' },
+    { label: '0-50', helper: t.quiet, value: '0-50' },
+    { label: '50-100', helper: t.normal, value: '50-100' },
+    { label: '100-150', helper: t.busy, value: '100-150' },
+    { label: '150+', helper: t.busy, value: '150+' },
   ]
   const wasteOptions = [
-    { label: t.almostNone, value: 'little' },
-    { label: t.someLeft, value: 'some' },
-    { label: t.manyLeft, value: 'a lot' },
+    { label: '0-5', helper: t.almostNone, value: '0-5' },
+    { label: '5-15', helper: t.someLeft, value: '5-15' },
+    { label: '15-30', helper: t.manyLeft, value: '15-30' },
+    { label: '30+', helper: t.manyLeft, value: '30+' },
   ]
 
   function handleDone() {
@@ -60,13 +67,13 @@ export function QuickInput({ language, onSave, onViewResults }: QuickInputProps)
       return
     }
 
-    const orders = orderMap[demand] ?? 150
-    const leftover = leftoverMap[waste] ?? 15
+    const orders = orderMap[demand] ?? 75
+    const leftover = leftoverMap[waste] ?? 10
     const foodPrepared = orders + leftover
     const today = new Date()
     const date = today.toISOString().slice(0, 10)
-    const selectedDemand = demandOptions.find((option) => option.value === demand)?.label ?? 'Normal'
-    const selectedWaste = wasteOptions.find((option) => option.value === waste)?.label ?? 'Some left'
+    const selectedDemand = demandOptions.find((option) => option.value === demand)?.label ?? '50-100'
+    const selectedWaste = wasteOptions.find((option) => option.value === waste)?.label ?? '5-15'
     const nextResult = {
       date,
       customers: selectedDemand,
@@ -112,10 +119,12 @@ export function QuickInput({ language, onSave, onViewResults }: QuickInputProps)
             <p className="text-base font-bold text-muted-foreground">{t.estimatedWaste}</p>
             <p className="text-xl font-black text-primary">{result.wasteLevel === 'Low' ? t.low : result.wasteLevel === 'High' ? t.high : t.medium}</p>
           </div>
-          <div className="flex items-center justify-between gap-4 py-4 last:pb-1">
-            <p className="text-base font-bold text-muted-foreground">{t.moneySavedToday}</p>
-            <p className="text-xl font-black text-primary">{result.moneySaved}</p>
-          </div>
+          {canSeeMoney && (
+            <div className="flex items-center justify-between gap-4 py-4 last:pb-1">
+              <p className="text-base font-bold text-muted-foreground">{t.moneySavedToday}</p>
+              <p className="text-xl font-black text-primary">{result.moneySaved}</p>
+            </div>
+          )}
         </section>
 
         <Button
@@ -141,20 +150,25 @@ export function QuickInput({ language, onSave, onViewResults }: QuickInputProps)
       <div className="mb-7 space-y-8 md:mb-6 md:space-y-6">
         <section>
           <h2 className="mb-4 text-xl font-black text-foreground sm:text-2xl">{t.customersToday}</h2>
-          <div className="grid grid-cols-3 gap-2 md:gap-3">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
             {demandOptions.map((option) => (
               <Button
                 key={option.value}
                 onClick={() => {
                   setDemand(option.value)
                 }}
-                className={`min-h-14 whitespace-normal rounded-[1.1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all sm:text-base ${
+                className={`h-auto min-h-16 whitespace-normal rounded-[1.1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all sm:text-base ${
                   demand === option.value
                     ? 'bg-primary text-primary-foreground shadow-[0_10px_20px_rgba(68,179,126,0.2)]'
                     : 'bg-white text-foreground shadow-sm hover:bg-secondary'
                 }`}
               >
-                {option.label}
+                <span className="flex flex-col items-center gap-1">
+                  <span>{option.label}</span>
+                  <span className={`text-xs ${demand === option.value ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                    {option.helper}
+                  </span>
+                </span>
               </Button>
             ))}
           </div>
@@ -162,20 +176,25 @@ export function QuickInput({ language, onSave, onViewResults }: QuickInputProps)
 
         <section>
           <h2 className="mb-4 text-xl font-black text-foreground sm:text-2xl">{t.unsoldItems}</h2>
-          <div className="grid grid-cols-3 gap-2 md:gap-3">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
             {wasteOptions.map((option) => (
               <Button
                 key={option.value}
                 onClick={() => {
                   setWaste(option.value)
                 }}
-                className={`min-h-14 whitespace-normal rounded-[1.1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all sm:text-base ${
+                className={`h-auto min-h-16 whitespace-normal rounded-[1.1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all sm:text-base ${
                   waste === option.value
                     ? 'bg-accent text-accent-foreground shadow-[0_10px_20px_rgba(199,168,76,0.18)]'
                     : 'bg-white text-foreground shadow-sm hover:bg-secondary'
                 }`}
               >
-                {option.label}
+                <span className="flex flex-col items-center gap-1">
+                  <span>{option.label}</span>
+                  <span className={`text-xs ${waste === option.value ? 'text-accent-foreground/80' : 'text-muted-foreground'}`}>
+                    {option.helper}
+                  </span>
+                </span>
               </Button>
             ))}
           </div>

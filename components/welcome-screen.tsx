@@ -1,9 +1,35 @@
+'use client'
+
+import { useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { getText, type Language } from '@/lib/i18n'
+import type { WasteGuardRole } from '@/lib/mock-data'
 
 interface WelcomeScreenProps {
   language: Language
   onStart: () => void
+  onSignIn: () => void
+}
+
+type AccountForm = {
+  fullName: string
+  bakeryName: string
+  email: string
+  password: string
+  role: WasteGuardRole
+  inviteCode: string
+}
+
+interface SignInScreenProps {
+  language: Language
+  onSignIn: (email: string, password: string) => void
+  onCreateAccount: () => void
+}
+
+interface CreateAccountScreenProps {
+  language: Language
+  onCreateAccount: (account: AccountForm) => void
   onSignIn: () => void
 }
 
@@ -33,8 +59,161 @@ export function WelcomeScreen({ language, onStart, onSignIn }: WelcomeScreenProp
           onClick={onStart}
           className="h-16 w-full rounded-[1.4rem] bg-white text-xl font-black text-emerald-700 shadow-[0_18px_40px_rgba(28,91,57,0.22)] hover:bg-white/90 md:text-2xl"
         >
-          {t.startToday}
+          {t.createAccount}
         </Button>
+        <Button
+          onClick={onSignIn}
+          variant="secondary"
+          className="mt-3 h-14 w-full rounded-[1.25rem] bg-white/20 text-lg font-black text-white shadow-[0_12px_30px_rgba(28,91,57,0.14)] hover:bg-white/25"
+        >
+          {t.signIn}
+        </Button>
+      </div>
+    </main>
+  )
+}
+
+export function SignInScreen({ language, onSignIn, onCreateAccount }: SignInScreenProps) {
+  const t = getText(language)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  return (
+    <AuthShell title={t.welcomeBack} subtitle={t.continueToBakery}>
+      <div className="space-y-3">
+        <Input
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          type="email"
+          placeholder={t.email}
+          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+        />
+        <Input
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          type="password"
+          placeholder={t.password}
+          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+        />
+      </div>
+      <Button
+        onClick={() => onSignIn(email, password)}
+        disabled={!email || !password}
+        className="mt-5 h-16 w-full rounded-[1.4rem] bg-primary text-lg font-black text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90 disabled:opacity-45"
+      >
+        {t.signIn}
+      </Button>
+      <Button
+        onClick={onCreateAccount}
+        variant="secondary"
+        className="mt-3 h-14 w-full rounded-[1.25rem] bg-secondary text-base font-black text-foreground hover:bg-secondary/80"
+      >
+        {t.needAccount}
+      </Button>
+    </AuthShell>
+  )
+}
+
+export function CreateAccountScreen({ language, onCreateAccount, onSignIn }: CreateAccountScreenProps) {
+  const t = getText(language)
+  const [form, setForm] = useState<AccountForm>({
+    fullName: '',
+    bakeryName: '',
+    email: '',
+    password: '',
+    role: 'owner',
+    inviteCode: '',
+  })
+  const canContinue =
+    form.fullName && form.bakeryName && form.email && form.password && (form.role === 'owner' || form.inviteCode)
+
+  function updateField(field: keyof AccountForm, value: string) {
+    setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  return (
+    <AuthShell title={t.newBakeryAccount} subtitle={form.role === 'owner' ? t.openBakery : t.joinBakery}>
+      <div className="grid grid-cols-2 gap-2">
+        {(['owner', 'staff'] as WasteGuardRole[]).map((option) => (
+          <button
+            key={option}
+            onClick={() => setForm((current) => ({ ...current, role: option }))}
+            className={`min-h-14 rounded-[1.1rem] px-3 py-3 text-sm font-black transition ${
+              form.role === option
+                ? 'bg-primary text-primary-foreground shadow-[0_10px_20px_rgba(68,179,126,0.2)]'
+                : 'bg-white text-foreground shadow-sm hover:bg-secondary'
+            }`}
+          >
+            {option === 'owner' ? t.bakeryOwner : t.staffMember}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-5 space-y-3">
+        <Input
+          value={form.fullName}
+          onChange={(event) => updateField('fullName', event.target.value)}
+          placeholder={t.fullName}
+          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+        />
+        <Input
+          value={form.bakeryName}
+          onChange={(event) => updateField('bakeryName', event.target.value)}
+          placeholder={t.bakeryName}
+          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+        />
+        {form.role === 'staff' && (
+          <Input
+            value={form.inviteCode}
+            onChange={(event) => updateField('inviteCode', event.target.value.toUpperCase())}
+            placeholder={t.enterInviteCode}
+            className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+          />
+        )}
+        <Input
+          value={form.email}
+          onChange={(event) => updateField('email', event.target.value)}
+          type="email"
+          placeholder={t.email}
+          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+        />
+        <Input
+          value={form.password}
+          onChange={(event) => updateField('password', event.target.value)}
+          type="password"
+          placeholder={t.password}
+          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+        />
+      </div>
+
+      <Button
+        onClick={() => onCreateAccount(form)}
+        disabled={!canContinue}
+        className="mt-5 h-16 w-full rounded-[1.4rem] bg-primary text-lg font-black text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90 disabled:opacity-45"
+      >
+        {t.createAccount}
+      </Button>
+      <Button
+        onClick={onSignIn}
+        variant="secondary"
+        className="mt-3 h-14 w-full rounded-[1.25rem] bg-secondary text-base font-black text-foreground hover:bg-secondary/80"
+      >
+        {t.alreadyHaveAccount}
+      </Button>
+    </AuthShell>
+  )
+}
+
+function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+  return (
+    <main className="flex min-h-dvh w-full justify-center bg-white px-4 py-16 sm:px-5 md:px-6">
+      <div className="w-full max-w-[430px] md:max-w-[620px]">
+        <div className="mb-7 pt-5 md:mb-6 md:pt-4">
+          <p className="mb-2 text-sm font-bold text-primary">Waste Guard</p>
+          <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">{title}</h1>
+          <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">{subtitle}</p>
+        </div>
+        <section className="rounded-[1.75rem] bg-secondary/70 p-5 md:p-6">{children}</section>
       </div>
     </main>
   )
