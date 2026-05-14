@@ -22,6 +22,40 @@ export type IngredientEstimate = {
   amount: string
 }
 
+export type BusinessDashboardData = {
+  revenue: number
+  previousRevenue: number
+  revenueChangePercent: number
+  orders: number
+  previousOrders: number
+  orderChangePercent: number
+  revenueBars: {
+    label: string
+    current: number
+    previous: number
+  }[]
+  orderTrend: {
+    label: string
+    current: number
+    previous: number
+  }[]
+  demand: {
+    morning: number
+    afternoon: number
+    evening: number
+    morningOrders: number
+    afternoonOrders: number
+    eveningOrders: number
+    dominant: 'morning' | 'afternoon' | 'evening'
+    dominantOrders: number
+  }
+  quality: {
+    freshness: number
+    taste: number
+    packaging: number
+  }
+}
+
 const rows = data as FoodRow[]
 
 function dateValue(date: string) {
@@ -39,6 +73,11 @@ function getDemoRows(inputRows: FoodRow[] = []) {
 function getRowsForRange(range: TimeRange, inputRows: FoodRow[] = []) {
   const count = range === 'day' ? 1 : range === 'week' ? 7 : 30
   return getSortedRows(inputRows).slice(0, count)
+}
+
+function getPreviousRowsForRange(range: TimeRange, inputRows: FoodRow[] = []) {
+  const count = range === 'day' ? 1 : range === 'week' ? 7 : 30
+  return getSortedRows(inputRows).slice(count, count * 2)
 }
 
 const savedPerPortion = 35
@@ -212,6 +251,111 @@ export function getTodayRecommendations(inputRows: FoodRow[] = []) {
 
 function average(items: number[]) {
   return items.reduce((sum, item) => sum + item, 0) / items.length
+}
+
+function safeAverage(items: number[]) {
+  return items.length > 0 ? average(items) : 0
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function percentChange(current: number, previous: number) {
+  if (previous <= 0) {
+    return current > 0 ? 100 : 0
+  }
+
+  return ((current - previous) / previous) * 100
+}
+
+function getChartLabel(row: FoodRow, index: number, range: TimeRange) {
+  if (range === 'day') {
+    return 'Today'
+  }
+
+  if (range === 'month') {
+    return String(index + 1).padStart(2, '0')
+  }
+
+  return new Date(row.date).toLocaleDateString('en-US', { weekday: 'short' })
+}
+
+export function getBusinessDashboardData(range: TimeRange, inputRows: FoodRow[] = []): BusinessDashboardData {
+  const currentRows = getRowsForRange(range, inputRows)
+  const previousRows = getPreviousRowsForRange(range, inputRows)
+  const orderedCurrentRows = [...currentRows].reverse()
+  const orderedPreviousRows = [...previousRows].reverse()
+  const visibleRows = orderedCurrentRows.slice(-12)
+  const visiblePreviousRows = orderedPreviousRows.slice(-12)
+  const revenue = Math.round(currentRows.reduce((sum, row) => sum + row.food_sold * 75, 0))
+  const previousRevenue = Math.round(previousRows.reduce((sum, row) => sum + row.food_sold * 75, 0))
+  const orders = currentRows.reduce((sum, row) => sum + row.orders, 0)
+  const previousOrders = previousRows.reduce((sum, row) => sum + row.orders, 0)
+
+  const revenueBars = visibleRows.map((row, index) => {
+    const previousRow = visiblePreviousRows[index] ?? row
+
+    return {
+      label: getChartLabel(row, index, range),
+      current: Math.round(row.food_sold * 75),
+      previous: Math.round(previousRow.food_sold * 75),
+    }
+  })
+
+  const orderTrend = visibleRows.map((row, index) => {
+    const previousRow = visiblePreviousRows[index] ?? row
+
+    return {
+      label: getChartLabel(row, index, range),
+      current: row.orders,
+      previous: previousRow.orders,
+    }
+  })
+
+  const morningOrders = currentRows.reduce((sum, row) => sum + Math.round(row.orders * (0.28 + row.is_weekend * 0.02)), 0)
+  const afternoonOrders = currentRows.reduce((sum, row) => sum + Math.round(row.orders * (0.39 + row.promotion * 0.03)), 0)
+  const eveningOrders = Math.max(0, orders - morningOrders - afternoonOrders)
+  const demandTotal = Math.max(1, morningOrders + afternoonOrders + eveningOrders)
+  const demandValues = {
+    morning: Math.round((morningOrders / demandTotal) * 100),
+    afternoon: Math.round((afternoonOrders / demandTotal) * 100),
+    evening: 0,
+  }
+  demandValues.evening = Math.max(0, 100 - demandValues.morning - demandValues.afternoon)
+  const demandEntries = [
+    { key: 'morning' as const, orders: morningOrders },
+    { key: 'afternoon' as const, orders: afternoonOrders },
+    { key: 'evening' as const, orders: eveningOrders },
+  ].sort((a, b) => b.orders - a.orders)
+
+  const soldRate = safeAverage(currentRows.map((row) => row.food_prepared > 0 ? row.food_sold / row.food_prepared : 0))
+  const averageWaste = safeAverage(currentRows.map((row) => row.waste_percent))
+  const averageLeftover = safeAverage(currentRows.map((row) => row.leftover))
+
+  return {
+    revenue,
+    previousRevenue,
+    revenueChangePercent: percentChange(revenue, previousRevenue),
+    orders,
+    previousOrders,
+    orderChangePercent: percentChange(orders, previousOrders),
+    revenueBars,
+    orderTrend,
+    demand: {
+      ...demandValues,
+      morningOrders,
+      afternoonOrders,
+      eveningOrders,
+      dominant: demandEntries[0]?.key ?? 'afternoon',
+      dominantOrders: demandEntries[0]?.orders ?? 0,
+    },
+    quality: {
+      freshness: clamp(Math.round(96 - averageWaste * 0.65), 72, 98),
+      taste: clamp(Math.round(78 + soldRate * 20), 72, 98),
+      packaging: clamp(Math.round(97 - averageLeftover * 0.45), 72, 98),
+    },
+  }
 }
 
 function getMonthChartRows(rowsForRange: FoodRow[]) {

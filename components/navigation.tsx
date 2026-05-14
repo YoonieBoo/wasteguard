@@ -1,4 +1,4 @@
-import { Home, Leaf, PlusCircle } from 'lucide-react'
+import { Home, Leaf, PlusCircle, type LucideIcon } from 'lucide-react'
 import { getText, type Language } from '@/lib/i18n'
 import type { WasteGuardRole } from '@/lib/mock-data'
 
@@ -11,11 +11,12 @@ interface NavigationProps {
 
 export function Navigation({ currentScreen, language, role = 'staff', onScreenChange }: NavigationProps) {
   const t = getText(language)
-  const navItems = [
+  const navItems: Array<{ id: string; label: string; icon: LucideIcon }> = [
     { id: 'home', label: t.navHome, icon: Home },
-    { id: 'input', label: t.navCheck, icon: PlusCircle },
+    ...(role === 'staff' ? [{ id: 'input', label: t.navCheck, icon: PlusCircle }] : []),
     { id: 'carbon', label: t.navImpact, icon: Leaf },
   ]
+  const gridColumns = role === 'owner' ? 'grid-cols-2' : 'grid-cols-3'
 
   return (
     <>
@@ -52,7 +53,7 @@ export function Navigation({ currentScreen, language, role = 'staff', onScreenCh
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 px-2 pb-3 sm:px-4 sm:pb-4 md:px-6 lg:hidden">
         <div className="mx-auto flex w-full max-w-[430px] justify-center rounded-[1.65rem] border border-white/80 bg-white/95 px-1.5 py-2 shadow-[0_18px_50px_rgba(35,88,62,0.16)] backdrop-blur sm:px-2 md:max-w-[620px] md:px-3">
-          <div className="grid w-full grid-cols-3 gap-1 md:gap-2">
+          <div className={`grid w-full ${gridColumns} gap-1 md:gap-2`}>
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = currentScreen === item.id

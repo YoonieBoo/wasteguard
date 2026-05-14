@@ -82,6 +82,12 @@ export default function Home() {
     })
   }, [])
 
+  useEffect(() => {
+    if (role === 'owner' && currentScreen === 'input') {
+      setCurrentScreen('home')
+    }
+  }, [currentScreen, role])
+
   function handleDailyInputSave(newInput: FoodRow) {
     const nextInputs = [...dailyInputs.filter((input) => input.date !== newInput.date), newInput]
     setDailyInputs(nextInputs)
@@ -350,7 +356,12 @@ export default function Home() {
             />
           )}
           {currentScreen === 'carbon' && (
-            <CarbonImpact dailyInputs={dailyInputs} language={language} role={role} onAddToday={() => setCurrentScreen('input')} />
+            <CarbonImpact
+              dailyInputs={dailyInputs}
+              language={language}
+              role={role}
+              onAddToday={role === 'owner' ? undefined : () => setCurrentScreen('input')}
+            />
           )}
         </div>
       </div>
