@@ -84,8 +84,8 @@ export function SignInScreen({ language, onSignIn, onCreateAccount }: SignInScre
 
     try {
       await onSignIn(email, password)
-    } catch {
-      setError(t.accountError)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : t.accountError)
     }
   }
 
@@ -149,8 +149,8 @@ export function CreateAccountScreen({ language, onCreateAccount, onSignIn }: Cre
 
     try {
       await onCreateAccount(form)
-    } catch {
-      setError(t.accountError)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : t.accountError)
     }
   }
 
