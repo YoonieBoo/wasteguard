@@ -23,12 +23,16 @@ type AccountForm = {
 
 interface SignInScreenProps {
   language: Language
+  initialEmail?: string
+  notice?: string
   onSignIn: (email: string, password: string) => Promise<void>
   onCreateAccount: () => void
 }
 
 interface CreateAccountScreenProps {
   language: Language
+  onAccountExists: (email: string) => void
+  onAccountCreated: (email: string) => void
   onCreateAccount: (account: AccountForm) => Promise<void>
   onSignIn: () => void
 }
@@ -73,25 +77,38 @@ export function WelcomeScreen({ language, onStart, onSignIn }: WelcomeScreenProp
   )
 }
 
-export function SignInScreen({ language, onSignIn, onCreateAccount }: SignInScreenProps) {
+export function SignInScreen({ language, initialEmail = '', notice, onSignIn, onCreateAccount }: SignInScreenProps) {
   const t = getText(language)
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   async function submit() {
+    if (isLoading) {
+      return
+    }
+
     setError('')
+    setIsLoading(true)
 
     try {
       await onSignIn(email, password)
     } catch (error) {
       setError(error instanceof Error ? error.message : t.accountError)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <AuthShell title={t.welcomeBack} subtitle={t.continueToBakery}>
       <div className="space-y-3">
+        {notice && (
+          <p className="rounded-[1.1rem] bg-white px-4 py-3 text-sm font-black text-primary shadow-sm">
+            {notice}
+          </p>
+        )}
         <Input
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -109,10 +126,10 @@ export function SignInScreen({ language, onSignIn, onCreateAccount }: SignInScre
       </div>
       <Button
         onClick={submit}
-        disabled={!email || !password}
+        disabled={!email || !password || isLoading}
         className="mt-5 h-16 w-full rounded-[1.4rem] bg-primary text-lg font-black text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90 disabled:opacity-45"
       >
-        {t.signIn}
+        {isLoading ? `${t.signIn}...` : t.signIn}
       </Button>
       {error && <p className="mt-3 text-sm font-bold text-destructive">{error}</p>}
       <Button
@@ -126,7 +143,13 @@ export function SignInScreen({ language, onSignIn, onCreateAccount }: SignInScre
   )
 }
 
-export function CreateAccountScreen({ language, onCreateAccount, onSignIn }: CreateAccountScreenProps) {
+export function CreateAccountScreen({
+  language,
+  onAccountExists,
+  onAccountCreated,
+  onCreateAccount,
+  onSignIn,
+}: CreateAccountScreenProps) {
   const t = getText(language)
   const [form, setForm] = useState<AccountForm>({
     fullName: '',
@@ -139,18 +162,45 @@ export function CreateAccountScreen({ language, onCreateAccount, onSignIn }: Cre
   const canContinue =
     form.fullName && form.bakeryName && form.email && form.password && (form.role === 'owner' || form.inviteCode)
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   function updateField(field: keyof AccountForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
   async function submit() {
+    if (isLoading) {
+      return
+    }
+
     setError('')
+    setIsLoading(true)
 
     try {
       await onCreateAccount(form)
+      onAccountCreated(form.email)
     } catch (error) {
-      setError(error instanceof Error ? error.message : t.accountError)
+      const message = error instanceof Error ? error.message : t.accountError
+      const normalizedMessage = message.toLowerCase()
+
+      if (normalizedMessage.includes('already') || normalizedMessage.includes('registered')) {
+        onAccountExists(form.email)
+        return
+      }
+
+      if (
+        normalizedMessage.includes('rate') ||
+        normalizedMessage.includes('too many') ||
+        normalizedMessage.includes('security') ||
+        normalizedMessage.includes('wait')
+      ) {
+        setError(t.signupRateLimit)
+        return
+      }
+
+      setError(message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -211,10 +261,10 @@ export function CreateAccountScreen({ language, onCreateAccount, onSignIn }: Cre
 
       <Button
         onClick={submit}
-        disabled={!canContinue}
+        disabled={!canContinue || isLoading}
         className="mt-5 h-16 w-full rounded-[1.4rem] bg-primary text-lg font-black text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90 disabled:opacity-45"
       >
-        {t.createAccount}
+        {isLoading ? `${t.createAccount}...` : t.createAccount}
       </Button>
       {error && <p className="mt-3 text-sm font-bold text-destructive">{error}</p>}
       <Button

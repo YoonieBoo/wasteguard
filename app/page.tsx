@@ -6,7 +6,7 @@ import { QuickInput } from '@/components/quick-input'
 import { CarbonImpact } from '@/components/carbon-impact'
 import { Navigation } from '@/components/navigation'
 import { CreateAccountScreen, SignInScreen, WelcomeScreen } from '@/components/welcome-screen'
-import type { Language } from '@/lib/i18n'
+import { getText, type Language } from '@/lib/i18n'
 import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
 import { supabase } from '@/lib/supabase'
 
@@ -42,20 +42,13 @@ export default function Home() {
   const [language, setLanguage] = useState<Language>('en')
   const [role, setRole] = useState<WasteGuardRole>('staff')
   const [authProfile, setAuthProfile] = useState<AuthProfile | null>(null)
+  const [signInEmail, setSignInEmail] = useState('')
+  const [signInNotice, setSignInNotice] = useState('')
   const showNavigation = currentScreen === 'home' || currentScreen === 'input' || currentScreen === 'carbon'
 
   useEffect(() => {
     const savedInputs = window.localStorage.getItem(dailyInputsKey)
     const savedLanguage = window.localStorage.getItem(languageKey)
-
-    window.localStorage.removeItem(authStateKey)
-    window.localStorage.removeItem(authProfileKey)
-    window.localStorage.removeItem(roleKey)
-    window.localStorage.removeItem(bakeryNameKey)
-    window.localStorage.removeItem(inviteCodeKey)
-    setAuthProfile(null)
-    setCurrentScreen('welcome')
-    supabase.auth.signOut()
 
     if (savedLanguage === 'en' || savedLanguage === 'th') {
       setLanguage(savedLanguage)
@@ -70,6 +63,23 @@ export default function Home() {
     } catch {
       setDailyInputs([])
     }
+
+    supabase.auth.getSession().then(({ data }) => {
+      const user = data.session?.user
+      const metadata = user?.user_metadata
+      const metadataRole = metadata?.role
+
+      if (user && metadata && (metadataRole === 'staff' || metadataRole === 'owner')) {
+        saveAuthProfile({
+          fullName: String(metadata.full_name || user.email?.split('@')[0] || 'Bakery Team'),
+          bakeryName: String(metadata.bakery_name || window.localStorage.getItem(bakeryNameKey) || 'My Bakery'),
+          email: user.email || '',
+          role: metadataRole,
+          inviteCode: String(metadata.invite_code || window.localStorage.getItem(inviteCodeKey) || ''),
+          bakeryId: typeof metadata.bakery_id === 'string' ? metadata.bakery_id : undefined,
+        })
+      }
+    })
   }, [])
 
   function handleDailyInputSave(newInput: FoodRow) {
@@ -121,9 +131,20 @@ export default function Home() {
     )
   }
 
+  function hasDemoAccount(email: string) {
+    const savedAccounts = window.localStorage.getItem(demoAccountsKey)
+    const accounts = savedAccounts ? (JSON.parse(savedAccounts) as (AuthProfile & { password: string })[]) : []
+
+    return accounts.some((account) => account.email.toLowerCase() === email.toLowerCase())
+  }
+
   async function handleCreateAccount(account: AccountForm) {
     const inviteCode = account.role === 'owner' ? generateInviteCode(account.bakeryName) : account.inviteCode
     let bakeryId: string | undefined
+    if (hasDemoAccount(account.email)) {
+      throw new Error('User already registered')
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email: account.email,
       password: account.password,
@@ -139,6 +160,10 @@ export default function Home() {
 
     if (error) {
       throw error
+    }
+
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      throw new Error('User already registered')
     }
 
     if (data.user?.id) {
@@ -165,7 +190,7 @@ export default function Home() {
         account.bakeryName = bakery?.bakery_name || account.bakeryName
       }
 
-      await supabase.from('users').insert({
+      await supabase.from('users').upsert({
         id: data.user.id,
         full_name: account.fullName,
         email: account.email,
@@ -194,7 +219,7 @@ export default function Home() {
     }
 
     saveDemoAccount(profile, account.password)
-    saveAuthProfile(profile)
+    await supabase.auth.signOut()
   }
 
   async function handleSignIn(email: string, password: string) {
@@ -233,6 +258,12 @@ export default function Home() {
     setCurrentScreen(screen as AppScreen)
   }
 
+  function showSignIn(email: string, notice: string) {
+    setSignInEmail(email)
+    setSignInNotice(notice)
+    setCurrentScreen('sign-in')
+  }
+
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden bg-white text-foreground lg:bg-[#f7fbf8]">
       <button
@@ -264,22 +295,39 @@ export default function Home() {
           {currentScreen === 'welcome' && (
             <WelcomeScreen
               language={language}
-              onStart={() => setCurrentScreen('create-account')}
-              onSignIn={() => setCurrentScreen('sign-in')}
+              onStart={() => {
+                setSignInNotice('')
+                setCurrentScreen('create-account')
+              }}
+              onSignIn={() => {
+                setSignInNotice('')
+                setSignInEmail('')
+                setCurrentScreen('sign-in')
+              }}
             />
           )}
           {currentScreen === 'sign-in' && (
             <SignInScreen
               language={language}
+              initialEmail={signInEmail}
+              notice={signInNotice}
               onSignIn={handleSignIn}
-              onCreateAccount={() => setCurrentScreen('create-account')}
+              onCreateAccount={() => {
+                setSignInNotice('')
+                setCurrentScreen('create-account')
+              }}
             />
           )}
           {currentScreen === 'create-account' && (
             <CreateAccountScreen
               language={language}
+              onAccountExists={(email) => showSignIn(email, getText(language).accountExists)}
+              onAccountCreated={(email) => showSignIn(email, getText(language).accountCreated)}
               onCreateAccount={handleCreateAccount}
-              onSignIn={() => setCurrentScreen('sign-in')}
+              onSignIn={() => {
+                setSignInNotice('')
+                setCurrentScreen('sign-in')
+              }}
             />
           )}
           {currentScreen === 'home' && (
