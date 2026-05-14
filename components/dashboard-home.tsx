@@ -22,7 +22,71 @@ export function DashboardHome({ dailyInputs = [], language, role = 'staff', bake
   const [view, setView] = useState<'overview' | 'list' | 'done'>('overview')
   const [doneTasks, setDoneTasks] = useState<Record<string, boolean>>({})
   const doneCount = prepList.filter((item) => doneTasks[item.name]).length
-  const canSeeMoney = role === 'owner'
+
+  if (role === 'owner') {
+    return (
+      <main className="py-7 md:py-6">
+        <div className="mb-6 pt-5 md:pt-4">
+          <p className="mb-2 text-sm font-bold text-primary">{bakeryName || t.today}</p>
+          <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">{t.ownerDashboard}</h1>
+          <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">{t.ownerDashboardNote}</p>
+        </div>
+
+        <section className="mb-5 grid grid-cols-2 gap-3 md:gap-4">
+          <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
+            <p className="text-sm font-black text-primary">{t.revenueToday}</p>
+            <p className="mt-3 text-3xl font-black text-foreground">{dashboard.revenueToday.toLocaleString()}</p>
+            <p className="mt-1 text-sm font-bold text-muted-foreground">THB</p>
+          </div>
+          <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
+            <p className="text-sm font-black text-primary">{t.thbSaved}</p>
+            <p className="mt-3 text-3xl font-black text-foreground">{dashboard.moneySaved.toLocaleString()}</p>
+            <p className="mt-1 text-sm font-bold text-muted-foreground">{t.savedThisWeek}</p>
+          </div>
+          <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
+            <p className="text-sm font-black text-primary">{t.wasteReduced}</p>
+            <p className="mt-3 text-3xl font-black text-foreground">{dashboard.wasteReduced}%</p>
+            <p className="mt-1 text-sm font-bold text-muted-foreground">{t.lowWaste}</p>
+          </div>
+          <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
+            <p className="text-sm font-black text-primary">{t.co2Saved}</p>
+            <p className="mt-3 text-3xl font-black text-foreground">{dashboard.co2Saved}</p>
+            <p className="mt-1 text-sm font-bold text-muted-foreground">kg</p>
+          </div>
+        </section>
+
+        <section className="mb-5 divide-y divide-secondary rounded-[1.75rem] bg-secondary/70 p-5 md:p-6">
+          <div className="flex items-center justify-between gap-4 pb-4">
+            <p className="text-base font-black text-foreground">{t.productionStatus}</p>
+            <p className="text-base font-black text-primary">{t.productionComplete}</p>
+          </div>
+          <div className="flex items-center justify-between gap-4 py-4">
+            <p className="text-base font-black text-foreground">{t.teamStatus}</p>
+            <p className="text-base font-black text-primary">{t.teamReady}</p>
+          </div>
+          <div className="pt-4">
+            <p className="text-base font-black text-foreground">{t.topSellingProducts}</p>
+            <p className="mt-2 text-sm font-bold text-muted-foreground">
+              {prepList.slice(0, 3).map((item) => translateItemName(item.name, language)).join(', ')}
+            </p>
+          </div>
+        </section>
+
+        <section className="mb-7 rounded-[1.75rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
+          <p className="text-base font-black text-foreground">{t.businessInsights}</p>
+          <p className="mt-2 text-sm font-bold leading-relaxed text-muted-foreground">
+            {t.onTrack}. {t.weeklyTrend}: {t.lowWaste}.
+          </p>
+          {inviteCode && (
+            <div className="mt-4 rounded-[1.25rem] bg-secondary/70 p-4">
+              <p className="text-sm font-black text-primary">{t.staffInviteCode}</p>
+              <p className="mt-1 text-2xl font-black tracking-normal text-foreground">{inviteCode}</p>
+            </div>
+          )}
+        </section>
+      </main>
+    )
+  }
 
   function toggleTask(itemName: string) {
     setDoneTasks((currentTasks) => ({
@@ -38,8 +102,7 @@ export function DashboardHome({ dailyInputs = [], language, role = 'staff', bake
 
     return (
       <div className="mt-3">
-        <p className="text-xs font-black uppercase tracking-normal text-muted-foreground">{t.estimatedIngredients}</p>
-        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+        <div className="flex flex-wrap gap-x-3 gap-y-1">
           {ingredients.map((ingredient) => (
             <span key={`${ingredient.name}-${ingredient.amount}`} className="text-sm font-bold text-muted-foreground">
               {ingredient.name}: {ingredient.amount}
@@ -159,8 +222,8 @@ export function DashboardHome({ dailyInputs = [], language, role = 'staff', bake
           <div className="rounded-[1.75rem] bg-secondary/70 p-5 md:p-6">
             <div className="mb-5">
               <div className="min-w-0">
-                <p className="text-sm font-black text-primary">{t.highDemandToday}</p>
-                <h3 className="mt-2 truncate text-2xl font-black text-foreground sm:text-3xl md:text-4xl">{translateItemName(mainItem.name, language)}</h3>
+                <p className="mb-2 text-sm font-black text-primary">{t.priorityProducts}</p>
+                <h3 className="truncate text-2xl font-black text-foreground sm:text-3xl md:text-4xl">{translateItemName(mainItem.name, language)}</h3>
               </div>
             </div>
             <div className="flex items-end gap-2 leading-none">
@@ -171,12 +234,16 @@ export function DashboardHome({ dailyInputs = [], language, role = 'staff', bake
           </div>
         )}
 
+        <div className="mt-4 rounded-[1.4rem] bg-white p-4 shadow-[0_12px_28px_rgba(41,91,67,0.08)]">
+          <p className="text-sm font-black text-primary">{t.demandPrediction}</p>
+          <p className="mt-1 text-base font-bold text-muted-foreground">{t.busy}. {t.startMainBake}</p>
+        </div>
+
         <div className="mt-5 divide-y divide-secondary">
           {secondaryItems.slice(0, 5).map((item) => (
             <div key={item.name} className="flex items-start justify-between gap-4 py-4 first:pt-1 last:pb-1">
               <div className="min-w-0">
                 <p className="truncate text-lg font-black text-foreground">{translateItemName(item.name, language)}</p>
-                <p className="mt-1 text-sm font-bold text-muted-foreground">{language === 'th' ? t.highDemandToday : item.label}</p>
                 <IngredientList ingredients={item.ingredients} />
               </div>
               <p className="shrink-0 text-right text-lg font-black text-primary">
@@ -187,32 +254,18 @@ export function DashboardHome({ dailyInputs = [], language, role = 'staff', bake
         </div>
       </section>
 
-      {canSeeMoney && (
-        <section className="mb-7 grid grid-cols-2 gap-3 md:mb-6 md:gap-4">
-          <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
-            <p className="text-sm font-black text-primary">{t.wasteAnalytics}</p>
-            <p className="mt-3 text-3xl font-black text-foreground">{dashboard.wasteYesterday}%</p>
-            <p className="mt-1 text-sm font-bold text-muted-foreground">{t.lessWasteToday}</p>
-          </div>
-          <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
-            <p className="text-sm font-black text-primary">{t.moneyInsights}</p>
-            <p className="mt-3 text-3xl font-black text-foreground">{dashboard.moneySaved.toLocaleString()}</p>
-            <p className="mt-1 text-sm font-bold text-muted-foreground">{t.thbSaved}</p>
-          </div>
-          {inviteCode && (
-            <div className="col-span-2 rounded-[1.6rem] bg-secondary/70 p-5 md:p-6">
-              <p className="text-sm font-black text-primary">{t.staffInviteCode}</p>
-              <p className="mt-2 text-2xl font-black tracking-normal text-foreground">{inviteCode}</p>
-            </div>
-          )}
-        </section>
-      )}
-
       <Button
         onClick={() => setView('list')}
         className="h-16 w-full rounded-[1.4rem] bg-primary text-lg font-bold text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90"
       >
-        {t.showBakingList}
+        {t.startProduction}
+      </Button>
+      <Button
+        onClick={() => setView('list')}
+        variant="secondary"
+        className="mt-3 h-14 w-full rounded-[1.25rem] bg-secondary text-base font-black text-foreground hover:bg-secondary/80"
+      >
+        {t.openKitchenChecklist}
       </Button>
     </main>
   )

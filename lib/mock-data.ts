@@ -53,12 +53,18 @@ export function getDashboardData(inputRows: FoodRow[] = []) {
   const cookThisMuch = todayRow.food_prepared
   const wasteYesterday = Math.round(yesterdayRow.waste_percent)
   const moneySaved = Math.round(Math.max(0, averageLeftover - todayRow.leftover) * savedPerPortion)
+  const revenueToday = Math.round(todayRow.food_sold * 75)
+  const co2Saved = Math.round(todayRow.food_sold * (1 - todayRow.waste_percent / 100) * co2PerGoodPortion)
+  const wasteReduced = Math.max(0, Math.round(averageLeftover - todayRow.leftover))
 
   return {
     ordersToday,
     cookThisMuch,
     wasteYesterday,
     moneySaved,
+    revenueToday,
+    co2Saved,
+    wasteReduced,
   }
 }
 

@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { getText, type Language } from '@/lib/i18n'
-import { getImpactData, type FoodRow, type TimeRange } from '@/lib/mock-data'
+import { getImpactData, type FoodRow, type TimeRange, type WasteGuardRole } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
 
 interface CarbonImpactProps {
   dailyInputs?: FoodRow[]
   language: Language
+  role?: WasteGuardRole
   onAddToday?: () => void
 }
 
@@ -22,7 +23,7 @@ function hasTodayInput(inputRows: FoodRow[]) {
   return inputRows.some((input) => input.date === todayDate())
 }
 
-export function CarbonImpact({ dailyInputs = [], language, onAddToday }: CarbonImpactProps) {
+export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAddToday }: CarbonImpactProps) {
   const t = getText(language)
   const [range, setRange] = useState<TimeRange>('month')
   const [todaySavedFromStorage, setTodaySavedFromStorage] = useState(false)
@@ -58,9 +59,13 @@ export function CarbonImpact({ dailyInputs = [], language, onAddToday }: CarbonI
     <main className="min-h-screen w-full bg-[radial-gradient(circle_at_50%_12%,rgba(91,211,151,0.3),transparent_17rem),linear-gradient(180deg,#073f3f_0%,#0b322f_100%)] px-4 pb-32 pt-5 text-white sm:px-5 md:px-6 md:pt-6">
       <div className="mx-auto w-full max-w-[430px] md:max-w-[620px]">
         <div className="mb-5 pt-2 md:mb-6">
-          <h1 className="text-3xl font-black leading-tight text-white sm:text-4xl">{t.yourImpact}</h1>
-          <p className="mt-2 text-base font-bold text-emerald-100">{t.wasteLess}</p>
-          <TimeFilterToggle value={range} onChange={setRange} language={language} />
+          <h1 className="text-3xl font-black leading-tight text-white sm:text-4xl">
+            {role === 'owner' ? t.yourImpact : t.resultSaved}
+          </h1>
+          <p className="mt-2 text-base font-bold text-emerald-100">
+            {role === 'owner' ? t.wasteLess : t.productionStatus}
+          </p>
+          {role === 'owner' && <TimeFilterToggle value={range} onChange={setRange} language={language} />}
         </div>
 
       <section className="pb-2 pt-3 text-white md:pt-4">
@@ -99,7 +104,7 @@ export function CarbonImpact({ dailyInputs = [], language, onAddToday }: CarbonI
           </div>
         </button>
 
-        {showGoalDetail && (
+        {role === 'owner' && showGoalDetail && (
           <div className="mb-5 text-center">
             <p className="text-base font-black text-emerald-100">{t.goal}: {goalTons} {t.tons}</p>
             <p className="mt-1 text-sm font-bold text-emerald-200">{t.youreThere.replace('{percent}', String(goalPercent))}</p>
@@ -119,6 +124,7 @@ export function CarbonImpact({ dailyInputs = [], language, onAddToday }: CarbonI
         )}
       </section>
 
+      {role === 'owner' && (
       <section className="mt-8 md:mt-10">
         <div className="mb-4">
           <h2 className="text-xl font-black text-white sm:text-2xl">{listTitle}</h2>
@@ -138,6 +144,7 @@ export function CarbonImpact({ dailyInputs = [], language, onAddToday }: CarbonI
           ))}
         </div>
       </section>
+      )}
       </div>
     </main>
   )

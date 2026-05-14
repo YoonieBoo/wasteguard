@@ -23,13 +23,13 @@ type AccountForm = {
 
 interface SignInScreenProps {
   language: Language
-  onSignIn: (email: string, password: string) => void
+  onSignIn: (email: string, password: string) => Promise<void>
   onCreateAccount: () => void
 }
 
 interface CreateAccountScreenProps {
   language: Language
-  onCreateAccount: (account: AccountForm) => void
+  onCreateAccount: (account: AccountForm) => Promise<void>
   onSignIn: () => void
 }
 
@@ -77,6 +77,17 @@ export function SignInScreen({ language, onSignIn, onCreateAccount }: SignInScre
   const t = getText(language)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+
+  async function submit() {
+    setError('')
+
+    try {
+      await onSignIn(email, password)
+    } catch {
+      setError(t.accountError)
+    }
+  }
 
   return (
     <AuthShell title={t.welcomeBack} subtitle={t.continueToBakery}>
@@ -97,12 +108,13 @@ export function SignInScreen({ language, onSignIn, onCreateAccount }: SignInScre
         />
       </div>
       <Button
-        onClick={() => onSignIn(email, password)}
+        onClick={submit}
         disabled={!email || !password}
         className="mt-5 h-16 w-full rounded-[1.4rem] bg-primary text-lg font-black text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90 disabled:opacity-45"
       >
         {t.signIn}
       </Button>
+      {error && <p className="mt-3 text-sm font-bold text-destructive">{error}</p>}
       <Button
         onClick={onCreateAccount}
         variant="secondary"
@@ -126,9 +138,20 @@ export function CreateAccountScreen({ language, onCreateAccount, onSignIn }: Cre
   })
   const canContinue =
     form.fullName && form.bakeryName && form.email && form.password && (form.role === 'owner' || form.inviteCode)
+  const [error, setError] = useState('')
 
   function updateField(field: keyof AccountForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  async function submit() {
+    setError('')
+
+    try {
+      await onCreateAccount(form)
+    } catch {
+      setError(t.accountError)
+    }
   }
 
   return (
@@ -187,12 +210,13 @@ export function CreateAccountScreen({ language, onCreateAccount, onSignIn }: Cre
       </div>
 
       <Button
-        onClick={() => onCreateAccount(form)}
+        onClick={submit}
         disabled={!canContinue}
         className="mt-5 h-16 w-full rounded-[1.4rem] bg-primary text-lg font-black text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90 disabled:opacity-45"
       >
         {t.createAccount}
       </Button>
+      {error && <p className="mt-3 text-sm font-bold text-destructive">{error}</p>}
       <Button
         onClick={onSignIn}
         variant="secondary"
