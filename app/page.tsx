@@ -54,14 +54,12 @@ export default function Home() {
       setLanguage(savedLanguage)
     }
 
-    if (!savedInputs) {
-      return
-    }
-
-    try {
-      setDailyInputs(JSON.parse(savedInputs) as FoodRow[])
-    } catch {
-      setDailyInputs([])
+    if (savedInputs) {
+      try {
+        setDailyInputs(JSON.parse(savedInputs) as FoodRow[])
+      } catch {
+        setDailyInputs([])
+      }
     }
 
     supabase.auth.getSession().then(({ data }) => {
@@ -260,6 +258,21 @@ export default function Home() {
     throw new Error('Missing account role')
   }
 
+  async function handleLogout() {
+    await supabase.auth.signOut().catch(() => undefined)
+
+    setAuthProfile(null)
+    setRole('staff')
+    setSignInEmail('')
+    setSignInNotice('')
+    setCurrentScreen('welcome')
+    window.localStorage.removeItem(authStateKey)
+    window.localStorage.removeItem(authProfileKey)
+    window.localStorage.removeItem(roleKey)
+    window.localStorage.removeItem(bakeryNameKey)
+    window.localStorage.removeItem(inviteCodeKey)
+  }
+
   function handleScreenChange(screen: string) {
     setCurrentScreen(screen as AppScreen)
   }
@@ -367,7 +380,13 @@ export default function Home() {
       </div>
 
       {showNavigation && authProfile && (
-        <Navigation currentScreen={currentScreen} language={language} role={role} onScreenChange={handleScreenChange} />
+        <Navigation
+          currentScreen={currentScreen}
+          language={language}
+          role={role}
+          onLogout={handleLogout}
+          onScreenChange={handleScreenChange}
+        />
       )}
     </div>
   )

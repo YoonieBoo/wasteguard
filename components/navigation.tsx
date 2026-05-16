@@ -1,4 +1,4 @@
-import { Home, Leaf, PlusCircle, type LucideIcon } from 'lucide-react'
+import { Home, Leaf, LogOut, PlusCircle, type LucideIcon } from 'lucide-react'
 import { getText, type Language } from '@/lib/i18n'
 import type { WasteGuardRole } from '@/lib/mock-data'
 
@@ -6,17 +6,18 @@ interface NavigationProps {
   currentScreen: string
   language: Language
   role?: WasteGuardRole
+  onLogout: () => void
   onScreenChange: (screen: string) => void
 }
 
-export function Navigation({ currentScreen, language, role = 'staff', onScreenChange }: NavigationProps) {
+export function Navigation({ currentScreen, language, role = 'staff', onLogout, onScreenChange }: NavigationProps) {
   const t = getText(language)
   const navItems: Array<{ id: string; label: string; icon: LucideIcon }> = [
     { id: 'home', label: t.navHome, icon: Home },
     ...(role === 'staff' ? [{ id: 'input', label: t.navCheck, icon: PlusCircle }] : []),
     { id: 'carbon', label: t.navImpact, icon: Leaf },
   ]
-  const gridColumns = role === 'owner' ? 'grid-cols-2' : 'grid-cols-3'
+  const gridColumns = role === 'owner' ? 'grid-cols-3' : 'grid-cols-4'
 
   return (
     <>
@@ -49,6 +50,14 @@ export function Navigation({ currentScreen, language, role = 'staff', onScreenCh
             )
           })}
         </nav>
+
+        <button
+          onClick={onLogout}
+          className="mt-auto flex h-14 w-full items-center gap-3 rounded-[1.1rem] px-4 text-left text-sm font-black text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground"
+        >
+          <LogOut className="h-5 w-5 shrink-0" />
+          <span className="truncate">{t.logOut}</span>
+        </button>
       </aside>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 px-2 pb-3 sm:px-4 sm:pb-4 md:px-6 lg:hidden">
@@ -73,6 +82,13 @@ export function Navigation({ currentScreen, language, role = 'staff', onScreenCh
                 </button>
               )
             })}
+            <button
+              onClick={onLogout}
+              className="flex h-16 flex-col items-center justify-center rounded-[1.15rem] text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground md:h-[4.25rem]"
+            >
+              <LogOut className="mb-1 h-5 w-5" />
+              <span className="max-w-full truncate px-0.5 text-[10px] font-bold sm:text-[11px]">{t.logOut}</span>
+            </button>
           </div>
         </div>
       </nav>
