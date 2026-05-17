@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Minus, Plus } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { CheckCircle2, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
+import { getBakeryItems, translatePrepUnit } from '@/lib/bakery-catalog'
 import { getPrepList, type FoodRow, type WasteGuardRole } from '@/lib/mock-data'
 
 interface QuickInputProps {
@@ -46,39 +47,22 @@ const wasteLevelMap: Record<string, string> = {
 
 const checkResultKey = 'wasteGuardCheckResult'
 
-const bakeryCheckProducts = [
-  'Hokkaido_milk',
-  'Shio_pan',
-  'Cereal_bun',
-  'Assorted_8-Flavor_Cake',
-  'Pandan_layer_cake',
-  'Classic_butter_cake',
-] as const
-
-function cleanProductTitle(fileName: string) {
-  return fileName
-    .replace(/creaam/gi, 'cream')
-    .replace(/[_-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase())
-}
-
 export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave, onViewResults }: QuickInputProps) {
   const t = getText(language)
   const [demand, setDemand] = useState<string | null>(null)
   const [waste, setWaste] = useState<string | null>(null)
   const [result, setResult] = useState<CheckResult | null>(null)
-  const prepItems = getPrepList(dailyInputs).slice(0, 3)
+  const prepItems = getPrepList(dailyInputs).slice(0, 4)
+  const prepDemand = prepItems.reduce((total, item) => total + item.quantity, 0)
   const productionItems = useMemo(
     () =>
-      bakeryCheckProducts.map((fileName, index) => ({
-        key: fileName,
-        name: cleanProductTitle(fileName),
-        planned: prepItems[index % prepItems.length]?.quantity ?? 24 + index * 6,
+      getBakeryItems(dailyInputs, prepDemand).map((item) => ({
+        key: item.fileName,
+        name: item.title,
+        planned: item.prepQuantity,
+        unit: item.prepUnit,
       })),
-    [prepItems],
+    [dailyInputs, prepDemand],
   )
   const [actualBaked, setActualBaked] = useState<Record<string, string>>(
     Object.fromEntries(productionItems.map((item) => [item.key, String(item.planned)])),
@@ -86,7 +70,6 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
   const [leftovers, setLeftovers] = useState<Record<string, string>>(
     Object.fromEntries(productionItems.map((item) => [item.key, '0'])),
   )
-  const canSeeMoney = role === 'owner'
   const demandOptions = [
     { label: '0-50', helper: t.quiet, value: '0-50' },
     { label: '50-100', helper: t.normal, value: '50-100' },
@@ -99,6 +82,17 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
     { label: '15-30', helper: t.manyLeft, value: '15-30' },
     { label: '30+', helper: t.manyLeft, value: '30+' },
   ]
+
+  useEffect(() => {
+    setActualBaked((current) => ({
+      ...Object.fromEntries(productionItems.map((item) => [item.key, String(item.planned)])),
+      ...current,
+    }))
+    setLeftovers((current) => ({
+      ...Object.fromEntries(productionItems.map((item) => [item.key, '0'])),
+      ...current,
+    }))
+  }, [productionItems])
 
   function handleDone() {
     if (!demand || !waste) {
@@ -193,7 +187,9 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
               >
                 <div className="min-w-0">
                   <h2 className="wg-card-title truncate">{translateItemName(item.name, language)}</h2>
-                  <p className="wg-meta mt-1">{t.planned}: {item.planned.toLocaleString()}</p>
+                  <p className="wg-meta mt-1">
+                    {t.planned}: {item.planned.toLocaleString()} {translatePrepUnit(item.unit, language)}
+                  </p>
                 </div>
 
                 <div>
@@ -252,39 +248,27 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
 
   if (result) {
     return (
-      <main className="wg-page">
-        <div className="wg-page-header">
-          <p className="wg-eyebrow">{t.beforeClosing}</p>
-          <h1 className="wg-page-title">{t.savedForToday}</h1>
-        </div>
-
-        <section className="wg-panel mb-6 divide-y divide-secondary">
-          <div className="flex items-center justify-between gap-4 py-4 first:pt-1">
-            <p className="wg-body">{role === 'staff' ? t.actualBaked : t.customersResult}</p>
-            <p className="text-lg font-black text-foreground">{result.customers}</p>
+      <main className="flex min-h-[calc(100dvh-9rem)] items-center py-6 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 md:py-8">
+        <section className="mx-auto w-full max-w-[32rem] text-center">
+          <div className="mx-auto mb-6 grid h-24 w-24 place-items-center rounded-[1.75rem] bg-primary/12 text-primary shadow-[0_18px_40px_rgba(68,179,126,0.14)]">
+            <CheckCircle2 className="h-14 w-14" />
           </div>
-          <div className="flex items-center justify-between gap-4 py-4">
-            <p className="wg-body">{t.unsoldResult}</p>
-            <p className="text-lg font-black text-foreground">{result.leftover}</p>
-          </div>
-          <div className="flex items-center justify-between gap-4 py-4">
-            <p className="wg-body">{t.estimatedWaste}</p>
-            <p className="text-lg font-black text-primary">{result.wasteLevel === 'Low' ? t.low : result.wasteLevel === 'High' ? t.high : t.medium}</p>
-          </div>
-          {canSeeMoney && (
-            <div className="flex items-center justify-between gap-4 py-4 last:pb-1">
-              <p className="wg-body">{t.moneySavedToday}</p>
-              <p className="text-lg font-black text-primary">{result.moneySaved}</p>
-            </div>
-          )}
+          <h1 className="text-2xl font-black leading-tight text-foreground sm:text-3xl">
+            {t.productionDataSaved}
+          </h1>
+          <p className="mx-auto mt-3 max-w-[26rem] text-base font-semibold leading-7 text-muted-foreground">
+            {t.productionDataSavedSimpleSubtitle}
+          </p>
+          <p className="mx-auto mt-3 max-w-[27rem] text-sm font-medium leading-6 text-muted-foreground">
+            {t.productionDataSavedNote}
+          </p>
+          <Button
+            onClick={onViewResults}
+            className="wg-action mt-8 w-full bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {t.backHome}
+          </Button>
         </section>
-
-        <Button
-          onClick={onViewResults}
-          className="wg-action w-full bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          {t.viewResults}
-        </Button>
       </main>
     )
   }
