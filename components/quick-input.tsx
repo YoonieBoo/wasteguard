@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Minus, Plus } from 'lucide-react'
+import { CheckCircle2, LoaderCircle, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
@@ -23,6 +23,8 @@ type CheckResult = {
   wasteLevel: string
   moneySaved: string
 }
+
+type SubmissionState = 'entry' | 'saving' | 'success'
 
 const orderMap: Record<string, number> = {
   '0-50': 25,
@@ -52,6 +54,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
   const [demand, setDemand] = useState<string | null>(null)
   const [waste, setWaste] = useState<string | null>(null)
   const [result, setResult] = useState<CheckResult | null>(null)
+  const [submissionState, setSubmissionState] = useState<SubmissionState>('entry')
   const prepItems = getPrepList(dailyInputs).slice(0, 4)
   const prepDemand = prepItems.reduce((total, item) => total + item.quantity, 0)
   const productionItems = useMemo(
@@ -94,6 +97,18 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
     }))
   }, [productionItems])
 
+  useEffect(() => {
+    if (submissionState !== 'saving') {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      setSubmissionState('success')
+    }, 1400)
+
+    return () => window.clearTimeout(timer)
+  }, [submissionState])
+
   function handleDone() {
     if (!demand || !waste) {
       return
@@ -128,6 +143,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
     onSave?.(newInput)
     window.localStorage.setItem(checkResultKey, JSON.stringify(nextResult))
     setResult(nextResult)
+    setSubmissionState('success')
   }
 
   function handleProductionDone() {
@@ -158,9 +174,10 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
     })
     window.localStorage.setItem(checkResultKey, JSON.stringify(nextResult))
     setResult(nextResult)
+    setSubmissionState('saving')
   }
 
-  if (role === 'staff' && !result) {
+  if (role === 'staff' && submissionState === 'entry') {
     return (
       <main className="wg-page">
         <div className="wg-page-header">
@@ -246,7 +263,25 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
     )
   }
 
-  if (result) {
+  if (submissionState === 'saving') {
+    return (
+      <main className="flex min-h-[calc(100dvh-9rem)] items-center py-6 animate-in fade-in-0 duration-300 md:py-8">
+        <section className="mx-auto w-full max-w-[32rem] text-center">
+          <div className="mx-auto mb-6 grid h-24 w-24 place-items-center rounded-[1.75rem] bg-primary/12 text-primary shadow-[0_18px_40px_rgba(68,179,126,0.14)]">
+            <LoaderCircle className="h-12 w-12 animate-spin" />
+          </div>
+          <h1 className="text-2xl font-black leading-tight text-foreground sm:text-3xl">
+            {t.savingProductionData}
+          </h1>
+          <p className="mx-auto mt-3 max-w-[26rem] text-base font-semibold leading-7 text-muted-foreground">
+            {t.analyzingProductionData}
+          </p>
+        </section>
+      </main>
+    )
+  }
+
+  if (result && submissionState === 'success') {
     return (
       <main className="flex min-h-[calc(100dvh-9rem)] items-center py-6 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 md:py-8">
         <section className="mx-auto w-full max-w-[32rem] text-center">
@@ -254,7 +289,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
             <CheckCircle2 className="h-14 w-14" />
           </div>
           <h1 className="text-2xl font-black leading-tight text-foreground sm:text-3xl">
-            {t.productionDataSaved}
+            {t.todaysProductionSaved}
           </h1>
           <p className="mx-auto mt-3 max-w-[26rem] text-base font-semibold leading-7 text-muted-foreground">
             {t.productionDataSavedSimpleSubtitle}
