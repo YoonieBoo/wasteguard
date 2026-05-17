@@ -294,9 +294,6 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
           <p className="mx-auto mt-3 max-w-[26rem] text-base font-semibold leading-7 text-muted-foreground">
             {t.productionDataSavedSimpleSubtitle}
           </p>
-          <p className="mx-auto mt-3 max-w-[27rem] text-sm font-medium leading-6 text-muted-foreground">
-            {t.productionDataSavedNote}
-          </p>
           <Button
             onClick={onViewResults}
             className="wg-action mt-8 w-full bg-primary text-primary-foreground hover:bg-primary/90"

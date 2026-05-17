@@ -370,19 +370,14 @@ export function DashboardHome({
               alt={featuredBakeryItem.title}
               className="h-full min-h-[20rem] w-full object-cover transition duration-700 hover:scale-[1.035] sm:min-h-[23rem] lg:min-h-[26rem]"
             />
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent p-5 text-white md:p-6">
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent p-4 text-white md:p-5">
               <p className="text-xs font-black uppercase tracking-normal text-white/80">{t.mostRequestedToday}</p>
-              <h2 className="mt-2 text-2xl font-black leading-tight sm:text-3xl lg:text-4xl">{translateItemName(featuredBakeryItem.title, language)}</h2>
             </div>
           </div>
 
-          <div className="flex flex-col justify-center p-5 md:p-6">
-            <p className="text-xs font-black uppercase tracking-normal text-primary">{t.todaysBakingRecommendation}</p>
-            <h3 className="mt-2 text-2xl font-black leading-tight text-foreground sm:text-3xl">{translateItemName(featuredBakeryItem.title, language)}</h3>
-            <p className="wg-body mt-3 max-w-[28rem]">
-              {t.highDemandToday}
-            </p>
-            <div className="mt-6 flex items-end gap-2 leading-none">
+          <div className="flex flex-col justify-center p-6 md:p-8 lg:p-9">
+            <h3 className="text-2xl font-black leading-tight text-foreground sm:text-3xl">{translateItemName(featuredBakeryItem.title, language)}</h3>
+            <div className="mt-5 flex items-end gap-2 leading-none md:mt-6">
               <span className="text-4xl font-black text-primary md:text-5xl">{featuredBakeryItem.prepQuantity.toLocaleString()}</span>
               <span className="pb-1 text-lg font-black text-foreground sm:text-xl">{translatePrepUnit(featuredBakeryItem.prepUnit, language)}</span>
             </div>
