@@ -85,7 +85,7 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
   const [isLoading, setIsLoading] = useState(false)
 
   async function submit() {
-    if (isLoading) {
+    if (!email || !password || isLoading) {
       return
     }
 
@@ -103,36 +103,44 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
 
   return (
     <AuthShell title={t.welcomeBack} subtitle={t.continueToBakery}>
-      <div className="space-y-3">
-        {notice && (
-          <p className="rounded-[1rem] bg-white px-4 py-3 text-sm font-bold leading-6 text-primary shadow-sm">
-            {notice}
-          </p>
-        )}
-        <Input
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          type="email"
-          placeholder={t.email}
-          className="wg-control border-secondary bg-white"
-        />
-        <Input
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          type="password"
-          placeholder={t.password}
-          className="wg-control border-secondary bg-white"
-        />
-      </div>
-      <Button
-        onClick={submit}
-        disabled={!email || !password || isLoading}
-        className="wg-action mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-45"
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          void submit()
+        }}
       >
-        {isLoading ? `${t.signIn}...` : t.signIn}
-      </Button>
+        <div className="space-y-3">
+          {notice && (
+            <p className="rounded-[1rem] bg-white px-4 py-3 text-sm font-bold leading-6 text-primary shadow-sm">
+              {notice}
+            </p>
+          )}
+          <Input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            placeholder={t.email}
+            className="wg-control border-secondary bg-white"
+          />
+          <Input
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            type="password"
+            placeholder={t.password}
+            className="wg-control border-secondary bg-white"
+          />
+        </div>
+        <Button
+          type="submit"
+          disabled={!email || !password || isLoading}
+          className="wg-action mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-45"
+        >
+          {isLoading ? `${t.signIn}...` : t.signIn}
+        </Button>
+      </form>
       {error && <p className="mt-3 text-sm font-bold text-destructive">{error}</p>}
       <Button
+        type="button"
         onClick={onCreateAccount}
         variant="secondary"
         className="mt-3 h-[3.25rem] w-full rounded-[1.1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
@@ -169,7 +177,7 @@ export function CreateAccountScreen({
   }
 
   async function submit() {
-    if (isLoading) {
+    if (!canContinue || isLoading) {
       return
     }
 
@@ -206,68 +214,77 @@ export function CreateAccountScreen({
 
   return (
     <AuthShell title={t.newBakeryAccount} subtitle={form.role === 'owner' ? t.openBakery : t.joinBakery}>
-      <div className="grid grid-cols-2 gap-2">
-        {(['owner', 'staff'] as WasteGuardRole[]).map((option) => (
-          <button
-            key={option}
-            onClick={() => setForm((current) => ({ ...current, role: option }))}
-            className={`min-h-[3.25rem] rounded-[1rem] px-3 py-3 text-sm font-black transition ${
-              form.role === option
-                ? 'bg-primary text-primary-foreground shadow-[0_10px_20px_rgba(68,179,126,0.2)]'
-                : 'bg-white text-foreground shadow-sm hover:bg-secondary'
-            }`}
-          >
-            {option === 'owner' ? t.bakeryOwner : t.staffMember}
-          </button>
-        ))}
-      </div>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          void submit()
+        }}
+      >
+        <div className="grid grid-cols-2 gap-2">
+          {(['owner', 'staff'] as WasteGuardRole[]).map((option) => (
+            <button
+              type="button"
+              key={option}
+              onClick={() => setForm((current) => ({ ...current, role: option }))}
+              className={`min-h-[3.25rem] rounded-[1rem] px-3 py-3 text-sm font-black transition ${
+                form.role === option
+                  ? 'bg-primary text-primary-foreground shadow-[0_10px_20px_rgba(68,179,126,0.2)]'
+                  : 'bg-white text-foreground shadow-sm hover:bg-secondary'
+              }`}
+            >
+              {option === 'owner' ? t.bakeryOwner : t.staffMember}
+            </button>
+          ))}
+        </div>
 
-      <div className="mt-5 space-y-3">
-        <Input
-          value={form.fullName}
-          onChange={(event) => updateField('fullName', event.target.value)}
-          placeholder={t.fullName}
-          className="wg-control border-secondary bg-white"
-        />
-        <Input
-          value={form.bakeryName}
-          onChange={(event) => updateField('bakeryName', event.target.value)}
-          placeholder={t.bakeryName}
-          className="wg-control border-secondary bg-white"
-        />
-        {form.role === 'staff' && (
+        <div className="mt-5 space-y-3">
           <Input
-            value={form.inviteCode}
-            onChange={(event) => updateField('inviteCode', event.target.value.toUpperCase())}
-            placeholder={t.enterInviteCode}
+            value={form.fullName}
+            onChange={(event) => updateField('fullName', event.target.value)}
+            placeholder={t.fullName}
             className="wg-control border-secondary bg-white"
           />
-        )}
-        <Input
-          value={form.email}
-          onChange={(event) => updateField('email', event.target.value)}
-          type="email"
-          placeholder={t.email}
-          className="wg-control border-secondary bg-white"
-        />
-        <Input
-          value={form.password}
-          onChange={(event) => updateField('password', event.target.value)}
-          type="password"
-          placeholder={t.password}
-          className="wg-control border-secondary bg-white"
-        />
-      </div>
+          <Input
+            value={form.bakeryName}
+            onChange={(event) => updateField('bakeryName', event.target.value)}
+            placeholder={t.bakeryName}
+            className="wg-control border-secondary bg-white"
+          />
+          {form.role === 'staff' && (
+            <Input
+              value={form.inviteCode}
+              onChange={(event) => updateField('inviteCode', event.target.value.toUpperCase())}
+              placeholder={t.enterInviteCode}
+              className="wg-control border-secondary bg-white"
+            />
+          )}
+          <Input
+            value={form.email}
+            onChange={(event) => updateField('email', event.target.value)}
+            type="email"
+            placeholder={t.email}
+            className="wg-control border-secondary bg-white"
+          />
+          <Input
+            value={form.password}
+            onChange={(event) => updateField('password', event.target.value)}
+            type="password"
+            placeholder={t.password}
+            className="wg-control border-secondary bg-white"
+          />
+        </div>
 
-      <Button
-        onClick={submit}
-        disabled={!canContinue || isLoading}
-        className="wg-action mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-45"
-      >
-        {isLoading ? `${t.createAccount}...` : t.createAccount}
-      </Button>
+        <Button
+          type="submit"
+          disabled={!canContinue || isLoading}
+          className="wg-action mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-45"
+        >
+          {isLoading ? `${t.createAccount}...` : t.createAccount}
+        </Button>
+      </form>
       {error && <p className="mt-3 text-sm font-bold text-destructive">{error}</p>}
       <Button
+        type="button"
         onClick={onSignIn}
         variant="secondary"
         className="mt-3 h-[3.25rem] w-full rounded-[1.1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
