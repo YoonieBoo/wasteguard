@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { X } from 'lucide-react'
+import { ChevronLeft, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
@@ -469,25 +469,25 @@ export function DashboardHome({
     const activeDemand = demandSegments.find((segment) => segment.key === activeDemandKey) ?? demandSegments[0]
 
     return (
-      <main className="w-full min-w-0 py-6 md:py-6 lg:py-7">
-        <div className="mb-6 pt-5 md:pt-4">
-          <p className="mb-2 text-sm font-bold text-primary">{bakeryName || t.today}</p>
-          <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl lg:text-[2.5rem]">{t.ownerDashboard}</h1>
-          <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">{t.ownerDashboardNote}</p>
+      <main className="wg-page w-full min-w-0">
+        <div className="wg-page-header">
+          <p className="wg-eyebrow">{bakeryName || t.today}</p>
+          <h1 className="wg-page-title">{t.ownerDashboard}</h1>
+          <p className="wg-page-subtitle">{t.ownerDashboardNote}</p>
           <TimeFilterToggle value={range} onChange={setRange} language={language} />
         </div>
 
-        <div className="overflow-hidden rounded-[1.6rem] bg-white shadow-[0_18px_45px_rgba(41,91,67,0.08)]">
+        <div className="overflow-hidden rounded-[1.45rem] bg-white shadow-[0_18px_45px_rgba(41,91,67,0.08)]">
           <div className="grid xl:grid-cols-[1.75fr_1fr]">
-            <section className="border-secondary/80 p-5 md:p-7 xl:border-r">
+            <section className="border-secondary/80 p-5 md:p-6 xl:border-r">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-base font-black text-foreground">{t.revenueToday}</p>
-                  <p className="mt-2 text-3xl font-black text-foreground sm:text-4xl">THB {business.revenue.toLocaleString()}</p>
+                  <p className="wg-section-title">{t.revenueToday}</p>
+                  <p className="mt-2 text-2xl font-black text-foreground sm:text-3xl">THB {business.revenue.toLocaleString()}</p>
                   <p className={`mt-1 text-sm font-bold ${business.revenueChangePercent >= 0 ? 'text-primary' : 'text-destructive'}`}>
                     {formatPercentChange(business.revenueChangePercent)} {t.fromLastWeek}
                   </p>
-                  <p className="mt-5 text-sm font-bold text-muted-foreground">{periodTitle}</p>
+                  <p className="wg-meta mt-5">{periodTitle}</p>
                 </div>
                 <p className="rounded-[0.9rem] border border-secondary px-3 py-2 text-xs font-black text-foreground">{periodTitle}</p>
               </div>
@@ -532,11 +532,11 @@ export function DashboardHome({
               </div>
             </section>
 
-            <section className="min-w-0 border-t border-secondary/80 p-5 md:p-7 xl:border-t-0">
+            <section className="min-w-0 border-t border-secondary/80 p-5 md:p-6 xl:border-t-0">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-base font-black text-foreground">{t.demandAnalytics}</p>
-                  <p className="mt-2 text-sm font-bold text-muted-foreground">{periodTitle}</p>
+                  <p className="wg-section-title">{t.demandAnalytics}</p>
+                  <p className="wg-meta mt-2">{periodTitle}</p>
                 </div>
                 <p className="rounded-[0.9rem] border border-secondary px-3 py-2 text-xs font-black text-foreground">{periodTitle}</p>
               </div>
@@ -605,9 +605,9 @@ export function DashboardHome({
           </div>
 
           <div className="grid border-t border-secondary/80 xl:grid-cols-[1fr_1fr_1fr]">
-            <section className="border-secondary/80 p-5 md:p-7 xl:border-r">
-              <p className="text-base font-black text-foreground">{t.qualityScore}</p>
-              <p className="mt-2 text-sm font-bold text-muted-foreground">{t.qualityScoreNote}</p>
+            <section className="border-secondary/80 p-5 md:p-6 xl:border-r">
+              <p className="wg-section-title">{t.qualityScore}</p>
+              <p className="wg-meta mt-2">{t.qualityScoreNote}</p>
               <div className="relative mt-8 h-60">
                 <div className="absolute left-1 top-24 grid h-28 w-28 place-items-center rounded-full bg-[#2f9b6f] text-center text-white shadow-[0_14px_28px_rgba(68,179,126,0.18)]">
                   <p className="text-2xl font-black">{business.quality.packaging}%</p>
@@ -624,9 +624,9 @@ export function DashboardHome({
               </div>
             </section>
 
-            <section className="border-t border-secondary/80 p-5 md:p-7 xl:border-r xl:border-t-0">
-              <p className="text-base font-black text-foreground">{t.mostRequestedItems}</p>
-              <p className="mt-2 text-sm font-bold text-muted-foreground">{t.mostRequestedNote}</p>
+            <section className="border-t border-secondary/80 p-5 md:p-6 xl:border-r xl:border-t-0">
+              <p className="wg-section-title">{t.mostRequestedItems}</p>
+              <p className="wg-meta mt-2">{t.mostRequestedNote}</p>
               <div className="mt-8 divide-y divide-secondary/80">
                 {requestedItems.map((item, index) => {
                   const bakeryItem = supportingBakeryItems[index] ?? featuredBakeryItem
@@ -648,15 +648,15 @@ export function DashboardHome({
               </div>
             </section>
 
-            <section className="border-t border-secondary/80 p-5 md:p-7 xl:border-t-0">
+            <section className="border-t border-secondary/80 p-5 md:p-6 xl:border-t-0">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-base font-black text-foreground">{t.orders}</p>
-                  <p className="mt-2 text-3xl font-black text-foreground">{business.orders.toLocaleString()}</p>
+                  <p className="wg-section-title">{t.orders}</p>
+                  <p className="mt-2 text-2xl font-black text-foreground sm:text-3xl">{business.orders.toLocaleString()}</p>
                   <p className={`mt-1 text-sm font-bold ${business.orderChangePercent >= 0 ? 'text-primary' : 'text-destructive'}`}>
                     {formatPercentChange(business.orderChangePercent)} {t.fromLastWeek}
                   </p>
-                  <p className="mt-5 text-sm font-bold text-muted-foreground">{periodTitle}</p>
+                  <p className="wg-meta mt-5">{periodTitle}</p>
                 </div>
                 <p className="rounded-[0.9rem] border border-secondary px-3 py-2 text-xs font-black text-foreground">{periodTitle}</p>
               </div>
@@ -706,17 +706,17 @@ export function DashboardHome({
             [t.wasteTrend, `${savings.lessWaste}%`, true],
             [t.orderGrowth, formatPercentChange(business.orderChangePercent), business.orderChangePercent >= 0],
           ] as Array<[string, string, boolean]>).map(([label, value, isPositive]) => (
-            <div key={label} className="rounded-[1.35rem] bg-white p-4 text-center shadow-[0_12px_28px_rgba(41,91,67,0.08)]">
-              <p className={`text-xl font-black ${isPositive ? 'text-primary' : 'text-destructive'}`}>{value}</p>
-              <p className="mt-1 text-xs font-bold text-muted-foreground">{label}</p>
+            <div key={label} className="rounded-[1.2rem] bg-white p-4 text-center shadow-[0_12px_28px_rgba(41,91,67,0.08)]">
+              <p className={`text-lg font-black ${isPositive ? 'text-primary' : 'text-destructive'}`}>{value}</p>
+              <p className="wg-meta mt-1">{label}</p>
             </div>
           ))}
         </section>
 
         {inviteCode && (
-          <section className="mt-5 rounded-[1.6rem] bg-secondary/70 p-5 md:p-6">
+          <section className="mt-5 rounded-[1.35rem] bg-secondary/70 p-5">
             <p className="text-sm font-black text-primary">{t.staffInviteCode}</p>
-            <p className="mt-2 text-2xl font-black tracking-normal text-foreground">{inviteCode}</p>
+            <p className="mt-2 text-xl font-black tracking-normal text-foreground">{inviteCode}</p>
           </section>
         )}
       </main>
@@ -725,42 +725,42 @@ export function DashboardHome({
 
   return (
     <>
-    <main className="py-7 md:py-6">
-      <div className="mb-6 pt-5 md:pt-4">
-        <p className="mb-2 text-sm font-bold text-primary">{t.today}</p>
-        <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">{t.staffDashboard}</h1>
-        <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">{t.staffDashboardNote}</p>
+    <main className="wg-page">
+      <div className="wg-page-header">
+        <p className="wg-eyebrow">{t.today}</p>
+        <h1 className="wg-page-title">{t.staffDashboard}</h1>
+        <p className="wg-page-subtitle">{t.staffDashboardNote}</p>
       </div>
 
       <button
         type="button"
         onClick={() => setSelectedBakeryItem(featuredBakeryItem)}
-        className={`block w-full overflow-hidden rounded-[1.75rem] bg-white text-left shadow-[0_18px_45px_rgba(41,91,67,0.1)] outline-none transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_52px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
+        className={`block w-full overflow-hidden rounded-[1.45rem] bg-white text-left shadow-[0_18px_45px_rgba(41,91,67,0.1)] outline-none transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_52px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
           selectedBakeryItem?.fileName === featuredBakeryItem.fileName ? 'ring-4 ring-primary/20' : ''
         }`}
       >
         <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="relative min-h-[22rem] overflow-hidden bg-[#302927] sm:min-h-[25rem] lg:min-h-[28rem]">
+          <div className="relative min-h-[20rem] overflow-hidden bg-[#302927] sm:min-h-[23rem] lg:min-h-[26rem]">
             <img
               src={featuredBakeryItem.imageSrc}
               alt={featuredBakeryItem.title}
-              className="h-full min-h-[22rem] w-full object-cover transition duration-700 hover:scale-[1.035] sm:min-h-[25rem] lg:min-h-[28rem]"
+              className="h-full min-h-[20rem] w-full object-cover transition duration-700 hover:scale-[1.035] sm:min-h-[23rem] lg:min-h-[26rem]"
             />
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent p-5 text-white md:p-7">
-              <p className="text-sm font-black uppercase tracking-normal text-white/80">{t.mostRequestedToday}</p>
-              <h2 className="mt-2 text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">{translateItemName(featuredBakeryItem.title, language)}</h2>
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent p-5 text-white md:p-6">
+              <p className="text-xs font-black uppercase tracking-normal text-white/80">{t.mostRequestedToday}</p>
+              <h2 className="mt-2 text-2xl font-black leading-tight sm:text-3xl lg:text-4xl">{translateItemName(featuredBakeryItem.title, language)}</h2>
             </div>
           </div>
 
-          <div className="flex flex-col justify-center p-5 md:p-7">
-            <p className="text-sm font-black text-primary">{t.todaysBakingRecommendation}</p>
-            <h3 className="mt-2 text-3xl font-black leading-tight text-foreground sm:text-4xl">{translateItemName(featuredBakeryItem.title, language)}</h3>
-            <p className="mt-3 max-w-[28rem] text-base font-bold leading-relaxed text-muted-foreground">
+          <div className="flex flex-col justify-center p-5 md:p-6">
+            <p className="text-xs font-black uppercase tracking-normal text-primary">{t.todaysBakingRecommendation}</p>
+            <h3 className="mt-2 text-2xl font-black leading-tight text-foreground sm:text-3xl">{translateItemName(featuredBakeryItem.title, language)}</h3>
+            <p className="wg-body mt-3 max-w-[28rem]">
               {t.highDemandToday}
             </p>
             <div className="mt-6 flex items-end gap-2 leading-none">
-              <span className="text-5xl font-black text-primary md:text-6xl">{featuredBakeryItem.prepQuantity.toLocaleString()}</span>
-              <span className="pb-1 text-xl font-black text-foreground sm:text-2xl">{translatePrepUnit(featuredBakeryItem.prepUnit, language)}</span>
+              <span className="text-4xl font-black text-primary md:text-5xl">{featuredBakeryItem.prepQuantity.toLocaleString()}</span>
+              <span className="pb-1 text-lg font-black text-foreground sm:text-xl">{translatePrepUnit(featuredBakeryItem.prepUnit, language)}</span>
             </div>
           </div>
         </div>
@@ -769,7 +769,7 @@ export function DashboardHome({
       <section className="mt-5">
         <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-base font-black text-foreground">{t.mostRequestedItems}</p>
+            <p className="wg-section-title">{t.mostRequestedItems}</p>
             <p className="mt-1 text-xs font-black text-primary">{t.today}</p>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 md:justify-end md:overflow-visible md:pb-0">
@@ -781,7 +781,7 @@ export function DashboardHome({
                   key={category}
                   type="button"
                   onClick={() => setSelectedCategory(category)}
-                  className={`shrink-0 rounded-full px-4 py-2 text-xs font-black transition duration-200 ${
+                  className={`shrink-0 rounded-full px-4 py-2 text-xs font-black leading-none transition duration-200 ${
                     isActive
                       ? 'bg-primary text-primary-foreground shadow-[0_10px_22px_rgba(68,179,126,0.18)]'
                       : 'bg-white text-muted-foreground shadow-[0_8px_20px_rgba(41,91,67,0.07)] hover:-translate-y-0.5 hover:text-foreground'
@@ -803,7 +803,7 @@ export function DashboardHome({
                 type="button"
                 key={item.fileName}
                 onClick={() => setSelectedBakeryItem(item)}
-                className={`group min-w-[11rem] snap-start overflow-hidden rounded-[1.4rem] bg-white text-left shadow-[0_14px_35px_rgba(41,91,67,0.09)] outline-none transition duration-300 animate-in fade-in-0 zoom-in-95 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
+                className={`group min-w-[11rem] snap-start overflow-hidden rounded-[1.25rem] bg-white text-left shadow-[0_14px_35px_rgba(41,91,67,0.09)] outline-none transition duration-300 animate-in fade-in-0 zoom-in-95 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
                   isSelected ? 'ring-4 ring-primary/20' : ''
                 }`}
               >
@@ -816,7 +816,7 @@ export function DashboardHome({
                 </div>
                 <div className="p-4">
                   <div className="flex min-h-10 items-start justify-between gap-2">
-                    <p className="line-clamp-2 text-sm font-black leading-tight text-foreground">{translateItemName(item.title, language)}</p>
+                    <p className="line-clamp-2 text-sm font-black leading-snug text-foreground">{translateItemName(item.title, language)}</p>
                     {isCompleted && (
                       <span className="shrink-0 rounded-full bg-primary/12 px-2 py-1 text-[10px] font-black text-primary">
                         {t.completed}
@@ -889,34 +889,38 @@ function PreparationDetailsPanel({
 
   return (
     <>
-      <button
-        type="button"
-        aria-label="Close preparation details"
-        onClick={onClose}
-        className="fixed inset-0 z-[65] bg-black/35 backdrop-blur-[1px] animate-in fade-in-0 lg:hidden"
-      />
-      <aside className="fixed inset-x-0 bottom-0 z-[70] max-h-[90dvh] overflow-y-auto rounded-t-[1.75rem] bg-white shadow-[0_-24px_70px_rgba(35,88,62,0.22)] animate-in slide-in-from-bottom-6 duration-300 lg:inset-x-auto lg:bottom-auto lg:right-0 lg:top-0 lg:h-dvh lg:max-h-dvh lg:w-[420px] lg:rounded-none lg:border-l lg:border-secondary/80 lg:shadow-[-24px_0_70px_rgba(35,88,62,0.14)] lg:slide-in-from-right-6">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 bg-white/92 px-5 py-4 backdrop-blur md:px-6">
-          <div>
-            <p className="text-xs font-black uppercase tracking-normal text-primary">{t.preparationDetails}</p>
-            <p className="mt-1 text-sm font-bold text-muted-foreground">{t.aiDemandForecast}</p>
+      <aside className="fixed inset-0 z-[70] h-dvh overflow-y-auto bg-white animate-in slide-in-from-right-4 duration-300 xl:inset-x-auto xl:bottom-auto xl:right-0 xl:top-0 xl:max-h-dvh xl:w-[420px] xl:border-l xl:border-secondary/80 xl:shadow-[-24px_0_70px_rgba(35,88,62,0.14)]">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-secondary/70 bg-white/94 px-4 py-3 backdrop-blur sm:px-6 xl:border-b-0 xl:px-6 xl:py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 xl:hidden"
+              aria-label="Back"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <div className="min-w-0">
+              <p className="wg-eyebrow mb-0">{t.preparationDetails}</p>
+              <p className="wg-meta mt-1 truncate">{t.aiDemandForecast}</p>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80"
+            className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 xl:grid"
             aria-label="Close preparation details"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="px-5 pb-5 md:px-6">
-          <div className="overflow-hidden rounded-[1.35rem] bg-secondary">
-            <img src={item.imageSrc} alt={translateItemName(item.title, language)} className="aspect-[4/3] w-full object-cover" />
+        <div className="mx-auto w-full max-w-3xl px-4 pb-28 pt-5 sm:px-6 md:pt-6 xl:max-w-none xl:px-6 xl:pb-5 xl:pt-0">
+          <div className="overflow-hidden rounded-[1.25rem] bg-secondary shadow-[0_16px_36px_rgba(41,91,67,0.08)] xl:shadow-none">
+            <img src={item.imageSrc} alt={translateItemName(item.title, language)} className="aspect-[4/3] w-full object-cover md:aspect-[16/9] xl:aspect-[4/3]" />
           </div>
 
-          <div className="mt-5">
+          <div className="mt-6 xl:mt-5">
             <div className="flex flex-wrap items-center gap-2">
               <span className={`rounded-full px-3 py-1 text-xs font-black ${demandTone}`}>{translateDemandLevel(item.demandLevel, language)}</span>
               <span className={`rounded-full bg-secondary px-3 py-1 text-xs font-black ${riskTone}`}>{translateWasteRisk(item.wasteRisk, language)}</span>
@@ -924,41 +928,41 @@ function PreparationDetailsPanel({
                 <span className="rounded-full bg-primary/12 px-3 py-1 text-xs font-black text-primary">{t.completed}</span>
               )}
             </div>
-            <h2 className="mt-3 text-3xl font-black leading-tight text-foreground">{translateItemName(item.title, language)}</h2>
+            <h2 className="mt-3 text-2xl font-black leading-tight text-foreground sm:text-3xl">{translateItemName(item.title, language)}</h2>
           </div>
 
-          <section className="mt-6">
-            <p className="text-2xl font-black text-foreground">
+          <section className="mt-7 xl:mt-6">
+            <p className="text-xl font-black leading-tight text-foreground sm:text-2xl">
               {t.prepareAmount
                 .replace('{amount}', item.prepQuantity.toLocaleString())
                 .replace('{unit}', translatePrepUnit(item.prepUnit, language))}
             </p>
           </section>
 
-          <section className="mt-6">
-            <p className="text-sm font-black text-muted-foreground">{t.estimatedIngredientUsage}</p>
+          <section className="mt-7 xl:mt-6">
+            <p className="wg-label">{t.estimatedIngredientUsage}</p>
             <div className="mt-3 divide-y divide-secondary">
               {item.ingredientUsage.map((ingredient) => (
-                <div key={`${ingredient.name}-${ingredient.amount}`} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
-                  <p className="text-sm font-bold text-foreground">{translateIngredientName(ingredient.name, language)}</p>
-                  <p className="text-sm font-black text-primary">{ingredient.amount}</p>
+                <div key={`${ingredient.name}-${ingredient.amount}`} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0 xl:py-3">
+                  <p className="text-sm font-bold text-foreground sm:text-base xl:text-sm">{translateIngredientName(ingredient.name, language)}</p>
+                  <p className="text-sm font-black text-primary sm:text-base xl:text-sm">{ingredient.amount}</p>
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="mt-6">
-            <p className="text-xs font-black uppercase tracking-normal text-muted-foreground">{t.preparationNote}</p>
-            <p className="mt-2 text-base font-black text-foreground">{translatePreparationNote(item.preparationNote, language)}</p>
+          <section className="mt-7 xl:mt-6">
+            <p className="wg-label">{t.preparationNote}</p>
+            <p className="mt-2 text-base font-black leading-7 text-foreground">{translatePreparationNote(item.preparationNote, language)}</p>
           </section>
         </div>
 
-        <div className="sticky bottom-0 bg-white/95 px-5 pb-5 pt-3 backdrop-blur md:px-6">
+        <div className="fixed inset-x-0 bottom-0 z-10 bg-white/95 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-14px_30px_rgba(41,91,67,0.08)] backdrop-blur sm:px-6 xl:sticky xl:px-6 xl:pb-5 xl:shadow-none">
           <Button
             type="button"
             onClick={() => onComplete(item)}
             disabled={isCompleted}
-            className={`h-14 w-full rounded-[1.2rem] text-base font-black shadow-[0_14px_28px_rgba(68,179,126,0.22)] transition-all ${
+            className={`wg-action w-full transition-all ${
               isCompleted
                 ? 'bg-emerald-900 text-white opacity-95'
                 : 'bg-primary text-primary-foreground hover:bg-primary/90'

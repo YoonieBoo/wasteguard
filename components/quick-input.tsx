@@ -168,11 +168,11 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
 
   if (role === 'staff' && !result) {
     return (
-      <main className="py-6 md:py-6">
-        <div className="mb-5 md:pt-2">
-          <p className="mb-2 text-sm font-black text-primary">{t.beforeClosing}</p>
-          <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">{t.todaysProductionEntry}</h1>
-          <p className="mt-2 text-base font-medium leading-relaxed text-muted-foreground">
+      <main className="wg-page">
+        <div className="wg-page-header">
+          <p className="wg-eyebrow">{t.beforeClosing}</p>
+          <h1 className="wg-page-title">{t.todaysProductionEntry}</h1>
+          <p className="wg-page-subtitle">
             {t.productionEntrySubtitle}
           </p>
         </div>
@@ -189,15 +189,15 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
             return (
               <div
                 key={item.key}
-                className="grid gap-3 border-b border-secondary/80 p-4 last:border-b-0 md:grid-cols-[minmax(0,1.15fr)_minmax(12rem,0.9fr)_minmax(9rem,0.55fr)] md:items-center md:gap-4"
+                className="grid gap-3 border-b border-secondary/80 p-4 last:border-b-0 md:grid-cols-[minmax(0,1.15fr)_minmax(12rem,0.9fr)_minmax(9rem,0.55fr)] md:items-center md:gap-5 md:p-5"
               >
                 <div className="min-w-0">
-                  <h2 className="truncate text-base font-black text-foreground">{translateItemName(item.name, language)}</h2>
-                  <p className="mt-1 text-sm font-bold text-muted-foreground">{t.planned}: {item.planned.toLocaleString()}</p>
+                  <h2 className="wg-card-title truncate">{translateItemName(item.name, language)}</h2>
+                  <p className="wg-meta mt-1">{t.planned}: {item.planned.toLocaleString()}</p>
                 </div>
 
                 <div>
-                  <p className="mb-2 text-xs font-black uppercase tracking-normal text-muted-foreground">{t.actualBaked}</p>
+                  <p className="wg-label mb-2">{t.actualBaked}</p>
                   <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2">
                     <button
                       type="button"
@@ -212,7 +212,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
                       onChange={(event) => setActualBaked((current) => ({ ...current, [item.key]: event.target.value }))}
                       inputMode="numeric"
                       aria-label={`${item.name} ${t.actualBaked}`}
-                      className="h-11 rounded-[0.95rem] border-secondary bg-secondary/45 text-center text-lg font-black"
+                      className="h-11 rounded-[0.95rem] border-secondary bg-secondary/45 text-center text-base font-black"
                     />
                     <button
                       type="button"
@@ -226,13 +226,13 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
                 </div>
 
                 <div>
-                  <p className="mb-2 text-xs font-black uppercase tracking-normal text-muted-foreground">{t.leftovers}</p>
+                  <p className="wg-label mb-2">{t.leftovers}</p>
                   <Input
                     value={leftovers[item.key] ?? ''}
                     onChange={(event) => setLeftovers((current) => ({ ...current, [item.key]: event.target.value }))}
                     inputMode="numeric"
                     aria-label={`${item.name} ${t.leftovers}`}
-                    className="h-11 rounded-[0.95rem] border-secondary bg-secondary/45 px-4 text-center text-lg font-black"
+                    className="h-11 rounded-[0.95rem] border-secondary bg-secondary/45 px-4 text-center text-base font-black"
                   />
                 </div>
               </div>
@@ -242,7 +242,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
 
         <Button
           onClick={handleProductionDone}
-          className="h-16 w-full rounded-[1.35rem] bg-primary text-lg font-black text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.22)] hover:bg-primary/90"
+          className="wg-action w-full bg-primary text-primary-foreground hover:bg-primary/90"
         >
           {t.submitProductionResults}
         </Button>
@@ -252,36 +252,36 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
 
   if (result) {
     return (
-      <main className="py-7 md:py-6">
-        <div className="mb-7 pt-5 md:mb-6 md:pt-4">
-          <p className="mb-2 text-sm font-bold text-primary">{t.beforeClosing}</p>
-          <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">{t.savedForToday}</h1>
+      <main className="wg-page">
+        <div className="wg-page-header">
+          <p className="wg-eyebrow">{t.beforeClosing}</p>
+          <h1 className="wg-page-title">{t.savedForToday}</h1>
         </div>
 
-        <section className="mb-7 divide-y divide-secondary md:mb-6">
+        <section className="wg-panel mb-6 divide-y divide-secondary">
           <div className="flex items-center justify-between gap-4 py-4 first:pt-1">
-            <p className="text-base font-bold text-muted-foreground">{role === 'staff' ? t.actualBaked : t.customersResult}</p>
-            <p className="text-xl font-black text-foreground">{result.customers}</p>
+            <p className="wg-body">{role === 'staff' ? t.actualBaked : t.customersResult}</p>
+            <p className="text-lg font-black text-foreground">{result.customers}</p>
           </div>
           <div className="flex items-center justify-between gap-4 py-4">
-            <p className="text-base font-bold text-muted-foreground">{t.unsoldResult}</p>
-            <p className="text-xl font-black text-foreground">{result.leftover}</p>
+            <p className="wg-body">{t.unsoldResult}</p>
+            <p className="text-lg font-black text-foreground">{result.leftover}</p>
           </div>
           <div className="flex items-center justify-between gap-4 py-4">
-            <p className="text-base font-bold text-muted-foreground">{t.estimatedWaste}</p>
-            <p className="text-xl font-black text-primary">{result.wasteLevel === 'Low' ? t.low : result.wasteLevel === 'High' ? t.high : t.medium}</p>
+            <p className="wg-body">{t.estimatedWaste}</p>
+            <p className="text-lg font-black text-primary">{result.wasteLevel === 'Low' ? t.low : result.wasteLevel === 'High' ? t.high : t.medium}</p>
           </div>
           {canSeeMoney && (
             <div className="flex items-center justify-between gap-4 py-4 last:pb-1">
-              <p className="text-base font-bold text-muted-foreground">{t.moneySavedToday}</p>
-              <p className="text-xl font-black text-primary">{result.moneySaved}</p>
+              <p className="wg-body">{t.moneySavedToday}</p>
+              <p className="text-lg font-black text-primary">{result.moneySaved}</p>
             </div>
           )}
         </section>
 
         <Button
           onClick={onViewResults}
-          className="h-16 w-full rounded-[1.4rem] bg-primary text-lg font-bold text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90"
+          className="wg-action w-full bg-primary text-primary-foreground hover:bg-primary/90"
         >
           {t.viewResults}
         </Button>
@@ -290,20 +290,20 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
   }
 
   return (
-    <main className="py-7 md:py-6">
-      <div className="mb-7 md:mb-6 md:pt-2">
-        <p className="mb-2 text-sm font-bold text-primary">{t.beforeClosing}</p>
-        <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">
+    <main className="wg-page">
+      <div className="wg-page-header">
+        <p className="wg-eyebrow">{t.beforeClosing}</p>
+        <h1 className="wg-page-title">
           {role === 'owner' ? t.dailyBusinessResult : t.howWasToday}
         </h1>
-        <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">
+        <p className="wg-page-subtitle">
           {t.estimateHelper}
         </p>
       </div>
 
-      <div className="mb-7 space-y-8 md:mb-6 md:space-y-6">
+      <div className="mb-6 space-y-6">
         <section>
-          <h2 className="mb-4 text-xl font-black text-foreground sm:text-2xl">{t.customersToday}</h2>
+          <h2 className="wg-section-title mb-3">{t.customersToday}</h2>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
             {demandOptions.map((option) => (
               <Button
@@ -311,7 +311,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
                 onClick={() => {
                   setDemand(option.value)
                 }}
-                className={`h-auto min-h-16 whitespace-normal rounded-[1.1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all sm:text-base ${
+                className={`h-auto min-h-[3.75rem] whitespace-normal rounded-[1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all ${
                   demand === option.value
                     ? 'bg-primary text-primary-foreground shadow-[0_10px_20px_rgba(68,179,126,0.2)]'
                     : 'bg-white text-foreground shadow-sm hover:bg-secondary'
@@ -329,7 +329,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
         </section>
 
         <section>
-          <h2 className="mb-4 text-xl font-black text-foreground sm:text-2xl">{t.unsoldItems}</h2>
+          <h2 className="wg-section-title mb-3">{t.unsoldItems}</h2>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
             {wasteOptions.map((option) => (
               <Button
@@ -337,7 +337,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
                 onClick={() => {
                   setWaste(option.value)
                 }}
-                className={`h-auto min-h-16 whitespace-normal rounded-[1.1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all sm:text-base ${
+                className={`h-auto min-h-[3.75rem] whitespace-normal rounded-[1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all ${
                   waste === option.value
                     ? 'bg-accent text-accent-foreground shadow-[0_10px_20px_rgba(199,168,76,0.18)]'
                     : 'bg-white text-foreground shadow-sm hover:bg-secondary'
@@ -358,7 +358,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
       <Button
         onClick={handleDone}
         disabled={!demand || !waste}
-        className="h-16 w-full rounded-[1.4rem] bg-primary text-lg font-bold text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90 disabled:opacity-45"
+        className="wg-action w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-45"
       >
         {t.saveToday}
       </Button>

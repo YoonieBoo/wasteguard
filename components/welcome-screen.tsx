@@ -51,9 +51,9 @@ export function WelcomeScreen({ language, onStart, onSignIn }: WelcomeScreenProp
       </div>
 
       <div className="welcome-fade-up relative z-10 mx-auto flex w-full max-w-[430px] flex-1 flex-col items-center justify-center text-center md:max-w-[620px]">
-        <h1 className="text-4xl font-black leading-tight tracking-normal min-[360px]:text-5xl sm:text-6xl md:text-7xl">{t.welcomeTitle}</h1>
+        <h1 className="text-4xl font-black leading-tight tracking-normal sm:text-5xl md:text-6xl">{t.welcomeTitle}</h1>
        
-        <p className="mt-4 max-w-[22rem] text-base font-bold leading-relaxed text-white/85 md:max-w-[28rem] md:text-lg">
+        <p className="mt-4 max-w-[22rem] text-base font-semibold leading-7 text-white/85 md:max-w-[28rem]">
           {t.welcomeSubtitle}
         </p>
       </div>
@@ -61,14 +61,14 @@ export function WelcomeScreen({ language, onStart, onSignIn }: WelcomeScreenProp
       <div className="welcome-fade-up welcome-delay relative z-10 mx-auto w-full max-w-[360px] pb-4 md:max-w-[420px]">
         <Button
           onClick={onStart}
-          className="h-16 w-full rounded-[1.4rem] bg-white text-xl font-black text-emerald-700 shadow-[0_18px_40px_rgba(28,91,57,0.22)] hover:bg-white/90 md:text-2xl"
+          className="wg-action w-full bg-white text-base font-black text-emerald-700 shadow-[0_18px_40px_rgba(28,91,57,0.22)] hover:bg-white/90"
         >
           {t.createAccount}
         </Button>
         <Button
           onClick={onSignIn}
           variant="secondary"
-          className="mt-3 h-14 w-full rounded-[1.25rem] bg-white/20 text-lg font-black text-white shadow-[0_12px_30px_rgba(28,91,57,0.14)] hover:bg-white/25"
+          className="mt-3 h-[3.25rem] w-full rounded-[1.1rem] bg-white/20 text-base font-black text-white shadow-[0_12px_30px_rgba(28,91,57,0.14)] hover:bg-white/25"
         >
           {t.signIn}
         </Button>
@@ -105,7 +105,7 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
     <AuthShell title={t.welcomeBack} subtitle={t.continueToBakery}>
       <div className="space-y-3">
         {notice && (
-          <p className="rounded-[1.1rem] bg-white px-4 py-3 text-sm font-black text-primary shadow-sm">
+          <p className="rounded-[1rem] bg-white px-4 py-3 text-sm font-bold leading-6 text-primary shadow-sm">
             {notice}
           </p>
         )}
@@ -114,20 +114,20 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
           onChange={(event) => setEmail(event.target.value)}
           type="email"
           placeholder={t.email}
-          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+          className="wg-control border-secondary bg-white"
         />
         <Input
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           type="password"
           placeholder={t.password}
-          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+          className="wg-control border-secondary bg-white"
         />
       </div>
       <Button
         onClick={submit}
         disabled={!email || !password || isLoading}
-        className="mt-5 h-16 w-full rounded-[1.4rem] bg-primary text-lg font-black text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90 disabled:opacity-45"
+        className="wg-action mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-45"
       >
         {isLoading ? `${t.signIn}...` : t.signIn}
       </Button>
@@ -135,7 +135,7 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
       <Button
         onClick={onCreateAccount}
         variant="secondary"
-        className="mt-3 h-14 w-full rounded-[1.25rem] bg-secondary text-base font-black text-foreground hover:bg-secondary/80"
+        className="mt-3 h-[3.25rem] w-full rounded-[1.1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
       >
         {t.needAccount}
       </Button>
@@ -211,7 +211,7 @@ export function CreateAccountScreen({
           <button
             key={option}
             onClick={() => setForm((current) => ({ ...current, role: option }))}
-            className={`min-h-14 rounded-[1.1rem] px-3 py-3 text-sm font-black transition ${
+            className={`min-h-[3.25rem] rounded-[1rem] px-3 py-3 text-sm font-black transition ${
               form.role === option
                 ? 'bg-primary text-primary-foreground shadow-[0_10px_20px_rgba(68,179,126,0.2)]'
                 : 'bg-white text-foreground shadow-sm hover:bg-secondary'
@@ -227,20 +227,20 @@ export function CreateAccountScreen({
           value={form.fullName}
           onChange={(event) => updateField('fullName', event.target.value)}
           placeholder={t.fullName}
-          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+          className="wg-control border-secondary bg-white"
         />
         <Input
           value={form.bakeryName}
           onChange={(event) => updateField('bakeryName', event.target.value)}
           placeholder={t.bakeryName}
-          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+          className="wg-control border-secondary bg-white"
         />
         {form.role === 'staff' && (
           <Input
             value={form.inviteCode}
             onChange={(event) => updateField('inviteCode', event.target.value.toUpperCase())}
             placeholder={t.enterInviteCode}
-            className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+            className="wg-control border-secondary bg-white"
           />
         )}
         <Input
@@ -248,21 +248,21 @@ export function CreateAccountScreen({
           onChange={(event) => updateField('email', event.target.value)}
           type="email"
           placeholder={t.email}
-          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+          className="wg-control border-secondary bg-white"
         />
         <Input
           value={form.password}
           onChange={(event) => updateField('password', event.target.value)}
           type="password"
           placeholder={t.password}
-          className="h-14 rounded-[1.1rem] border-secondary bg-white px-4 text-base font-bold"
+          className="wg-control border-secondary bg-white"
         />
       </div>
 
       <Button
         onClick={submit}
         disabled={!canContinue || isLoading}
-        className="mt-5 h-16 w-full rounded-[1.4rem] bg-primary text-lg font-black text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90 disabled:opacity-45"
+        className="wg-action mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-45"
       >
         {isLoading ? `${t.createAccount}...` : t.createAccount}
       </Button>
@@ -270,7 +270,7 @@ export function CreateAccountScreen({
       <Button
         onClick={onSignIn}
         variant="secondary"
-        className="mt-3 h-14 w-full rounded-[1.25rem] bg-secondary text-base font-black text-foreground hover:bg-secondary/80"
+        className="mt-3 h-[3.25rem] w-full rounded-[1.1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
       >
         {t.alreadyHaveAccount}
       </Button>
@@ -280,14 +280,14 @@ export function CreateAccountScreen({
 
 function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
-    <main className="flex min-h-dvh w-full justify-center bg-white px-4 py-16 sm:px-5 md:px-6">
+    <main className="flex min-h-dvh w-full justify-center bg-white px-4 py-14 sm:px-5 md:px-6 md:py-16">
       <div className="w-full max-w-[430px] md:max-w-[620px]">
-        <div className="mb-7 pt-5 md:mb-6 md:pt-4">
-          <p className="mb-2 text-sm font-bold text-primary">Waste Guard</p>
-          <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">{title}</h1>
-          <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">{subtitle}</p>
+        <div className="wg-page-header">
+          <p className="wg-eyebrow">Waste Guard</p>
+          <h1 className="wg-page-title">{title}</h1>
+          <p className="wg-page-subtitle">{subtitle}</p>
         </div>
-        <section className="rounded-[1.75rem] bg-secondary/70 p-5 md:p-6">{children}</section>
+        <section className="rounded-[1.5rem] bg-secondary/70 p-4 md:p-5">{children}</section>
       </div>
     </main>
   )

@@ -287,7 +287,7 @@ export default function Home() {
     <div className="flex min-h-dvh flex-col overflow-x-hidden bg-white text-foreground lg:bg-[#f7fbf8]">
       <button
         onClick={toggleLanguage}
-        className={`fixed right-3 top-3 z-[60] rounded-full px-3 py-2 text-xs font-black shadow-[0_10px_24px_rgba(35,88,62,0.14)] transition sm:right-4 sm:top-4 sm:px-4 sm:text-sm md:right-6 ${
+        className={`fixed right-3 top-3 z-[60] rounded-full px-3 py-2 text-xs font-black leading-none shadow-[0_10px_24px_rgba(35,88,62,0.14)] transition sm:right-4 sm:top-4 sm:px-4 md:right-6 ${
           currentScreen === 'welcome' || currentScreen === 'sign-in' || currentScreen === 'create-account'
             ? 'bg-white/90 text-emerald-800 hover:bg-white'
             : 'bg-secondary text-primary hover:bg-secondary/80'
@@ -306,7 +306,7 @@ export default function Home() {
           className={
             currentScreen === 'welcome' || currentScreen === 'sign-in' || currentScreen === 'create-account'
               ? 'w-full'
-              : 'w-full max-w-[430px] px-4 pt-10 sm:px-5 md:max-w-[620px] md:px-6 lg:max-w-[1180px] lg:px-10 lg:pt-8'
+              : 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[620px] md:px-6 lg:max-w-[1180px] lg:px-10 lg:pt-7'
           }
         >
           {currentScreen === 'welcome' && (

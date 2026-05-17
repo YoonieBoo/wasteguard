@@ -126,6 +126,64 @@
   }
 }
 
+@layer components {
+  .wg-page {
+    @apply py-6 md:py-7;
+  }
+
+  .wg-page-header {
+    @apply mb-6 pt-3 md:mb-7 md:pt-4;
+  }
+
+  .wg-eyebrow {
+    @apply mb-2 text-xs font-bold uppercase tracking-normal text-primary;
+  }
+
+  .wg-page-title {
+    @apply text-2xl font-black leading-tight text-foreground sm:text-3xl lg:text-4xl;
+  }
+
+  .wg-page-subtitle {
+    @apply mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground sm:text-base sm:leading-7;
+  }
+
+  .wg-section-title {
+    @apply text-base font-black leading-snug text-foreground sm:text-lg;
+  }
+
+  .wg-card-title {
+    @apply text-sm font-black leading-snug text-foreground sm:text-base;
+  }
+
+  .wg-body {
+    @apply text-sm font-medium leading-6 text-muted-foreground sm:text-base sm:leading-7;
+  }
+
+  .wg-label {
+    @apply text-xs font-black uppercase tracking-normal text-muted-foreground;
+  }
+
+  .wg-meta {
+    @apply text-xs font-bold leading-5 text-muted-foreground;
+  }
+
+  .wg-card {
+    @apply rounded-[1.35rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] md:p-5;
+  }
+
+  .wg-panel {
+    @apply rounded-[1.5rem] bg-white p-5 shadow-[0_16px_40px_rgba(41,91,67,0.08)] md:p-6;
+  }
+
+  .wg-control {
+    @apply h-12 rounded-[1rem] px-4 text-sm font-bold sm:text-base;
+  }
+
+  .wg-action {
+    @apply h-14 rounded-[1.15rem] text-base font-black shadow-[0_14px_28px_rgba(68,179,126,0.2)] md:h-[3.75rem];
+  }
+}
+
 @keyframes welcome-fade-up {
   from {
     opacity: 0;

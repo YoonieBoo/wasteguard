@@ -44,49 +44,49 @@ export function WeeklyInsights({ dailyInputs = [], language, role = 'staff' }: W
   }))
 
   return (
-    <main className="py-7 md:py-6">
-      <div className="mb-7 md:mb-6 md:pt-2">
-        <p className="mb-2 text-sm font-bold text-primary">{title}</p>
-        <h1 className="text-3xl font-black leading-tight text-foreground sm:text-4xl">{t.yourSavings}</h1>
-        <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">
+    <main className="wg-page">
+      <div className="wg-page-header">
+        <p className="wg-eyebrow">{title}</p>
+        <h1 className="wg-page-title">{t.yourSavings}</h1>
+        <p className="wg-page-subtitle">
           {t.seeWins}
         </p>
         <TimeFilterToggle value={range} onChange={setRange} language={language} />
       </div>
 
       <div className={`mb-7 grid gap-3 md:mb-6 md:gap-4 ${canSeeMoney ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
+        <div className="wg-card">
           <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
             <TrendingDown className="h-5 w-5" />
           </div>
-          <p className="mt-2 text-3xl font-black text-foreground sm:text-4xl">
+          <p className="mt-2 text-2xl font-black text-foreground sm:text-3xl">
             {savings.lessWaste}%
           </p>
-          <p className="text-sm font-bold text-muted-foreground">
+          <p className="wg-meta">
             {t.lowWaste}
           </p>
         </div>
 
         {canSeeMoney && (
-          <div className="rounded-[1.6rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
+          <div className="wg-card">
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/20 text-accent-foreground">
               <Coins className="h-5 w-5" />
             </div>
-            <p className="mt-2 text-3xl font-black text-foreground sm:text-4xl">
+            <p className="mt-2 text-2xl font-black text-foreground sm:text-3xl">
               {savings.moneySaved.toLocaleString()}
             </p>
-            <p className="text-sm font-bold text-muted-foreground">
+            <p className="wg-meta">
               {t.thbSaved}
             </p>
           </div>
         )}
       </div>
 
-      <section className="rounded-[2rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-7">
+      <section className="wg-panel">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-black text-foreground sm:text-2xl">{title}</h2>
-            <p className="mt-1 text-sm font-bold text-muted-foreground">
+            <h2 className="wg-section-title">{title}</h2>
+            <p className="wg-meta mt-1">
               {t.higherBar}
             </p>
           </div>

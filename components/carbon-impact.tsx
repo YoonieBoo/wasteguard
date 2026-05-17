@@ -56,14 +56,14 @@ export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAdd
   }, [dailyInputs])
 
   return (
-    <main className="min-h-dvh w-full bg-[radial-gradient(circle_at_18%_10%,rgba(91,211,151,0.28),transparent_18rem),radial-gradient(circle_at_88%_20%,rgba(99,226,172,0.16),transparent_20rem),linear-gradient(180deg,#073f3f_0%,#0b322f_100%)] px-4 pb-28 pt-10 text-white sm:px-5 md:px-6 lg:px-8 lg:pb-8 lg:pt-7">
+    <main className="min-h-dvh w-full bg-[radial-gradient(circle_at_18%_10%,rgba(91,211,151,0.28),transparent_18rem),radial-gradient(circle_at_88%_20%,rgba(99,226,172,0.16),transparent_20rem),linear-gradient(180deg,#073f3f_0%,#0b322f_100%)] px-4 pb-28 pt-8 text-white sm:px-5 md:px-6 lg:px-8 lg:pb-8 lg:pt-7">
       <div className="mx-auto w-full max-w-[1040px]">
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <h1 className="text-3xl font-black leading-tight text-white sm:text-4xl lg:text-[2.5rem]">
+            <h1 className="text-2xl font-black leading-tight text-white sm:text-3xl lg:text-4xl">
               {role === 'owner' ? t.yourImpact : t.resultSaved}
             </h1>
-            <p className="mt-2 text-base font-bold text-emerald-100">
+            <p className="mt-2 text-sm font-semibold leading-6 text-emerald-100 sm:text-base">
               {role === 'owner' ? t.wasteLess : t.productionStatus}
             </p>
           </div>
@@ -74,7 +74,7 @@ export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAdd
           )}
         </div>
 
-        <section className="rounded-[1.75rem] bg-white/[0.08] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] backdrop-blur md:p-6">
+        <section className="rounded-[1.45rem] bg-white/[0.08] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] backdrop-blur md:p-6">
           <div className="grid items-center gap-6 md:grid-cols-[auto_minmax(0,1fr)] lg:gap-8">
             <button
               onClick={() => setShowGoalDetail((isOpen) => !isOpen)}
@@ -105,7 +105,7 @@ export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAdd
               </svg>
               <div className="relative text-center">
                 <p className="text-xs font-black text-emerald-300 sm:text-sm">{periodLabel}</p>
-                <p className="mt-1 text-4xl font-black leading-none">{impactTons}</p>
+                <p className="mt-1 text-3xl font-black leading-none sm:text-4xl">{impactTons}</p>
                 <p className="mt-1 text-base font-black text-white">{t.tons}</p>
               </div>
             </button>
@@ -134,7 +134,7 @@ export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAdd
           {role === 'owner' && (
             <section className="text-white">
               <div className="mb-3">
-                <h2 className="text-xl font-black text-white sm:text-2xl">{listTitle}</h2>
+                <h2 className="text-base font-black text-white sm:text-lg">{listTitle}</h2>
                 <p className="mt-1 text-sm font-bold text-emerald-100">{t.lessWastePlanet}</p>
               </div>
               <div className="divide-y divide-white/12">

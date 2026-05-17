@@ -44,40 +44,40 @@ export function TodayPlan({ dailyInputs = [] }: TodayPlanProps) {
 
   if (isFinished) {
     return (
-      <main className="py-7 md:py-6">
-        <div className="mb-8 pt-6 text-center md:pt-8">
-          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[1.75rem] bg-primary/12 text-primary">
-            <Check className="h-10 w-10" />
+      <main className="wg-page">
+        <div className="wg-page-header text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[1.25rem] bg-primary/12 text-primary">
+            <Check className="h-8 w-8" />
           </div>
-          <h1 className="text-4xl font-black leading-tight text-foreground">You&apos;re ready for today</h1>
-          <p className="mx-auto mt-4 max-w-[22rem] text-lg font-bold leading-snug text-muted-foreground">
+          <h1 className="wg-page-title">You&apos;re ready for today</h1>
+          <p className="wg-page-subtitle mx-auto">
             All items baked. You&apos;re good to open.
           </p>
         </div>
 
-        <section className="mb-6 divide-y divide-secondary rounded-[1.75rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
+        <section className="wg-panel mb-6 divide-y divide-secondary">
           <div className="flex items-center justify-between py-3 first:pt-0">
-            <p className="text-base font-bold text-muted-foreground">Orders planned</p>
-            <p className="text-xl font-black text-foreground">{dashboard.ordersToday.toLocaleString()}</p>
+            <p className="wg-body">Orders planned</p>
+            <p className="text-lg font-black text-foreground">{dashboard.ordersToday.toLocaleString()}</p>
           </div>
           <div className="flex items-center justify-between py-3">
-            <p className="text-base font-bold text-muted-foreground">Total baked</p>
-            <p className="text-xl font-black text-foreground">{dashboard.cookThisMuch.toLocaleString()}</p>
+            <p className="wg-body">Total baked</p>
+            <p className="text-lg font-black text-foreground">{dashboard.cookThisMuch.toLocaleString()}</p>
           </div>
           <div className="flex items-center justify-between py-3 last:pb-0">
-            <p className="text-base font-bold text-muted-foreground">Estimated waste</p>
-            <p className="text-xl font-black text-primary">{estimatedWaste}</p>
+            <p className="wg-body">Estimated waste</p>
+            <p className="text-lg font-black text-primary">{estimatedWaste}</p>
           </div>
         </section>
 
         <div className="space-y-3">
-          <Button className="h-16 w-full rounded-[1.4rem] bg-primary text-lg font-bold text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90">
+          <Button className="wg-action w-full bg-primary text-primary-foreground hover:bg-primary/90">
             Done
           </Button>
           <Button
             onClick={() => setIsFinished(false)}
             variant="secondary"
-            className="h-16 w-full rounded-[1.4rem] bg-secondary text-lg font-bold text-foreground hover:bg-secondary/80"
+            className="wg-action w-full bg-secondary text-foreground hover:bg-secondary/80"
           >
             Edit bake prep
           </Button>
@@ -93,14 +93,14 @@ export function TodayPlan({ dailyInputs = [] }: TodayPlanProps) {
   }
 
   return (
-    <main className="py-7 md:py-6">
-      <div className="mb-7 md:mb-6 md:pt-2">
-        <p className="mb-2 text-sm font-bold text-primary">Today</p>
-        <h1 className="text-4xl font-black leading-tight text-foreground">Today&apos;s Bake Prep</h1>
-        <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">
+    <main className="wg-page">
+      <div className="wg-page-header">
+        <p className="wg-eyebrow">Today</p>
+        <h1 className="wg-page-title">Today&apos;s Bake Prep</h1>
+        <p className="wg-page-subtitle">
           Finish these before opening
         </p>
-        <p className="mt-4 text-lg font-black text-primary">
+        <p className="mt-4 text-base font-black text-primary">
           {doneCount} / {prepItems.length} done
         </p>
       </div>
@@ -113,7 +113,7 @@ export function TodayPlan({ dailyInputs = [] }: TodayPlanProps) {
             <button
               key={item.name}
               onClick={() => toggleTask(item.name)}
-              className={`flex w-full items-center gap-4 py-5 text-left transition md:py-6 ${
+              className={`flex w-full items-center gap-4 py-4 text-left transition md:py-5 ${
                 isDone ? 'opacity-50' : 'opacity-100'
               }`}
             >
@@ -124,10 +124,10 @@ export function TodayPlan({ dailyInputs = [] }: TodayPlanProps) {
               >
                 {isDone && <Check className="h-5 w-5" />}
               </span>
-              <span className="min-w-0 flex-1 truncate text-xl font-black text-foreground">
+              <span className="min-w-0 flex-1 truncate text-base font-black text-foreground sm:text-lg">
                 {item.name}
               </span>
-              <span className="shrink-0 text-right text-lg font-black text-primary">
+              <span className="shrink-0 text-right text-sm font-black text-primary sm:text-base">
                 {item.quantity.toLocaleString()} {item.unit}
               </span>
             </button>
@@ -137,7 +137,7 @@ export function TodayPlan({ dailyInputs = [] }: TodayPlanProps) {
 
       <Button
         onClick={finishPrep}
-        className="mt-5 h-16 w-full rounded-[1.4rem] bg-primary text-lg font-bold text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90"
+        className="wg-action mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90"
       >
         Finish bake prep
       </Button>
