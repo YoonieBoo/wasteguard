@@ -371,7 +371,7 @@ export function DashboardHome({
               className="h-full min-h-[20rem] w-full object-cover transition duration-700 hover:scale-[1.035] sm:min-h-[23rem] lg:min-h-[26rem]"
             />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent p-4 text-white md:p-5">
-              <p className="text-xs font-black uppercase tracking-normal text-white/80">{t.mostRequestedToday}</p>
+              <p className="text-base font-black uppercase tracking-normal text-white/90 sm:text-lg">{t.mostRequestedToday}</p>
             </div>
           </div>
 

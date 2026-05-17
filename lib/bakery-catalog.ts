@@ -267,15 +267,10 @@ export function cleanBakeryTitle(fileName: BakeryImageFile) {
 }
 
 export function getBakeryItems(dailyInputs: FoodRow[] = [], prepDemand = 0): BakeryItem[] {
-  const latestRow = [...dailyInputs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-  const demandSeed = latestRow ? latestRow.orders + latestRow.food_sold + latestRow.leftover : prepDemand
-  const featuredIndex = Math.abs(demandSeed) % bakeryImageFiles.length
-  const sortedFiles = [
-    bakeryImageFiles[featuredIndex],
-    ...bakeryImageFiles.filter((_, index) => index !== featuredIndex),
-  ]
+  void dailyInputs
+  void prepDemand
 
-  return sortedFiles.map((fileName, index) => {
+  return bakeryImageFiles.map((fileName) => {
     const preparation = getPreparationRecord(fileName)
 
     return {
@@ -283,7 +278,7 @@ export function getBakeryItems(dailyInputs: FoodRow[] = [], prepDemand = 0): Bak
       title: cleanBakeryTitle(fileName),
       imageSrc: `/${fileName}.png`,
       category: preparation.category,
-      demandRank: index + 1,
+      demandRank: 0,
       prepQuantity: preparation.prepQuantity,
       prepUnit: preparation.prepUnit,
       demandLevel: preparation.demandLevel,
@@ -293,6 +288,14 @@ export function getBakeryItems(dailyInputs: FoodRow[] = [], prepDemand = 0): Bak
       preparationNote: preparation.preparationNote,
     }
   })
+    .sort((a, b) => b.prepQuantity - a.prepQuantity || getDemandWeight(b.demandLevel) - getDemandWeight(a.demandLevel))
+    .map((item, index) => ({ ...item, demandRank: index + 1 }))
+}
+
+function getDemandWeight(level: DemandLevel) {
+  if (level === 'High Demand') return 3
+  if (level === 'Medium Demand') return 2
+  return 1
 }
 
 export function translateCategory(category: BakeryCategory, language: Language) {
