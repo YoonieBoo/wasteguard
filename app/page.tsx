@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { DashboardHome } from '@/components/dashboard-home'
 import { QuickInput } from '@/components/quick-input'
-import { CarbonImpact } from '@/components/carbon-impact'
 import { Navigation } from '@/components/navigation'
 import { CreateAccountScreen, SignInScreen, WelcomeScreen } from '@/components/welcome-screen'
 import { getText, type Language } from '@/lib/i18n'
@@ -19,7 +18,7 @@ const bakeryNameKey = 'wasteGuardBakeryName'
 const inviteCodeKey = 'wasteGuardInviteCode'
 
 type AuthScreen = 'welcome' | 'sign-in' | 'create-account'
-type AppScreen = 'home' | 'input' | 'carbon'
+type AppScreen = 'home' | 'input'
 
 type AuthProfile = {
   fullName: string
@@ -44,7 +43,8 @@ export default function Home() {
   const [authProfile, setAuthProfile] = useState<AuthProfile | null>(null)
   const [signInEmail, setSignInEmail] = useState('')
   const [signInNotice, setSignInNotice] = useState('')
-  const showNavigation = currentScreen === 'home' || currentScreen === 'input' || currentScreen === 'carbon'
+  const [completedBakeryItems, setCompletedBakeryItems] = useState<Record<string, boolean>>({})
+  const showNavigation = currentScreen === 'home' || currentScreen === 'input'
 
   useEffect(() => {
     const savedInputs = window.localStorage.getItem(dailyInputsKey)
@@ -288,7 +288,7 @@ export default function Home() {
       <button
         onClick={toggleLanguage}
         className={`fixed right-3 top-3 z-[60] rounded-full px-3 py-2 text-xs font-black shadow-[0_10px_24px_rgba(35,88,62,0.14)] transition sm:right-4 sm:top-4 sm:px-4 sm:text-sm md:right-6 ${
-          currentScreen === 'welcome' || currentScreen === 'sign-in' || currentScreen === 'create-account' || currentScreen === 'carbon'
+          currentScreen === 'welcome' || currentScreen === 'sign-in' || currentScreen === 'create-account'
             ? 'bg-white/90 text-emerald-800 hover:bg-white'
             : 'bg-secondary text-primary hover:bg-secondary/80'
         }`}
@@ -299,15 +299,13 @@ export default function Home() {
         className={`flex-1 flex w-full justify-center ${
           showNavigation ? 'lg:justify-start lg:pl-64' : ''
         } ${
-          currentScreen === 'carbon' ? 'pb-0' : showNavigation ? 'pb-28 md:pb-30 lg:pb-8' : 'pb-6'
+          showNavigation ? 'pb-28 md:pb-30 lg:pb-8' : 'pb-6'
         }`}
       >
         <div
           className={
             currentScreen === 'welcome' || currentScreen === 'sign-in' || currentScreen === 'create-account'
               ? 'w-full'
-              : currentScreen === 'carbon'
-                ? 'w-full'
               : 'w-full max-w-[430px] px-4 pt-10 sm:px-5 md:max-w-[620px] md:px-6 lg:max-w-[1180px] lg:px-10 lg:pt-8'
           }
         >
@@ -356,7 +354,10 @@ export default function Home() {
               role={role}
               bakeryName={authProfile?.bakeryName}
               inviteCode={authProfile?.inviteCode}
-              onGoCheck={() => setCurrentScreen('input')}
+              completedBakeryItems={completedBakeryItems}
+              onCompleteBakeryItem={(fileName) =>
+                setCompletedBakeryItems((current) => ({ ...current, [fileName]: true }))
+              }
             />
           )}
           {currentScreen === 'input' && (
@@ -365,15 +366,7 @@ export default function Home() {
               role={role}
               dailyInputs={dailyInputs}
               onSave={handleDailyInputSave}
-              onViewResults={() => setCurrentScreen(role === 'owner' ? 'home' : 'carbon')}
-            />
-          )}
-          {currentScreen === 'carbon' && (
-            <CarbonImpact
-              dailyInputs={dailyInputs}
-              language={language}
-              role={role}
-              onAddToday={role === 'owner' ? undefined : () => setCurrentScreen('input')}
+              onViewResults={() => setCurrentScreen('home')}
             />
           )}
         </div>

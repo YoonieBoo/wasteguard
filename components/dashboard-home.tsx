@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
@@ -20,10 +21,401 @@ interface DashboardHomeProps {
   role?: WasteGuardRole
   bakeryName?: string
   inviteCode?: string
-  onGoCheck?: () => void
+  completedBakeryItems?: Record<string, boolean>
+  onCompleteBakeryItem?: (fileName: string) => void
 }
 
 type DemandSegmentKey = 'morning' | 'afternoon' | 'evening'
+type BakeryCategory = 'All' | 'Bread' | 'Cakes' | 'Snackbox' | 'Mealbox'
+
+const bakeryImageFiles = [
+  'Assorted_8-Flavor_Cake',
+  'Cereal_bun',
+  'Classic_butter_cake',
+  'Fresh_creaam_coconut_cake',
+  'Hokkaido_milk',
+  'Pandan_layer_cake',
+  'Shio_pan',
+  'snack_box1',
+  'snack_box2',
+  'meal_box1',
+  'meal_box2',
+] as const
+
+const bakeryCategories: BakeryCategory[] = ['All', 'Bread', 'Cakes', 'Snackbox', 'Mealbox']
+
+type BakeryImageFile = (typeof bakeryImageFiles)[number]
+type DemandLevel = 'High Demand' | 'Medium Demand' | 'Low Demand'
+type WasteRisk = 'Low waste risk' | 'Medium waste risk' | 'High waste risk'
+
+type PreparationRecord = {
+  category: Exclude<BakeryCategory, 'All'>
+  prepQuantity: number
+  prepUnit: string
+  demandLevel: DemandLevel
+  wasteRisk: WasteRisk
+  ingredients: string[]
+  usage: IngredientEstimate[]
+  preparationNote: string
+}
+
+type BakeryItem = {
+  fileName: BakeryImageFile
+  title: string
+  imageSrc: string
+  category: Exclude<BakeryCategory, 'All'>
+  demandRank: number
+  prepQuantity: number
+  prepUnit: string
+  demandLevel: DemandLevel
+  wasteRisk: WasteRisk
+  ingredients: string[]
+  ingredientUsage: IngredientEstimate[]
+  preparationNote: string
+}
+
+const bakeryPreparationData: Record<Exclude<BakeryCategory, 'All'>, Partial<Record<BakeryImageFile, PreparationRecord>>> = {
+  Bread: {
+    Hokkaido_milk: {
+      category: 'Bread',
+      prepQuantity: 40,
+      prepUnit: 'pieces',
+      demandLevel: 'High Demand',
+      wasteRisk: 'Low waste risk',
+      ingredients: ['Flour', 'Milk', 'Yeast', 'Butter', 'Sugar'],
+      usage: [
+        { name: 'Flour', amount: '4 kg' },
+        { name: 'Milk', amount: '2 L' },
+        { name: 'Yeast', amount: '180 g' },
+        { name: 'Butter', amount: '1.2 kg' },
+        { name: 'Sugar', amount: '650 g' },
+      ],
+      preparationNote: 'Best prepared before 8:00 AM',
+    },
+    Shio_pan: {
+      category: 'Bread',
+      prepQuantity: 48,
+      prepUnit: 'pieces',
+      demandLevel: 'High Demand',
+      wasteRisk: 'Low waste risk',
+      ingredients: ['Flour', 'Milk', 'Yeast', 'Butter', 'Sugar', 'Sea salt'],
+      usage: [
+        { name: 'Flour', amount: '4.5 kg' },
+        { name: 'Milk', amount: '1.8 L' },
+        { name: 'Yeast', amount: '210 g' },
+        { name: 'Butter', amount: '1.5 kg' },
+        { name: 'Sugar', amount: '500 g' },
+        { name: 'Sea salt', amount: '120 g' },
+      ],
+      preparationNote: 'Best prepared before 7:45 AM',
+    },
+    Cereal_bun: {
+      category: 'Bread',
+      prepQuantity: 36,
+      prepUnit: 'pieces',
+      demandLevel: 'Medium Demand',
+      wasteRisk: 'Medium waste risk',
+      ingredients: ['Flour', 'Milk', 'Yeast', 'Butter', 'Sugar', 'Cereal topping'],
+      usage: [
+        { name: 'Flour', amount: '3 kg' },
+        { name: 'Milk', amount: '1.5 L' },
+        { name: 'Yeast', amount: '150 g' },
+        { name: 'Butter', amount: '900 g' },
+        { name: 'Sugar', amount: '520 g' },
+        { name: 'Cereal topping', amount: '900 g' },
+      ],
+      preparationNote: 'Best prepared before 8:15 AM',
+    },
+  },
+  Cakes: {
+    'Assorted_8-Flavor_Cake': {
+      category: 'Cakes',
+      prepQuantity: 24,
+      prepUnit: 'slices',
+      demandLevel: 'High Demand',
+      wasteRisk: 'Low waste risk',
+      ingredients: ['Flour', 'Cream', 'Eggs', 'Butter', 'Sugar', 'Toppings'],
+      usage: [
+        { name: 'Flour', amount: '5 kg' },
+        { name: 'Cream', amount: '3 L' },
+        { name: 'Eggs', amount: '60 pcs' },
+        { name: 'Butter', amount: '1.8 kg' },
+        { name: 'Sugar', amount: '2.4 kg' },
+        { name: 'Toppings', amount: '8 sets' },
+      ],
+      preparationNote: 'Best prepared before 9:00 AM',
+    },
+    Classic_butter_cake: {
+      category: 'Cakes',
+      prepQuantity: 32,
+      prepUnit: 'slices',
+      demandLevel: 'Medium Demand',
+      wasteRisk: 'Medium waste risk',
+      ingredients: ['Flour', 'Cream', 'Eggs', 'Butter', 'Sugar', 'Vanilla'],
+      usage: [
+        { name: 'Flour', amount: '4 kg' },
+        { name: 'Cream', amount: '1 L' },
+        { name: 'Eggs', amount: '42 pcs' },
+        { name: 'Butter', amount: '2.2 kg' },
+        { name: 'Sugar', amount: '1.8 kg' },
+        { name: 'Vanilla', amount: '120 ml' },
+      ],
+      preparationNote: 'Best prepared before 8:30 AM',
+    },
+    Fresh_creaam_coconut_cake: {
+      category: 'Cakes',
+      prepQuantity: 28,
+      prepUnit: 'slices',
+      demandLevel: 'Medium Demand',
+      wasteRisk: 'Medium waste risk',
+      ingredients: ['Flour', 'Cream', 'Eggs', 'Butter', 'Sugar', 'Coconut topping'],
+      usage: [
+        { name: 'Flour', amount: '3.5 kg' },
+        { name: 'Cream', amount: '2.4 L' },
+        { name: 'Eggs', amount: '48 pcs' },
+        { name: 'Butter', amount: '1.6 kg' },
+        { name: 'Sugar', amount: '1.9 kg' },
+        { name: 'Coconut topping', amount: '2 kg' },
+      ],
+      preparationNote: 'Best prepared before 10:00 AM',
+    },
+    Pandan_layer_cake: {
+      category: 'Cakes',
+      prepQuantity: 30,
+      prepUnit: 'slices',
+      demandLevel: 'Medium Demand',
+      wasteRisk: 'Medium waste risk',
+      ingredients: ['Flour', 'Cream', 'Eggs', 'Butter', 'Sugar', 'Pandan'],
+      usage: [
+        { name: 'Flour', amount: '3 kg' },
+        { name: 'Cream', amount: '1.8 L' },
+        { name: 'Eggs', amount: '44 pcs' },
+        { name: 'Butter', amount: '1.4 kg' },
+        { name: 'Sugar', amount: '1.7 kg' },
+        { name: 'Pandan', amount: '800 g' },
+      ],
+      preparationNote: 'Best prepared before 9:30 AM',
+    },
+  },
+  Snackbox: {
+    snack_box1: {
+      category: 'Snackbox',
+      prepQuantity: 45,
+      prepUnit: 'boxes',
+      demandLevel: 'High Demand',
+      wasteRisk: 'Low waste risk',
+      ingredients: ['Sandwiches', 'Snacks', 'Fruits', 'Dessert items', 'Packaging'],
+      usage: [
+        { name: 'Sandwiches', amount: '45 pcs' },
+        { name: 'Snacks', amount: '90 packs' },
+        { name: 'Fruits', amount: '45 cups' },
+        { name: 'Dessert items', amount: '45 pcs' },
+        { name: 'Packaging', amount: '45 boxes' },
+      ],
+      preparationNote: 'Best assembled before 10:30 AM',
+    },
+    snack_box2: {
+      category: 'Snackbox',
+      prepQuantity: 38,
+      prepUnit: 'boxes',
+      demandLevel: 'Medium Demand',
+      wasteRisk: 'Medium waste risk',
+      ingredients: ['Sandwiches', 'Snacks', 'Fruits', 'Dessert items', 'Packaging'],
+      usage: [
+        { name: 'Sandwiches', amount: '38 pcs' },
+        { name: 'Snacks', amount: '76 packs' },
+        { name: 'Fruits', amount: '38 cups' },
+        { name: 'Dessert items', amount: '38 pcs' },
+        { name: 'Packaging', amount: '38 boxes' },
+      ],
+      preparationNote: 'Best assembled before 10:00 AM',
+    },
+  },
+  Mealbox: {
+    meal_box1: {
+      category: 'Mealbox',
+      prepQuantity: 55,
+      prepUnit: 'boxes',
+      demandLevel: 'High Demand',
+      wasteRisk: 'Low waste risk',
+      ingredients: ['Rice', 'Salmon', 'Mixed vegetables', 'Sauce packets', 'Egg'],
+      usage: [
+        { name: 'Rice', amount: '6 kg' },
+        { name: 'Salmon', amount: '55 fillets' },
+        { name: 'Vegetables', amount: '4 kg' },
+        { name: 'Sauce', amount: '55 packs' },
+        { name: 'Eggs', amount: '55 pcs' },
+      ],
+      preparationNote: 'Best assembled before 11:00 AM',
+    },
+    meal_box2: {
+      category: 'Mealbox',
+      prepQuantity: 50,
+      prepUnit: 'boxes',
+      demandLevel: 'Medium Demand',
+      wasteRisk: 'Medium waste risk',
+      ingredients: ['Fried chicken', 'Rice', 'Salad', 'Sauce', 'Egg'],
+      usage: [
+        { name: 'Fried chicken', amount: '50 pcs' },
+        { name: 'Rice', amount: '5.5 kg' },
+        { name: 'Salad', amount: '3.5 kg' },
+        { name: 'Sauce', amount: '50 cups' },
+        { name: 'Eggs', amount: '50 pcs' },
+      ],
+      preparationNote: 'Best assembled before 11:15 AM',
+    },
+  },
+}
+
+function getPreparationRecord(fileName: BakeryImageFile) {
+  const category = bakeryCategories.find(
+    (category): category is Exclude<BakeryCategory, 'All'> =>
+      category !== 'All' && Boolean(bakeryPreparationData[category][fileName]),
+  )
+
+  if (!category) {
+    throw new Error(`Missing preparation data for ${fileName}`)
+  }
+
+  return bakeryPreparationData[category][fileName] as PreparationRecord
+}
+
+function cleanBakeryTitle(fileName: BakeryImageFile) {
+  return fileName
+    .replace(/creaam/gi, 'cream')
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z])(\d)/gi, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function translateCategory(category: BakeryCategory, language: Language) {
+  const t = getText(language)
+  const labels: Record<BakeryCategory, string> = {
+    All: t.all,
+    Bread: t.bread,
+    Cakes: t.cakes,
+    Snackbox: t.snackbox,
+    Mealbox: t.mealbox,
+  }
+
+  return labels[category]
+}
+
+function translateDemandLevel(level: DemandLevel, language: Language) {
+  const t = getText(language)
+
+  if (level === 'High Demand') return t.highDemand
+  if (level === 'Medium Demand') return t.mediumDemand
+  return t.lowDemand
+}
+
+function translateWasteRisk(risk: WasteRisk, language: Language) {
+  const t = getText(language)
+
+  if (risk === 'Low waste risk') return t.lowWasteRisk
+  if (risk === 'Medium waste risk') return t.mediumWasteRisk
+  return t.highWasteRisk
+}
+
+function translatePrepUnit(unit: string, language: Language) {
+  const t = getText(language)
+
+  if (unit === 'pieces') return t.pieces
+  if (unit === 'boxes') return t.boxes
+  if (unit === 'slices') return t.slices
+  return unit
+}
+
+function translateIngredientName(name: string, language: Language) {
+  if (language === 'en') {
+    return name
+  }
+
+  const names: Record<string, string> = {
+    Flour: 'แป้ง',
+    Milk: 'นม',
+    Yeast: 'ยีสต์',
+    Butter: 'เนย',
+    Sugar: 'น้ำตาล',
+    'Sea salt': 'เกลือทะเล',
+    'Cereal topping': 'ซีเรียลท็อปปิง',
+    Cream: 'ครีม',
+    Eggs: 'ไข่',
+    Toppings: 'ท็อปปิง',
+    Vanilla: 'วานิลลา',
+    'Coconut topping': 'มะพร้าวท็อปปิง',
+    Pandan: 'ใบเตย',
+    Sandwiches: 'แซนด์วิช',
+    Snacks: 'ขนมขบเคี้ยว',
+    Fruits: 'ผลไม้',
+    'Dessert items': 'ของหวาน',
+    Packaging: 'บรรจุภัณฑ์',
+    Rice: 'ข้าว',
+    Salmon: 'แซลมอน',
+    Vegetables: 'ผัก',
+    Sauce: 'ซอส',
+    'Fried chicken': 'ไก่ทอด',
+    Salad: 'สลัด',
+  }
+
+  return names[name] ?? name
+}
+
+function translatePreparationNote(note: string, language: Language) {
+  if (language === 'en') {
+    return note
+  }
+
+  const notes: Record<string, string> = {
+    'Best prepared before 8:00 AM': 'ควรเตรียมให้เสร็จก่อน 8:00 น.',
+    'Best prepared before 7:45 AM': 'ควรเตรียมให้เสร็จก่อน 7:45 น.',
+    'Best prepared before 8:15 AM': 'ควรเตรียมให้เสร็จก่อน 8:15 น.',
+    'Best prepared before 9:00 AM': 'ควรเตรียมให้เสร็จก่อน 9:00 น.',
+    'Best prepared before 8:30 AM': 'ควรเตรียมให้เสร็จก่อน 8:30 น.',
+    'Best prepared before 10:00 AM': 'ควรเตรียมให้เสร็จก่อน 10:00 น.',
+    'Best prepared before 9:30 AM': 'ควรเตรียมให้เสร็จก่อน 9:30 น.',
+    'Best assembled before 10:30 AM': 'ควรประกอบให้เสร็จก่อน 10:30 น.',
+    'Best assembled before 10:00 AM': 'ควรประกอบให้เสร็จก่อน 10:00 น.',
+    'Best assembled before 11:00 AM': 'ควรประกอบให้เสร็จก่อน 11:00 น.',
+    'Best assembled before 11:15 AM': 'ควรประกอบให้เสร็จก่อน 11:15 น.',
+  }
+
+  return notes[note] ?? note
+}
+
+function getBakeryItems(dailyInputs: FoodRow[], prepItems: ReturnType<typeof getPrepList>): BakeryItem[] {
+  const latestRow = [...dailyInputs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+  const prepDemand = prepItems.reduce((total, item) => total + item.quantity, 0)
+  const demandSeed = latestRow ? latestRow.orders + latestRow.food_sold + latestRow.leftover : prepDemand
+  const featuredIndex = Math.abs(demandSeed) % bakeryImageFiles.length
+  const sortedFiles = [
+    bakeryImageFiles[featuredIndex],
+    ...bakeryImageFiles.filter((_, index) => index !== featuredIndex),
+  ]
+
+  return sortedFiles.map((fileName, index) => {
+    const demandRank = index + 1
+    const preparation = getPreparationRecord(fileName)
+
+    return {
+      fileName,
+      title: cleanBakeryTitle(fileName),
+      imageSrc: `/${fileName}.png`,
+      category: preparation.category,
+      demandRank,
+      prepQuantity: preparation.prepQuantity,
+      prepUnit: preparation.prepUnit,
+      demandLevel: preparation.demandLevel,
+      wasteRisk: preparation.wasteRisk,
+      ingredients: preparation.ingredients,
+      ingredientUsage: preparation.usage,
+      preparationNote: preparation.preparationNote,
+    }
+  })
+}
 
 export function DashboardHome({
   dailyInputs = [],
@@ -31,18 +423,23 @@ export function DashboardHome({
   role = 'staff',
   bakeryName,
   inviteCode,
-  onGoCheck,
+  completedBakeryItems = {},
+  onCompleteBakeryItem,
 }: DashboardHomeProps) {
   const t = getText(language)
   const [range, setRange] = useState<TimeRange>('week')
   const [activeDemandSegment, setActiveDemandSegment] = useState<DemandSegmentKey | null>(null)
   const [activeRevenueIndex, setActiveRevenueIndex] = useState<number | null>(null)
   const [activeOrderIndex, setActiveOrderIndex] = useState<number | null>(null)
+  const [selectedBakeryItem, setSelectedBakeryItem] = useState<BakeryItem | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<BakeryCategory>('All')
   const demandChartRef = useRef<HTMLDivElement>(null)
   const prepList = getPrepList(dailyInputs).slice(0, 4)
   const savings = getSavingsData(range, dailyInputs)
-  const [mainItem, ...secondaryItems] = prepList
-  const ingredientSummary = getIngredientSummary(prepList)
+  const bakeryItems = getBakeryItems(dailyInputs, prepList)
+  const [featuredBakeryItem, ...supportingBakeryItems] = bakeryItems
+  const filteredBakeryItems =
+    selectedCategory === 'All' ? bakeryItems : bakeryItems.filter((item) => item.category === selectedCategory)
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -231,15 +628,23 @@ export function DashboardHome({
               <p className="text-base font-black text-foreground">{t.mostRequestedItems}</p>
               <p className="mt-2 text-sm font-bold text-muted-foreground">{t.mostRequestedNote}</p>
               <div className="mt-8 divide-y divide-secondary/80">
-                {requestedItems.map((item) => (
+                {requestedItems.map((item, index) => {
+                  const bakeryItem = supportingBakeryItems[index] ?? featuredBakeryItem
+
+                  return (
                   <div key={item.name} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
                     <div className="flex min-w-0 items-center gap-3">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-lg">{item.image}</span>
-                      <p className="truncate text-sm font-black text-foreground">{translateItemName(item.name, language)}</p>
+                      <img
+                        src={bakeryItem.imageSrc}
+                        alt={bakeryItem.title}
+                        className="h-10 w-10 shrink-0 rounded-full object-cover shadow-[0_8px_16px_rgba(41,91,67,0.12)]"
+                      />
+                      <p className="truncate text-sm font-black text-foreground">{translateItemName(bakeryItem.title, language)}</p>
                     </div>
                     <p className="shrink-0 text-sm font-bold text-muted-foreground">THB {(item.quantity * 75).toLocaleString()}</p>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </section>
 
@@ -308,8 +713,6 @@ export function DashboardHome({
           ))}
         </section>
 
-        <RecentActivity role={role} dailyInputs={dailyInputs} language={language} />
-
         {inviteCode && (
           <section className="mt-5 rounded-[1.6rem] bg-secondary/70 p-5 md:p-6">
             <p className="text-sm font-black text-primary">{t.staffInviteCode}</p>
@@ -321,6 +724,7 @@ export function DashboardHome({
   }
 
   return (
+    <>
     <main className="py-7 md:py-6">
       <div className="mb-6 pt-5 md:pt-4">
         <p className="mb-2 text-sm font-bold text-primary">{t.today}</p>
@@ -328,69 +732,243 @@ export function DashboardHome({
         <p className="mt-3 text-base font-medium leading-relaxed text-muted-foreground">{t.staffDashboardNote}</p>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-      {mainItem && (
-        <section className="rounded-[1.75rem] bg-secondary/70 p-5 md:p-6">
-          <p className="text-sm font-black text-primary">{t.todaysBakingRecommendation}</p>
-          <h2 className="mt-2 truncate text-3xl font-black text-foreground sm:text-4xl">{translateItemName(mainItem.name, language)}</h2>
-          <div className="mt-4 flex items-end gap-2 leading-none">
-            <span className="text-5xl font-black text-primary md:text-6xl">{mainItem.quantity.toLocaleString()}</span>
-            <span className="pb-1 text-xl font-black text-foreground sm:text-2xl">{t.pieces}</span>
-          </div>
-          <IngredientList ingredients={mainItem.ingredients} />
-        </section>
-      )}
-
-      <section className="divide-y divide-secondary rounded-[1.75rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
-        <p className="pb-3 text-base font-black text-foreground">{t.mostRequestedToday}</p>
-        {[mainItem, ...secondaryItems].filter(Boolean).map((item) => (
-          <div key={item.name} className="flex items-center justify-between gap-4 py-3 last:pb-0">
-            <p className="truncate text-base font-black text-foreground">{translateItemName(item.name, language)}</p>
-            <p className="shrink-0 text-sm font-black text-primary">{item.quantity.toLocaleString()} {t.pieces}</p>
-          </div>
-        ))}
-      </section>
-      </div>
-
-      <section className="mb-7 mt-5 rounded-[1.75rem] bg-secondary/70 p-5 md:p-6">
-        <p className="mb-3 text-base font-black text-foreground">{t.ingredientPreparation}</p>
-        <div className="grid grid-cols-3 gap-2 md:grid-cols-3 lg:grid-cols-6">
-          {ingredientSummary.slice(0, 3).map((ingredient) => (
-            <div key={ingredient.name} className="rounded-[1.2rem] bg-white/75 p-3 text-center">
-              <p className="text-lg font-black text-primary">{ingredient.amount}</p>
-              <p className="mt-1 text-xs font-bold text-muted-foreground">{ingredient.name}</p>
+      <button
+        type="button"
+        onClick={() => setSelectedBakeryItem(featuredBakeryItem)}
+        className={`block w-full overflow-hidden rounded-[1.75rem] bg-white text-left shadow-[0_18px_45px_rgba(41,91,67,0.1)] outline-none transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_52px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
+          selectedBakeryItem?.fileName === featuredBakeryItem.fileName ? 'ring-4 ring-primary/20' : ''
+        }`}
+      >
+        <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="relative min-h-[22rem] overflow-hidden bg-[#302927] sm:min-h-[25rem] lg:min-h-[28rem]">
+            <img
+              src={featuredBakeryItem.imageSrc}
+              alt={featuredBakeryItem.title}
+              className="h-full min-h-[22rem] w-full object-cover transition duration-700 hover:scale-[1.035] sm:min-h-[25rem] lg:min-h-[28rem]"
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent p-5 text-white md:p-7">
+              <p className="text-sm font-black uppercase tracking-normal text-white/80">{t.mostRequestedToday}</p>
+              <h2 className="mt-2 text-3xl font-black leading-tight sm:text-4xl lg:text-5xl">{translateItemName(featuredBakeryItem.title, language)}</h2>
             </div>
-          ))}
+          </div>
+
+          <div className="flex flex-col justify-center p-5 md:p-7">
+            <p className="text-sm font-black text-primary">{t.todaysBakingRecommendation}</p>
+            <h3 className="mt-2 text-3xl font-black leading-tight text-foreground sm:text-4xl">{translateItemName(featuredBakeryItem.title, language)}</h3>
+            <p className="mt-3 max-w-[28rem] text-base font-bold leading-relaxed text-muted-foreground">
+              {t.highDemandToday}
+            </p>
+            <div className="mt-6 flex items-end gap-2 leading-none">
+              <span className="text-5xl font-black text-primary md:text-6xl">{featuredBakeryItem.prepQuantity.toLocaleString()}</span>
+              <span className="pb-1 text-xl font-black text-foreground sm:text-2xl">{translatePrepUnit(featuredBakeryItem.prepUnit, language)}</span>
+            </div>
+          </div>
+        </div>
+      </button>
+
+      <section className="mt-5">
+        <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <p className="text-base font-black text-foreground">{t.mostRequestedItems}</p>
+            <p className="mt-1 text-xs font-black text-primary">{t.today}</p>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 md:justify-end md:overflow-visible md:pb-0">
+            {bakeryCategories.map((category) => {
+              const isActive = selectedCategory === category
+
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setSelectedCategory(category)}
+                  className={`shrink-0 rounded-full px-4 py-2 text-xs font-black transition duration-200 ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-[0_10px_22px_rgba(68,179,126,0.18)]'
+                      : 'bg-white text-muted-foreground shadow-[0_8px_20px_rgba(41,91,67,0.07)] hover:-translate-y-0.5 hover:text-foreground'
+                  }`}
+                >
+                  {translateCategory(category, language)}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <div className="flex snap-x gap-4 overflow-x-auto pb-3 transition-all duration-300 sm:grid sm:grid-cols-2 sm:overflow-visible md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+          {filteredBakeryItems.map((item) => {
+            const isSelected = selectedBakeryItem?.fileName === item.fileName
+            const isCompleted = completedBakeryItems[item.fileName]
+
+            return (
+              <button
+                type="button"
+                key={item.fileName}
+                onClick={() => setSelectedBakeryItem(item)}
+                className={`group min-w-[11rem] snap-start overflow-hidden rounded-[1.4rem] bg-white text-left shadow-[0_14px_35px_rgba(41,91,67,0.09)] outline-none transition duration-300 animate-in fade-in-0 zoom-in-95 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
+                  isSelected ? 'ring-4 ring-primary/20' : ''
+                }`}
+              >
+                <div className="aspect-[4/3] overflow-hidden bg-secondary">
+                  <img
+                    src={item.imageSrc}
+                    alt={item.title}
+                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  />
+                </div>
+                <div className="p-4">
+                  <div className="flex min-h-10 items-start justify-between gap-2">
+                    <p className="line-clamp-2 text-sm font-black leading-tight text-foreground">{translateItemName(item.title, language)}</p>
+                    {isCompleted && (
+                      <span className="shrink-0 rounded-full bg-primary/12 px-2 py-1 text-[10px] font-black text-primary">
+                        {t.completed}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-3 text-xs font-black text-primary">
+                    {item.prepQuantity.toLocaleString()} {translatePrepUnit(item.prepUnit, language)}
+                  </p>
+                  <span className="mt-4 flex h-10 w-full items-center justify-center rounded-[1rem] bg-secondary text-xs font-black text-foreground transition group-hover:bg-primary group-hover:text-primary-foreground">
+                    {isCompleted ? t.completed : t.viewDetails}
+                  </span>
+                </div>
+              </button>
+            )
+          })}
         </div>
       </section>
 
-      <RecentActivity role={role} dailyInputs={dailyInputs} language={language} />
-
-      <div className="lg:max-w-md">
-        <Button
-          onClick={onGoCheck}
-          className="h-16 w-full rounded-[1.4rem] bg-primary text-lg font-bold text-primary-foreground shadow-[0_16px_30px_rgba(68,179,126,0.24)] hover:bg-primary/90"
-        >
-          {t.showBakingList}
-        </Button>
-      </div>
     </main>
+    <PreparationDetailsPanel
+      item={selectedBakeryItem}
+      language={language}
+      isCompleted={selectedBakeryItem ? Boolean(completedBakeryItems[selectedBakeryItem.fileName]) : false}
+      onComplete={(item) => {
+        onCompleteBakeryItem?.(item.fileName)
+      }}
+      onClose={() => setSelectedBakeryItem(null)}
+    />
+    </>
   )
 }
 
-function IngredientList({ ingredients }: { ingredients?: IngredientEstimate[] }) {
-  if (!ingredients || ingredients.length === 0) {
+function PreparationDetailsPanel({
+  item,
+  language,
+  isCompleted,
+  onComplete,
+  onClose,
+}: {
+  item: BakeryItem | null
+  language: Language
+  isCompleted: boolean
+  onComplete: (item: BakeryItem) => void
+  onClose: () => void
+}) {
+  useEffect(() => {
+    if (!item) {
+      return
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [item, onClose])
+
+  if (!item) {
     return null
   }
 
+  const t = getText(language)
+  const demandTone = item.demandLevel === 'High Demand' ? 'bg-primary text-primary-foreground' : item.demandLevel === 'Medium Demand' ? 'bg-amber-100 text-amber-900' : 'bg-secondary text-foreground'
+  const riskTone = item.wasteRisk === 'Low waste risk' ? 'text-primary' : item.wasteRisk === 'Medium waste risk' ? 'text-amber-700' : 'text-destructive'
+
   return (
-    <div className="mt-4 flex flex-wrap gap-x-3 gap-y-1">
-      {ingredients.map((ingredient) => (
-        <span key={`${ingredient.name}-${ingredient.amount}`} className="text-sm font-bold text-muted-foreground">
-          {ingredient.name}: {ingredient.amount}
-        </span>
-      ))}
-    </div>
+    <>
+      <button
+        type="button"
+        aria-label="Close preparation details"
+        onClick={onClose}
+        className="fixed inset-0 z-[65] bg-black/35 backdrop-blur-[1px] animate-in fade-in-0 lg:hidden"
+      />
+      <aside className="fixed inset-x-0 bottom-0 z-[70] max-h-[90dvh] overflow-y-auto rounded-t-[1.75rem] bg-white shadow-[0_-24px_70px_rgba(35,88,62,0.22)] animate-in slide-in-from-bottom-6 duration-300 lg:inset-x-auto lg:bottom-auto lg:right-0 lg:top-0 lg:h-dvh lg:max-h-dvh lg:w-[420px] lg:rounded-none lg:border-l lg:border-secondary/80 lg:shadow-[-24px_0_70px_rgba(35,88,62,0.14)] lg:slide-in-from-right-6">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 bg-white/92 px-5 py-4 backdrop-blur md:px-6">
+          <div>
+            <p className="text-xs font-black uppercase tracking-normal text-primary">{t.preparationDetails}</p>
+            <p className="mt-1 text-sm font-bold text-muted-foreground">{t.aiDemandForecast}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80"
+            aria-label="Close preparation details"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="px-5 pb-5 md:px-6">
+          <div className="overflow-hidden rounded-[1.35rem] bg-secondary">
+            <img src={item.imageSrc} alt={translateItemName(item.title, language)} className="aspect-[4/3] w-full object-cover" />
+          </div>
+
+          <div className="mt-5">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full px-3 py-1 text-xs font-black ${demandTone}`}>{translateDemandLevel(item.demandLevel, language)}</span>
+              <span className={`rounded-full bg-secondary px-3 py-1 text-xs font-black ${riskTone}`}>{translateWasteRisk(item.wasteRisk, language)}</span>
+              {isCompleted && (
+                <span className="rounded-full bg-primary/12 px-3 py-1 text-xs font-black text-primary">{t.completed}</span>
+              )}
+            </div>
+            <h2 className="mt-3 text-3xl font-black leading-tight text-foreground">{translateItemName(item.title, language)}</h2>
+          </div>
+
+          <section className="mt-6">
+            <p className="text-2xl font-black text-foreground">
+              {t.prepareAmount
+                .replace('{amount}', item.prepQuantity.toLocaleString())
+                .replace('{unit}', translatePrepUnit(item.prepUnit, language))}
+            </p>
+          </section>
+
+          <section className="mt-6">
+            <p className="text-sm font-black text-muted-foreground">{t.estimatedIngredientUsage}</p>
+            <div className="mt-3 divide-y divide-secondary">
+              {item.ingredientUsage.map((ingredient) => (
+                <div key={`${ingredient.name}-${ingredient.amount}`} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                  <p className="text-sm font-bold text-foreground">{translateIngredientName(ingredient.name, language)}</p>
+                  <p className="text-sm font-black text-primary">{ingredient.amount}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-6">
+            <p className="text-xs font-black uppercase tracking-normal text-muted-foreground">{t.preparationNote}</p>
+            <p className="mt-2 text-base font-black text-foreground">{translatePreparationNote(item.preparationNote, language)}</p>
+          </section>
+        </div>
+
+        <div className="sticky bottom-0 bg-white/95 px-5 pb-5 pt-3 backdrop-blur md:px-6">
+          <Button
+            type="button"
+            onClick={() => onComplete(item)}
+            disabled={isCompleted}
+            className={`h-14 w-full rounded-[1.2rem] text-base font-black shadow-[0_14px_28px_rgba(68,179,126,0.22)] transition-all ${
+              isCompleted
+                ? 'bg-emerald-900 text-white opacity-95'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
+            }`}
+          >
+            {isCompleted ? t.completed : t.done}
+          </Button>
+        </div>
+      </aside>
+    </>
   )
 }
 
@@ -481,78 +1059,4 @@ function getDemandSegments(demand: {
 
     return row
   })
-}
-
-function RecentActivity({
-  role,
-  dailyInputs,
-  language,
-}: {
-  role: WasteGuardRole
-  dailyInputs: FoodRow[]
-  language: Language
-}) {
-  const t = getText(language)
-  const latestRows = [...dailyInputs].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3)
-  const fallbackRows = [
-    { label: t.recentBakingSession, detail: t.aiRecommendation, time: t.today },
-    { label: t.completedCheck, detail: t.productionDone, time: t.yesterday },
-    { label: t.wasteEntry, detail: role === 'owner' ? t.lessWasteThisWeek : t.leftovers, time: 'Monday' },
-  ]
-  const rows =
-    latestRows.length > 0
-      ? latestRows.map((row, index) => ({
-          label: index === 0 ? t.completedCheck : index === 1 ? t.wasteEntry : t.recentBakingSession,
-          detail:
-            role === 'owner'
-              ? `${Math.round(row.waste_percent)}% ${t.estimatedWaste.toLowerCase()}`
-              : `${row.food_prepared.toLocaleString()} ${t.pieces}, ${row.leftover.toLocaleString()} ${t.leftovers.toLowerCase()}`,
-          time: index === 0 ? t.today : index === 1 ? t.yesterday : new Date(row.date).toLocaleDateString('en-US', { weekday: 'long' }),
-        }))
-      : fallbackRows
-
-  return (
-    <section className="mt-5 rounded-[1.75rem] bg-white p-5 shadow-[0_14px_35px_rgba(41,91,67,0.09)] md:p-6">
-      <div className="mb-2 flex items-center justify-between gap-4">
-        <p className="text-base font-black text-foreground">{t.recentBakeryActivity}</p>
-        <span className="h-2 w-2 rounded-full bg-primary/70" aria-hidden="true" />
-      </div>
-      <div className="divide-y divide-secondary/80">
-        {rows.map((item) => (
-          <div key={`${item.label}-${item.time}`} className="flex items-start gap-3 py-3 first:pt-2 last:pb-0">
-            <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-            <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1">
-              <p className="min-w-0 truncate text-sm font-black text-foreground">{item.label}</p>
-              <p className="shrink-0 whitespace-nowrap text-xs font-bold text-muted-foreground">{item.time}</p>
-              <p className="col-span-2 text-sm font-bold leading-snug text-muted-foreground sm:col-span-1">{item.detail}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function getIngredientSummary(items: ReturnType<typeof getPrepList>) {
-  const totals = new Map<string, number>()
-  const units = new Map<string, string>()
-
-  items.forEach((item) => {
-    item.ingredients?.forEach((ingredient) => {
-      const [rawAmount, unit = ''] = ingredient.amount.split(' ')
-      const amount = Number(rawAmount)
-
-      if (Number.isNaN(amount)) {
-        return
-      }
-
-      totals.set(ingredient.name, (totals.get(ingredient.name) ?? 0) + amount)
-      units.set(ingredient.name, unit)
-    })
-  })
-
-  return Array.from(totals.entries()).map(([name, amount]) => ({
-    name,
-    amount: `${amount} ${units.get(name) ?? ''}`.trim(),
-  }))
 }
