@@ -19,8 +19,8 @@ import {
 } from '@/lib/bakery-catalog'
 import {
   getBusinessDashboardData,
+  getBusinessInsightData,
   getPrepList,
-  getSavingsData,
   type FoodRow,
   type TimeRange,
   type WasteGuardRole,
@@ -51,12 +51,10 @@ export function DashboardHome({
   const [range, setRange] = useState<TimeRange>('week')
   const [activeDemandSegment, setActiveDemandSegment] = useState<DemandSegmentKey | null>(null)
   const [activeRevenueIndex, setActiveRevenueIndex] = useState<number | null>(null)
-  const [activeOrderIndex, setActiveOrderIndex] = useState<number | null>(null)
   const [selectedBakeryItem, setSelectedBakeryItem] = useState<BakeryItem | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<BakeryCategory>('All')
   const demandChartRef = useRef<HTMLDivElement>(null)
   const prepList = getPrepList(dailyInputs).slice(0, 4)
-  const savings = getSavingsData(range, dailyInputs)
   const bakeryItems = getBakeryItems(
     dailyInputs,
     prepList.reduce((total, item) => total + item.quantity, 0),
@@ -64,6 +62,10 @@ export function DashboardHome({
   const [featuredBakeryItem, ...supportingBakeryItems] = bakeryItems
   const filteredBakeryItems =
     selectedCategory === 'All' ? bakeryItems : bakeryItems.filter((item) => item.category === selectedCategory)
+
+  useEffect(() => {
+    setActiveRevenueIndex(null)
+  }, [range])
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
@@ -81,29 +83,49 @@ export function DashboardHome({
 
   if (role === 'owner') {
     const business = getBusinessDashboardData(range, dailyInputs)
-    const requestedItems = prepList.slice(0, 4)
+    const insights = getBusinessInsightData(dailyInputs)
+    const quality = getQualityScoreForRange(range, business.quality)
+    const requestedItems = getRequestedItemsForRange(bakeryItems, range, business.revenue)
     const maxRevenueBar = Math.max(1, ...business.revenueBars.flatMap((item) => [item.current, item.previous]))
-    const currentOrderPoints = getLinePoints(business.orderTrend.map((item) => item.current), activeOrderIndex)
-    const previousOrderPoints = getLinePoints(business.orderTrend.map((item) => item.previous), activeOrderIndex)
-    const orderDots = getLineDots(business.orderTrend.map((item) => item.current), activeOrderIndex)
     const periodTitle = range === 'day' ? t.todayPeriod : range === 'week' ? t.thisWeek : t.thisMonth
+    const ownerDashboardNote = range === 'day' ? t.ownerDashboardNoteToday : range === 'week' ? t.ownerDashboardNoteWeek : t.ownerDashboardNoteMonth
     const demand = business.demand
     const activeDemandKey = activeDemandSegment ?? demand.dominant
     const demandSegments = getDemandSegments(demand)
     const activeDemand = demandSegments.find((segment) => segment.key === activeDemandKey) ?? demandSegments[0]
+    const activeRevenueBar =
+      activeRevenueIndex === null ? null : business.revenueBars[activeRevenueIndex] ?? null
 
     return (
-      <main className="wg-page w-full min-w-0">
-        <div className="wg-page-header">
-          <p className="wg-eyebrow">{bakeryName || t.today}</p>
-          <h1 className="wg-page-title">{t.ownerDashboard}</h1>
-          <p className="wg-page-subtitle">{t.ownerDashboardNote}</p>
-          <TimeFilterToggle value={range} onChange={setRange} language={language} />
+      <main className="wg-page w-full min-w-0 md:py-5 xl:py-7">
+        <div className="wg-page-header md:mb-5 md:pt-1 xl:mb-7 xl:pt-4">
+          <div className="min-w-0">
+            <p className="wg-eyebrow">{bakeryName || t.today}</p>
+            <h1 className="wg-page-title">{t.ownerDashboard}</h1>
+            <p className="wg-page-subtitle">{ownerDashboardNote}</p>
+          </div>
+          <div className="mt-5 flex flex-col gap-3 xl:mt-8 xl:flex-row xl:items-center xl:justify-between xl:gap-4">
+            <TimeFilterToggle
+              value={range}
+              onChange={setRange}
+              language={language}
+              className="grid w-full shrink-0 grid-cols-3 gap-2 rounded-[1.35rem] bg-white p-2 shadow-[0_12px_28px_rgba(41,91,67,0.08)] xl:mt-5 xl:w-[31rem] xl:max-w-full"
+            />
+            {inviteCode && (
+              <section className="rounded-[1.35rem] bg-secondary/70 px-4 py-3 text-left md:flex md:w-full md:items-center md:justify-center md:gap-2 md:whitespace-nowrap xl:block xl:w-auto xl:text-right xl:whitespace-normal">
+                <p className="text-sm font-black text-primary">
+                  {t.staffInviteCode}
+                  <span className="hidden md:inline xl:hidden">:</span>
+                </p>
+                <p className="mt-1 text-xl font-black tracking-normal text-foreground md:mt-0 md:text-sm xl:mt-1 xl:text-xl">{inviteCode}</p>
+              </section>
+            )}
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-[1.45rem] bg-white shadow-[0_18px_45px_rgba(41,91,67,0.08)]">
           <div className="grid xl:grid-cols-[1.75fr_1fr]">
-            <section className="border-secondary/80 p-5 md:p-6 xl:border-r">
+            <section className="border-secondary/80 p-5 md:p-5 xl:border-r xl:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="wg-section-title">{t.revenueToday}</p>
@@ -111,7 +133,6 @@ export function DashboardHome({
                   <p className={`mt-1 text-sm font-bold ${business.revenueChangePercent >= 0 ? 'text-primary' : 'text-destructive'}`}>
                     {formatPercentChange(business.revenueChangePercent)} {t.fromLastWeek}
                   </p>
-                  <p className="wg-meta mt-5">{periodTitle}</p>
                 </div>
                 <p className="rounded-[0.9rem] border border-secondary px-3 py-2 text-xs font-black text-foreground">{periodTitle}</p>
               </div>
@@ -126,9 +147,14 @@ export function DashboardHome({
                     onFocus={() => setActiveRevenueIndex(index)}
                     onBlur={() => setActiveRevenueIndex(null)}
                     onClick={() => setActiveRevenueIndex(activeRevenueIndex === index ? null : index)}
-                    className="group flex min-w-0 flex-1 flex-col items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                    aria-label={`${item.label}: THB ${item.current.toLocaleString()}`}
+                    className="group relative flex min-w-0 flex-1 flex-col items-center gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    aria-label={`${item.label}: ${formatRevenue(item.current, language)}`}
                   >
+                    {activeRevenueIndex === index && (
+                      <span className="pointer-events-none absolute top-1 z-10 rounded-[0.75rem] bg-foreground px-2 py-1 text-[10px] font-black text-white shadow-[0_8px_20px_rgba(41,91,67,0.18)]">
+                        {formatRevenue(item.current, language)}
+                      </span>
+                    )}
                     <div className="flex h-32 w-full items-end justify-center gap-1">
                       <span
                         className={`w-full max-w-3 rounded-t-full bg-primary transition-all duration-200 ${
@@ -154,9 +180,15 @@ export function DashboardHome({
                 <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-primary" />{periodTitle}</span>
                 <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-secondary" />{t.fromLastWeek}</span>
               </div>
+              {activeRevenueBar && (
+                <div className="mt-4 rounded-[1rem] bg-secondary/70 px-4 py-3 text-sm font-bold text-foreground">
+                  <p className="text-xs font-black text-muted-foreground">{activeRevenueBar.label}</p>
+                  <p className="mt-1 text-lg font-black text-primary">{formatRevenue(activeRevenueBar.current, language)}</p>
+                </div>
+              )}
             </section>
 
-            <section className="min-w-0 border-t border-secondary/80 p-5 md:p-6 xl:border-t-0">
+            <section className="min-w-0 border-t border-secondary/80 p-5 md:p-5 xl:border-t-0 xl:p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="wg-section-title">{t.demandAnalytics}</p>
@@ -228,121 +260,75 @@ export function DashboardHome({
             </section>
           </div>
 
-          <div className="grid border-t border-secondary/80 xl:grid-cols-[1fr_1fr_1fr]">
+          <div className="grid border-t border-secondary/80 xl:grid-cols-2">
             <section className="border-secondary/80 p-5 md:p-6 xl:border-r">
               <p className="wg-section-title">{t.qualityScore}</p>
               <p className="wg-meta mt-2">{t.qualityScoreNote}</p>
-              <div className="relative mt-8 h-60">
-                <div className="absolute left-1 top-24 grid h-28 w-28 place-items-center rounded-full bg-[#2f9b6f] text-center text-white shadow-[0_14px_28px_rgba(68,179,126,0.18)]">
-                  <p className="text-2xl font-black">{business.quality.packaging}%</p>
+              <div className="relative mx-auto mt-8 h-60 max-w-[24rem]">
+                <div className="quality-float-packaging absolute left-[12%] top-[7.8rem] z-20 grid h-28 w-28 place-items-center rounded-full bg-[#2f9b6f] text-center text-white shadow-[0_14px_28px_rgba(68,179,126,0.18)]">
+                  <p className="text-2xl font-black">{quality.packaging}%</p>
                   <p className="text-xs font-bold">{t.packaging}</p>
                 </div>
-                <div className="absolute left-16 top-0 grid h-28 w-28 place-items-center rounded-full bg-[#72d2aa] text-center text-white shadow-[0_14px_28px_rgba(68,179,126,0.16)]">
-                  <p className="text-2xl font-black">{business.quality.freshness}%</p>
+                <div className="quality-float-freshness absolute left-[4%] top-2 z-20 grid h-28 w-28 place-items-center rounded-full bg-[#72d2aa] text-center text-white shadow-[0_14px_28px_rgba(68,179,126,0.16)]">
+                  <p className="text-2xl font-black">{quality.freshness}%</p>
                   <p className="text-xs font-bold">{t.freshness}</p>
                 </div>
-                <div className="absolute right-2 top-10 grid h-40 w-40 place-items-center rounded-full bg-[#145c43] text-center text-white shadow-[0_18px_32px_rgba(68,179,126,0.2)]">
-                  <p className="text-4xl font-black">{business.quality.taste}%</p>
+                <div className="quality-float-taste absolute right-[4%] top-10 z-30 grid h-40 w-40 place-items-center rounded-full bg-[#145c43] text-center text-white shadow-[0_18px_32px_rgba(68,179,126,0.2)]">
+                  <p className="text-4xl font-black">{quality.taste}%</p>
                   <p className="text-sm font-bold">{t.taste}</p>
                 </div>
               </div>
             </section>
 
-            <section className="border-t border-secondary/80 p-5 md:p-6 xl:border-r xl:border-t-0">
+            <section className="border-t border-secondary/80 p-5 md:p-6 xl:border-t-0">
               <p className="wg-section-title">{t.mostRequestedItems}</p>
               <p className="wg-meta mt-2">{t.mostRequestedNote}</p>
               <div className="mt-8 divide-y divide-secondary/80">
-                {requestedItems.map((item, index) => {
-                  const bakeryItem = supportingBakeryItems[index] ?? featuredBakeryItem
-
-                  return (
-                  <div key={item.name} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
+                {requestedItems.map((item) => (
+                  <div key={item.bakeryItem.fileName} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
                     <div className="flex min-w-0 items-center gap-3">
                       <img
-                        src={bakeryItem.imageSrc}
-                        alt={bakeryItem.title}
+                        src={item.bakeryItem.imageSrc}
+                        alt={item.bakeryItem.title}
                         className="h-10 w-10 shrink-0 rounded-full object-cover shadow-[0_8px_16px_rgba(41,91,67,0.12)]"
                       />
-                      <p className="truncate text-sm font-black text-foreground">{translateItemName(bakeryItem.title, language)}</p>
+                      <p className="truncate text-sm font-black text-foreground">{translateItemName(item.bakeryItem.title, language)}</p>
                     </div>
-                    <p className="shrink-0 text-sm font-bold text-muted-foreground">THB {(item.quantity * 75).toLocaleString()}</p>
+                    <p className="shrink-0 text-sm font-bold text-muted-foreground">
+                      {language === 'th' ? `${item.amount.toLocaleString()} บาท` : `THB ${item.amount.toLocaleString()}`}
+                    </p>
                   </div>
-                  )
-                })}
-              </div>
-            </section>
-
-            <section className="border-t border-secondary/80 p-5 md:p-6 xl:border-t-0">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="wg-section-title">{t.orders}</p>
-                  <p className="mt-2 text-2xl font-black text-foreground sm:text-3xl">{business.orders.toLocaleString()}</p>
-                  <p className={`mt-1 text-sm font-bold ${business.orderChangePercent >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                    {formatPercentChange(business.orderChangePercent)} {t.fromLastWeek}
-                  </p>
-                  <p className="wg-meta mt-5">{periodTitle}</p>
-                </div>
-                <p className="rounded-[0.9rem] border border-secondary px-3 py-2 text-xs font-black text-foreground">{periodTitle}</p>
-              </div>
-
-              <div className="relative mt-8 h-36 min-w-0 border-b border-secondary sm:h-40">
-                <svg className="h-full w-full overflow-visible" viewBox="0 0 260 140" preserveAspectRatio="none">
-                  <polyline
-                    points={previousOrderPoints}
-                    fill="none"
-                    stroke="#dff7ea"
-                    strokeWidth="3"
-                  />
-                  <polyline
-                    points={currentOrderPoints}
-                    fill="none"
-                    stroke="#145c43"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  {orderDots.map((dot, index) => (
-                    <circle
-                      key={`${dot.x}-${dot.y}-${index}`}
-                      cx={dot.x}
-                      cy={dot.y}
-                      r={dot.isActive ? 5 : 3}
-                      fill="#145c43"
-                      className="cursor-pointer transition-all duration-200"
-                      onMouseEnter={() => setActiveOrderIndex(index)}
-                      onMouseLeave={() => setActiveOrderIndex(null)}
-                      onClick={() => setActiveOrderIndex(activeOrderIndex === index ? null : index)}
-                    />
-                  ))}
-                </svg>
-              </div>
-              <div className="mt-4 flex gap-5 text-xs font-bold text-muted-foreground">
-                <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-[#145c43]" />{periodTitle}</span>
-                <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-secondary" />{t.fromLastWeek}</span>
+                ))}
               </div>
             </section>
           </div>
         </div>
 
-        <section className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3 md:gap-3">
+        <section className="mt-5 grid grid-cols-1 overflow-hidden rounded-[1.2rem] bg-white shadow-[0_12px_28px_rgba(41,91,67,0.08)] sm:grid-cols-3">
           {([
-            [t.revenueTrend, formatPercentChange(business.revenueChangePercent), business.revenueChangePercent >= 0],
-            [t.wasteTrend, `${savings.lessWaste}%`, true],
-            [t.orderGrowth, formatPercentChange(business.orderChangePercent), business.orderChangePercent >= 0],
-          ] as Array<[string, string, boolean]>).map(([label, value, isPositive]) => (
-            <div key={label} className="rounded-[1.2rem] bg-white p-4 text-center shadow-[0_12px_28px_rgba(41,91,67,0.08)]">
-              <p className={`text-lg font-black ${isPositive ? 'text-primary' : 'text-destructive'}`}>{value}</p>
-              <p className="wg-meta mt-1">{label}</p>
+            [
+              t.estimatedSavingsToday,
+              `${language === 'th' ? '' : 'THB '}${insights.estimatedSavings.toLocaleString()}${language === 'th' ? ' บาท' : ''}`,
+              t.estimatedSavingsNote.replace('{percent}', String(insights.wasteDelta)),
+            ],
+            [
+              t.wasteRiskStatus,
+              insights.riskStatus === 'low' ? t.lowRiskStatus : insights.riskStatus === 'medium' ? t.mediumRiskStatus : t.highRiskStatus,
+              t.highRiskItemsRemaining.replace('{count}', String(insights.highRiskItems)),
+            ],
+            [
+              t.tomorrowForecast,
+              t.pastryDemandForecast.replace('{percent}', formatPercentChange(insights.forecastChange)),
+              t.morningTrafficExpected,
+            ],
+          ] as Array<[string, string, string]>).map(([label, value, note]) => (
+            <div key={label} className="border-t border-secondary/80 p-4 text-center first:border-t-0 sm:border-l sm:border-t-0 first:sm:border-l-0">
+              <p className="wg-meta">{label}</p>
+              <p className="mt-1 text-lg font-black text-primary">{value}</p>
+              <p className="wg-meta mt-1">{note}</p>
             </div>
           ))}
         </section>
-
-        {inviteCode && (
-          <section className="mt-5 rounded-[1.35rem] bg-secondary/70 p-5">
-            <p className="text-sm font-black text-primary">{t.staffInviteCode}</p>
-            <p className="mt-2 text-xl font-black tracking-normal text-foreground">{inviteCode}</p>
-          </section>
-        )}
       </main>
     )
   }
@@ -606,44 +592,44 @@ function formatPercentChange(value: number) {
   return `${sign}${Math.abs(rounded)}%`
 }
 
-function getLineCoordinates(values: number[]) {
-  const safeValues = values.length > 0 ? values : [0]
-  const min = Math.min(...safeValues)
-  const max = Math.max(...safeValues)
-  const range = Math.max(1, max - min)
-  const step = safeValues.length > 1 ? 244 / (safeValues.length - 1) : 0
+function formatRevenue(value: number, language: Language) {
+  const amount = Math.round(value).toLocaleString()
 
-  return safeValues.map((value, index) => {
-    const x = 8 + index * step
-    const y = 120 - ((value - min) / range) * 92
+  return language === 'th' ? `${amount} บาท` : `THB ${amount}`
+}
 
-    return { x, y }
+function getRequestedItemsForRange(bakeryItems: BakeryItem[], range: TimeRange, revenue: number) {
+  const fallbackRevenue = range === 'day' ? 4200 : range === 'week' ? 28000 : 108000
+  const periodRevenue = Math.min(Math.max(revenue * 0.42, fallbackRevenue), fallbackRevenue * 1.35)
+  const shares = range === 'day' ? [0.28, 0.2, 0.14, 0.09] : range === 'week' ? [0.26, 0.19, 0.14, 0.1] : [0.24, 0.18, 0.14, 0.1]
+  const orderByRange = range === 'day' ? [0, 1, 2, 3] : range === 'week' ? [2, 0, 4, 1] : [4, 2, 5, 0]
+
+  return orderByRange.map((itemIndex, index) => {
+    const bakeryItem = bakeryItems[itemIndex % bakeryItems.length] ?? bakeryItems[index]
+    const amount = Math.round((periodRevenue * shares[index]) / 25) * 25
+
+    return {
+      bakeryItem,
+      amount,
+    }
   })
 }
 
-function getLinePoints(values: number[], activeIndex: number | null = null) {
-  const points = getLineCoordinates(values)
+function getQualityScoreForRange(
+  range: TimeRange,
+  quality: { freshness: number; taste: number; packaging: number },
+) {
+  const adjustment = range === 'day' ? { freshness: -2, taste: 1, packaging: -1 } : range === 'week' ? { freshness: 0, taste: 0, packaging: 0 } : { freshness: 2, taste: -1, packaging: 1 }
 
-  if (activeIndex === null || !points[activeIndex]) {
-    return points.map((point) => `${point.x},${point.y}`).join(' ')
+  return {
+    freshness: clampQuality(quality.freshness + adjustment.freshness),
+    taste: clampQuality(quality.taste + adjustment.taste),
+    packaging: clampQuality(quality.packaging + adjustment.packaging),
   }
-
-  return points
-    .map((point, index) => {
-      if (index !== activeIndex) {
-        return `${point.x},${point.y}`
-      }
-
-      return `${point.x},${point.y - 2}`
-    })
-    .join(' ')
 }
 
-function getLineDots(values: number[], activeIndex: number | null = null) {
-  return getLineCoordinates(values).map((point, index) => ({
-    ...point,
-    isActive: activeIndex === index,
-  }))
+function clampQuality(value: number) {
+  return Math.min(98, Math.max(78, value))
 }
 
 function getDemandSegments(demand: {

@@ -1,4 +1,4 @@
-import { Home, LogOut, PlusCircle, type LucideIcon } from 'lucide-react'
+import { Home, Leaf, LogOut, PlusCircle, type LucideIcon } from 'lucide-react'
 import { getText, type Language } from '@/lib/i18n'
 import type { WasteGuardRole } from '@/lib/mock-data'
 
@@ -15,8 +15,9 @@ export function Navigation({ currentScreen, language, role = 'staff', onLogout, 
   const navItems: Array<{ id: string; label: string; icon: LucideIcon }> = [
     { id: 'home', label: t.navHome, icon: Home },
     ...(role === 'staff' ? [{ id: 'input', label: t.navCheck, icon: PlusCircle }] : []),
+    ...(role === 'owner' ? [{ id: 'impact', label: t.navImpact, icon: Leaf }] : []),
   ]
-  const gridColumns = role === 'owner' ? 'grid-cols-2' : 'grid-cols-3'
+  const gridColumns = 'grid-cols-3'
 
   return (
     <>

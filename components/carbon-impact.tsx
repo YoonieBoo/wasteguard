@@ -74,8 +74,8 @@ export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAdd
           )}
         </div>
 
-        <section className="rounded-[1.45rem] bg-white/[0.08] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] backdrop-blur md:p-6">
-          <div className="grid items-center gap-6 md:grid-cols-[auto_minmax(0,1fr)] lg:gap-8">
+        <section className="rounded-[1.45rem] bg-white/[0.08] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] backdrop-blur md:max-xl:mx-auto md:max-xl:w-full md:max-xl:max-w-[720px] md:max-xl:p-5 xl:p-6">
+          <div className="grid items-center gap-6 md:grid-cols-[auto_minmax(0,1fr)] md:max-xl:grid-cols-1 md:max-xl:justify-items-center md:max-xl:gap-5 xl:gap-8">
             <button
               onClick={() => setShowGoalDetail((isOpen) => !isOpen)}
               className="relative mx-auto flex aspect-square w-40 items-center justify-center rounded-full text-white outline-none transition hover:scale-[1.01] focus-visible:ring-4 focus-visible:ring-emerald-300/40 sm:w-44 md:mx-0 lg:w-44"
@@ -110,18 +110,18 @@ export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAdd
               </div>
             </button>
 
-            <div className="grid min-w-0 grid-cols-3 gap-2 sm:gap-4 md:grid-cols-1 lg:grid-cols-3">
-              <div>
+            <div className="grid min-w-0 grid-cols-3 gap-2 sm:gap-4 md:grid-cols-3 md:max-xl:w-full md:max-xl:max-w-[600px] md:max-xl:gap-5 md:max-xl:text-center">
+              <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-normal text-emerald-200">{t.goal}</p>
                 <p className="mt-1 text-xl font-black text-white sm:text-2xl">{goalTons}</p>
                 <p className="text-xs font-bold text-emerald-100 sm:text-sm">{t.tons}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-normal text-emerald-200">{t.onTrack}</p>
                 <p className="mt-1 text-xl font-black text-white sm:text-2xl">{goalPercent}%</p>
                 <p className="text-xs font-bold text-emerald-100 sm:text-sm">{t.youreThere.replace('{percent}', String(goalPercent))}</p>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-black uppercase tracking-normal text-emerald-200">{t.wasteReduced}</p>
                 <p className="mt-1 text-xl font-black text-white sm:text-2xl">{impact.wasteDown}%</p>
                 <p className="text-xs font-bold text-emerald-100 sm:text-sm">{t.lessFoodLeft}</p>

@@ -117,8 +117,10 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
           )}
           <Input
             value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            onChange={(event) => setEmail(event.target.value.trim())}
             type="email"
+            autoComplete="email"
+            inputMode="email"
             placeholder={t.email}
             className="wg-control border-secondary bg-white"
           />
@@ -126,6 +128,7 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             type="password"
+            autoComplete="current-password"
             placeholder={t.password}
             className="wg-control border-secondary bg-white"
           />
@@ -260,8 +263,10 @@ export function CreateAccountScreen({
           )}
           <Input
             value={form.email}
-            onChange={(event) => updateField('email', event.target.value)}
+            onChange={(event) => updateField('email', event.target.value.trim())}
             type="email"
+            autoComplete="email"
+            inputMode="email"
             placeholder={t.email}
             className="wg-control border-secondary bg-white"
           />
@@ -269,6 +274,7 @@ export function CreateAccountScreen({
             value={form.password}
             onChange={(event) => updateField('password', event.target.value)}
             type="password"
+            autoComplete="new-password"
             placeholder={t.password}
             className="wg-control border-secondary bg-white"
           />

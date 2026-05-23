@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { DashboardHome } from '@/components/dashboard-home'
 import { QuickInput } from '@/components/quick-input'
+import { CarbonImpact } from '@/components/carbon-impact'
 import { Navigation } from '@/components/navigation'
 import { CreateAccountScreen, SignInScreen, WelcomeScreen } from '@/components/welcome-screen'
 import { getText, type Language } from '@/lib/i18n'
@@ -18,7 +19,7 @@ const bakeryNameKey = 'wasteGuardBakeryName'
 const inviteCodeKey = 'wasteGuardInviteCode'
 
 type AuthScreen = 'welcome' | 'sign-in' | 'create-account'
-type AppScreen = 'home' | 'input'
+type AppScreen = 'home' | 'input' | 'impact'
 
 type AuthProfile = {
   fullName: string
@@ -34,6 +35,51 @@ type AccountForm = AuthProfile & {
 }
 
 const demoAccountsKey = 'wasteGuardDemoAccounts'
+type DemoAccount = AuthProfile & { password: string }
+
+type DailyReportRow = {
+  report_date: string
+  orders: number | null
+  food_prepared: number | null
+  food_sold: number | null
+  leftover: number | null
+  waste_percentage: number | string | null
+  money_saved: number | string | null
+  co2_saved: number | string | null
+  revenue: number | string | null
+  weather: string | null
+  is_weekend: number | null
+  promotion: number | null
+}
+
+function reportToFoodRow(report: DailyReportRow): FoodRow {
+  return {
+    date: report.report_date,
+    orders: Number(report.orders ?? 0),
+    food_prepared: Number(report.food_prepared ?? 0),
+    food_sold: Number(report.food_sold ?? 0),
+    leftover: Number(report.leftover ?? 0),
+    waste_percent: Number(report.waste_percentage ?? 0),
+    money_saved: Number(report.money_saved ?? 0),
+    co2_saved: Number(report.co2_saved ?? 0),
+    revenue: Number(report.revenue ?? 0),
+    weather: report.weather || 'sunny',
+    is_weekend: Number(report.is_weekend ?? 0),
+    promotion: Number(report.promotion ?? 0),
+  }
+}
+
+function getStoredDemoAccounts(): DemoAccount[] {
+  try {
+    const savedAccounts = window.localStorage.getItem(demoAccountsKey)
+    const accounts = savedAccounts ? (JSON.parse(savedAccounts) as DemoAccount[]) : []
+
+    return Array.isArray(accounts) ? accounts : []
+  } catch {
+    window.localStorage.removeItem(demoAccountsKey)
+    return []
+  }
+}
 
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<AuthScreen | AppScreen>('welcome')
@@ -44,7 +90,7 @@ export default function Home() {
   const [signInEmail, setSignInEmail] = useState('')
   const [signInNotice, setSignInNotice] = useState('')
   const [completedBakeryItems, setCompletedBakeryItems] = useState<Record<string, boolean>>({})
-  const showNavigation = currentScreen === 'home' || currentScreen === 'input'
+  const showNavigation = currentScreen === 'home' || currentScreen === 'input' || currentScreen === 'impact'
 
   useEffect(() => {
     const savedInputs = window.localStorage.getItem(dailyInputsKey)
@@ -62,23 +108,49 @@ export default function Home() {
       }
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      const user = data.session?.user
-      const metadata = user?.user_metadata
-      const metadataRole = metadata?.role
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        const user = data.session?.user
+        const metadata = user?.user_metadata
+        const metadataRole = metadata?.role
 
-      if (user && metadata && (metadataRole === 'staff' || metadataRole === 'owner')) {
-        saveAuthProfile({
-          fullName: String(metadata.full_name || user.email?.split('@')[0] || 'Bakery Team'),
-          bakeryName: String(metadata.bakery_name || window.localStorage.getItem(bakeryNameKey) || 'My Bakery'),
-          email: user.email || '',
-          role: metadataRole,
-          inviteCode: String(metadata.invite_code || window.localStorage.getItem(inviteCodeKey) || ''),
-          bakeryId: typeof metadata.bakery_id === 'string' ? metadata.bakery_id : undefined,
-        })
-      }
-    })
+        if (user && metadata && (metadataRole === 'staff' || metadataRole === 'owner')) {
+          saveAuthProfile({
+            fullName: String(metadata.full_name || user.email?.split('@')[0] || 'Bakery Team'),
+            bakeryName: String(metadata.bakery_name || window.localStorage.getItem(bakeryNameKey) || 'My Bakery'),
+            email: user.email || '',
+            role: metadataRole,
+            inviteCode: String(metadata.invite_code || window.localStorage.getItem(inviteCodeKey) || ''),
+            bakeryId: typeof metadata.bakery_id === 'string' ? metadata.bakery_id : undefined,
+          })
+        }
+      })
+      .catch(() => undefined)
   }, [])
+
+  useEffect(() => {
+    if (!authProfile?.bakeryId) {
+      return
+    }
+
+    supabase
+      .from('daily_reports')
+      .select('report_date, orders, food_prepared, food_sold, leftover, waste_percentage, money_saved, co2_saved, revenue, weather, is_weekend, promotion')
+      .eq('bakery_id', authProfile.bakeryId)
+      .order('report_date', { ascending: false })
+      .limit(60)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Unable to load daily reports', error)
+          return
+        }
+
+        const reports = (data ?? []).map((report) => reportToFoodRow(report as DailyReportRow))
+        setDailyInputs(reports)
+        window.localStorage.setItem(dailyInputsKey, JSON.stringify(reports))
+      })
+  }, [authProfile?.bakeryId])
 
   useEffect(() => {
     if (role === 'owner' && currentScreen === 'input') {
@@ -90,6 +162,43 @@ export default function Home() {
     const nextInputs = [...dailyInputs.filter((input) => input.date !== newInput.date), newInput]
     setDailyInputs(nextInputs)
     window.localStorage.setItem(dailyInputsKey, JSON.stringify(nextInputs))
+
+    if (!authProfile?.bakeryId) {
+      return
+    }
+
+    const moneySaved = Math.round(newInput.money_saved ?? Math.max(0, newInput.food_sold - newInput.leftover) * 12)
+    const co2Saved = Number(
+      (newInput.co2_saved ?? newInput.food_sold * (1 - newInput.waste_percent / 100) * 0.1).toFixed(2),
+    )
+    const revenue = Math.round(newInput.revenue ?? newInput.food_sold * 75)
+
+    supabase
+      .from('daily_reports')
+      .upsert(
+        {
+          bakery_id: authProfile.bakeryId,
+          report_date: newInput.date,
+          orders: newInput.orders,
+          food_prepared: newInput.food_prepared,
+          food_sold: newInput.food_sold,
+          leftover: newInput.leftover,
+          waste_percentage: newInput.waste_percent,
+          money_saved: moneySaved,
+          co2_saved: co2Saved,
+          revenue,
+          weather: newInput.weather,
+          is_weekend: newInput.is_weekend,
+          promotion: newInput.promotion,
+          production_completed: true,
+        },
+        { onConflict: 'bakery_id,report_date' },
+      )
+      .then(({ error }) => {
+        if (error) {
+          console.error('Unable to save daily report', error)
+        }
+      })
   }
 
   function toggleLanguage() {
@@ -116,8 +225,7 @@ export default function Home() {
   }
 
   function saveDemoAccount(profile: AuthProfile, password: string) {
-    const savedAccounts = window.localStorage.getItem(demoAccountsKey)
-    const accounts = savedAccounts ? (JSON.parse(savedAccounts) as (AuthProfile & { password: string })[]) : []
+    const accounts = getStoredDemoAccounts()
     const nextAccounts = [
       ...accounts.filter((account) => account.email.toLowerCase() !== profile.email.toLowerCase()),
       { ...profile, password },
@@ -127,30 +235,31 @@ export default function Home() {
   }
 
   function getDemoAccount(email: string, password: string) {
-    const savedAccounts = window.localStorage.getItem(demoAccountsKey)
-    const accounts = savedAccounts ? (JSON.parse(savedAccounts) as (AuthProfile & { password: string })[]) : []
+    const accounts = getStoredDemoAccounts()
+    const normalizedEmail = email.trim().toLowerCase()
 
     return accounts.find(
-      (account) => account.email.toLowerCase() === email.toLowerCase() && account.password === password,
+      (account) => account.email.toLowerCase() === normalizedEmail && account.password === password,
     )
   }
 
   function hasDemoAccount(email: string) {
-    const savedAccounts = window.localStorage.getItem(demoAccountsKey)
-    const accounts = savedAccounts ? (JSON.parse(savedAccounts) as (AuthProfile & { password: string })[]) : []
+    const accounts = getStoredDemoAccounts()
+    const normalizedEmail = email.trim().toLowerCase()
 
-    return accounts.some((account) => account.email.toLowerCase() === email.toLowerCase())
+    return accounts.some((account) => account.email.toLowerCase() === normalizedEmail)
   }
 
   async function handleCreateAccount(account: AccountForm) {
+    const email = account.email.trim()
     const inviteCode = account.role === 'owner' ? generateInviteCode(account.bakeryName) : account.inviteCode
     let bakeryId: string | undefined
-    if (hasDemoAccount(account.email)) {
+    if (hasDemoAccount(email)) {
       throw new Error('User already registered')
     }
 
     const { data, error } = await supabase.auth.signUp({
-      email: account.email,
+      email,
       password: account.password,
       options: {
         data: {
@@ -197,7 +306,7 @@ export default function Home() {
       await supabase.from('users').upsert({
         id: data.user.id,
         full_name: account.fullName,
-        email: account.email,
+        email,
         role: account.role,
         bakery_id: bakeryId,
       })
@@ -216,7 +325,7 @@ export default function Home() {
     const profile = {
       fullName: account.fullName,
       bakeryName: account.bakeryName,
-      email: account.email,
+      email,
       role: account.role,
       inviteCode,
       bakeryId,
@@ -227,10 +336,11 @@ export default function Home() {
   }
 
   async function handleSignIn(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    const normalizedEmail = email.trim()
+    const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
 
     if (error) {
-      const demoAccount = getDemoAccount(email, password)
+      const demoAccount = getDemoAccount(normalizedEmail, password)
 
       if (demoAccount) {
         saveAuthProfile(demoAccount)
@@ -245,9 +355,9 @@ export default function Home() {
 
     if (metadataRole === 'staff' || metadataRole === 'owner') {
       saveAuthProfile({
-        fullName: String(metadata.full_name || email.split('@')[0] || 'Bakery Team'),
+        fullName: String(metadata.full_name || normalizedEmail.split('@')[0] || 'Bakery Team'),
         bakeryName: String(metadata.bakery_name || window.localStorage.getItem(bakeryNameKey) || 'My Bakery'),
-        email,
+        email: normalizedEmail,
         role: metadataRole,
         inviteCode: String(metadata.invite_code || window.localStorage.getItem(inviteCodeKey) || ''),
         bakeryId: typeof metadata.bakery_id === 'string' ? metadata.bakery_id : undefined,
@@ -283,6 +393,8 @@ export default function Home() {
     setCurrentScreen('sign-in')
   }
 
+  const isOwnerDashboard = currentScreen === 'home' && role === 'owner'
+
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden bg-white text-foreground lg:bg-[#f7fbf8]">
       <button
@@ -299,13 +411,17 @@ export default function Home() {
         className={`flex-1 flex w-full justify-center ${
           showNavigation ? 'lg:justify-start lg:pl-64' : ''
         } ${
-          showNavigation ? 'pb-28 md:pb-30 lg:pb-8' : 'pb-6'
+          currentScreen === 'impact' ? '' : showNavigation ? 'pb-28 md:pb-30 lg:pb-8' : 'pb-6'
         }`}
       >
         <div
           className={
             currentScreen === 'welcome' || currentScreen === 'sign-in' || currentScreen === 'create-account'
               ? 'w-full'
+              : currentScreen === 'impact'
+                ? 'w-full'
+              : isOwnerDashboard
+                ? 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[920px] md:px-5 md:pt-5 xl:max-w-[1180px] xl:px-10 xl:pt-7'
               : 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[620px] md:px-6 lg:max-w-[1180px] lg:px-10 lg:pt-7'
           }
         >
@@ -367,6 +483,14 @@ export default function Home() {
               dailyInputs={dailyInputs}
               onSave={handleDailyInputSave}
               onViewResults={() => setCurrentScreen('home')}
+            />
+          )}
+          {currentScreen === 'impact' && (
+            <CarbonImpact
+              dailyInputs={dailyInputs}
+              language={language}
+              role={role}
+              onAddToday={() => setCurrentScreen('input')}
             />
           )}
         </div>

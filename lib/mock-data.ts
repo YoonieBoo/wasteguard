@@ -9,6 +9,9 @@ export type FoodRow = {
   food_sold: number
   leftover: number
   waste_percent: number
+  money_saved?: number
+  co2_saved?: number
+  revenue?: number
   weather: string
   is_weekend: number
   promotion: number
@@ -63,7 +66,9 @@ function dateValue(date: string) {
 }
 
 function getSortedRows(inputRows: FoodRow[] = []) {
-  return [...rows, ...inputRows].sort((a, b) => dateValue(b.date) - dateValue(a.date))
+  void inputRows
+
+  return [...rows].sort((a, b) => dateValue(b.date) - dateValue(a.date))
 }
 
 function getDemoRows(inputRows: FoodRow[] = []) {
@@ -288,8 +293,8 @@ export function getBusinessDashboardData(range: TimeRange, inputRows: FoodRow[] 
   const orderedPreviousRows = [...previousRows].reverse()
   const visibleRows = orderedCurrentRows.slice(-12)
   const visiblePreviousRows = orderedPreviousRows.slice(-12)
-  const revenue = Math.round(currentRows.reduce((sum, row) => sum + row.food_sold * 75, 0))
-  const previousRevenue = Math.round(previousRows.reduce((sum, row) => sum + row.food_sold * 75, 0))
+  const revenue = Math.round(currentRows.reduce((sum, row) => sum + (row.revenue ?? row.food_sold * 75), 0))
+  const previousRevenue = Math.round(previousRows.reduce((sum, row) => sum + (row.revenue ?? row.food_sold * 75), 0))
   const orders = currentRows.reduce((sum, row) => sum + row.orders, 0)
   const previousOrders = previousRows.reduce((sum, row) => sum + row.orders, 0)
 
@@ -298,8 +303,8 @@ export function getBusinessDashboardData(range: TimeRange, inputRows: FoodRow[] 
 
     return {
       label: getChartLabel(row, index, range),
-      current: Math.round(row.food_sold * 75),
-      previous: Math.round(previousRow.food_sold * 75),
+      current: Math.round(row.revenue ?? row.food_sold * 75),
+      previous: Math.round(previousRow.revenue ?? previousRow.food_sold * 75),
     }
   })
 
@@ -355,6 +360,27 @@ export function getBusinessDashboardData(range: TimeRange, inputRows: FoodRow[] 
       taste: clamp(Math.round(78 + soldRate * 20), 72, 98),
       packaging: clamp(Math.round(97 - averageLeftover * 0.45), 72, 98),
     },
+  }
+}
+
+export function getBusinessInsightData(inputRows: FoodRow[] = []) {
+  const sortedRows = getSortedRows(inputRows)
+  const todayRow = sortedRows[0]
+  const previousRows = sortedRows.slice(1, 8)
+  const previousAverageWaste = safeAverage(previousRows.map((row) => row.waste_percent))
+  const wasteDelta = todayRow ? Math.max(0, Math.round(previousAverageWaste - todayRow.waste_percent)) : 0
+  const highRiskItems = todayRow ? Math.max(0, Math.round(todayRow.leftover / 3)) : 0
+  const riskStatus = highRiskItems <= 6 ? 'low' : highRiskItems <= 12 ? 'medium' : 'high'
+  const latestPrepared = todayRow?.food_prepared ?? 0
+  const previousPrepared = previousRows[0]?.food_prepared ?? latestPrepared
+  const forecastChange = Math.round(percentChange(Math.round(latestPrepared * 1.08), previousPrepared || latestPrepared || 1))
+
+  return {
+    estimatedSavings: Math.round(todayRow?.money_saved ?? Math.max(0, wasteDelta * savedPerPortion)),
+    wasteDelta,
+    highRiskItems,
+    riskStatus,
+    forecastChange,
   }
 }
 

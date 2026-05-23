@@ -31,9 +31,17 @@ create table if not exists public.daily_reports (
   id uuid primary key default gen_random_uuid(),
   bakery_id uuid not null references public.bakeries(id) on delete cascade,
   report_date date not null default current_date,
+  orders integer not null default 0 check (orders >= 0),
+  food_prepared integer not null default 0 check (food_prepared >= 0),
+  food_sold integer not null default 0 check (food_sold >= 0),
+  leftover integer not null default 0 check (leftover >= 0),
   waste_percentage numeric(5,2) not null default 0,
   money_saved numeric(12,2) not null default 0,
   co2_saved numeric(12,2) not null default 0,
+  revenue numeric(12,2) not null default 0,
+  weather text not null default 'sunny',
+  is_weekend integer not null default 0 check (is_weekend in (0, 1)),
+  promotion integer not null default 0 check (promotion in (0, 1)),
   production_completed boolean not null default false,
   created_at timestamptz not null default now(),
   unique (bakery_id, report_date)
@@ -108,6 +116,23 @@ create policy "Bakery team can read reports"
 
 create policy "Bakery team can create reports"
   on public.daily_reports for insert
+  with check (
+    exists (
+      select 1 from public.users
+      where users.bakery_id = daily_reports.bakery_id
+      and users.id = auth.uid()
+    )
+  );
+
+create policy "Bakery team can update reports"
+  on public.daily_reports for update
+  using (
+    exists (
+      select 1 from public.users
+      where users.bakery_id = daily_reports.bakery_id
+      and users.id = auth.uid()
+    )
+  )
   with check (
     exists (
       select 1 from public.users

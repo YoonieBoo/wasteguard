@@ -10,7 +10,7 @@
   --card-foreground: oklch(0.22 0.025 156);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.22 0.025 156);
-  --primary: oklch(0.66 0.15 158);
+  --primary: oklch(0.498 0.111 156.863);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.94 0.04 156);
   --secondary-foreground: oklch(0.25 0.04 156);
@@ -23,8 +23,8 @@
   --border: oklch(0.9 0.02 156);
   --input: oklch(1 0 0);
   --input-border: oklch(0.9 0.02 156);
-  --ring: oklch(0.66 0.15 158);
-  --chart-1: oklch(0.66 0.15 158);
+  --ring: oklch(0.498 0.111 156.863);
+  --chart-1: oklch(0.498 0.111 156.863);
   --chart-2: oklch(0.76 0.12 72);
   --chart-3: oklch(0.72 0.09 200);
   --chart-4: oklch(0.8 0.08 140);
@@ -195,6 +195,45 @@
   }
 }
 
+.quality-float-taste {
+  animation: quality-float-taste 4.8s ease-in-out infinite;
+}
+
+.quality-float-freshness {
+  animation: quality-float-freshness 5.4s ease-in-out infinite;
+}
+
+.quality-float-packaging {
+  animation: quality-float-packaging 5.1s ease-in-out infinite;
+}
+
+@keyframes quality-float-taste {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-10px, -10px);
+  }
+}
+
+@keyframes quality-float-freshness {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-10px, 9px);
+  }
+}
+
+@keyframes quality-float-packaging {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(11px, -8px);
+  }
+}
+
 .welcome-fade-up {
   animation: welcome-fade-up 700ms ease-out both;
 }
@@ -204,7 +243,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .welcome-fade-up {
+  .welcome-fade-up,
+  .quality-float-taste,
+  .quality-float-freshness,
+  .quality-float-packaging {
     animation: none;
   }
 }
