@@ -9,6 +9,7 @@ import { CreateAccountScreen, SignInScreen, WelcomeScreen } from '@/components/w
 import { MorningBriefing } from '@/components/morning-briefing'
 import { RecommendationCenter } from '@/components/recommendation-center'
 import { SavingsReport } from '@/components/savings-report'
+import { EsgDashboard } from '@/components/esg-dashboard'
 import { getText, type Language } from '@/lib/i18n'
 import { getBusinessInsightData, type FoodRow, type WasteGuardRole } from '@/lib/mock-data'
 import { defaultRecommendations, type Recommendation, type RecommendationStatus } from '@/lib/recommendations'
@@ -595,7 +596,15 @@ export default function Home() {
               onGoToRecommendations={() => setCurrentScreen('recommendations')}
             />
           )}
-          {currentScreen === 'impact' && (
+          {currentScreen === 'impact' && role === 'owner' && (
+            <EsgDashboard
+              dailyInputs={dailyInputs}
+              language={language}
+              recsTotal={recommendations.length}
+              recsActed={recommendations.filter((r) => r.status === 'accepted' || r.status === 'modified').length}
+            />
+          )}
+          {currentScreen === 'impact' && role === 'staff' && (
             <CarbonImpact
               dailyInputs={dailyInputs}
               language={language}

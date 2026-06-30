@@ -453,3 +453,68 @@ export function getImpactData(range: TimeRange, inputRows: FoodRow[] = []) {
     })),
   }
 }
+
+export function getEsgData(
+  range: TimeRange,
+  inputRows: FoodRow[],
+  recsTotal: number,
+  recsActed: number,
+) {
+  const rowsForRange = getRowsForRange(range, inputRows)
+  const totalDays = range === 'day' ? 1 : range === 'week' ? 7 : 30
+  const daysLogged = rowsForRange.length
+  const hasData = daysLogged > 0
+
+  // Environmental — based on average waste % (0% waste = 100, 40%+ = 0)
+  const avgWaste = hasData ? safeAverage(rowsForRange.map((r) => r.waste_percent)) : 0
+  const totalCo2Saved = rowsForRange.reduce((sum, r) => sum + Number(r.co2_saved ?? 0), 0)
+  const totalPortionsSaved = rowsForRange.reduce(
+    (sum, r) => sum + Math.max(0, r.food_sold - r.leftover),
+    0,
+  )
+  const totalMoneySaved = rowsForRange.reduce((sum, r) => sum + Number(r.money_saved ?? 0), 0)
+  const totalLeftover = rowsForRange.reduce((sum, r) => sum + r.leftover, 0)
+  const envScore = hasData ? Math.round(clamp(100 - avgWaste * 2.5, 0, 100)) : 0
+
+  // Social — team reporting consistency + potential food donations
+  const reportingRate = totalDays > 0 ? Math.min(1, daysLogged / totalDays) : 0
+  const socialScore = Math.round(reportingRate * 100)
+
+  // Governance — reporting rate + AI recommendation adherence
+  const recAdherence = recsTotal > 0 ? recsActed / recsTotal : 0
+  const govScore = Math.round((reportingRate * 0.6 + recAdherence * 0.4) * 100)
+
+  // Overall (E: 50%, S: 25%, G: 25%)
+  const overallScore = hasData
+    ? Math.round(envScore * 0.5 + socialScore * 0.25 + govScore * 0.25)
+    : 0
+
+  const rating =
+    overallScore >= 90 ? 'A+'
+    : overallScore >= 80 ? 'A'
+    : overallScore >= 70 ? 'B+'
+    : overallScore >= 60 ? 'B'
+    : overallScore >= 50 ? 'C'
+    : hasData ? 'D'
+    : '--'
+
+  return {
+    hasData,
+    overallScore,
+    envScore,
+    socialScore,
+    govScore,
+    rating,
+    avgWaste: parseFloat(avgWaste.toFixed(1)),
+    totalCo2Saved: parseFloat(totalCo2Saved.toFixed(1)),
+    totalPortionsSaved: Math.round(totalPortionsSaved),
+    totalMoneySaved: Math.round(totalMoneySaved),
+    totalLeftover: Math.round(totalLeftover),
+    daysLogged,
+    totalDays,
+    reportingRate,
+    recsTotal,
+    recsActed,
+    recAdherence,
+  }
+}

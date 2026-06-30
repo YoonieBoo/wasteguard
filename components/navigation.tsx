@@ -33,7 +33,7 @@ export function Navigation({
           },
         ]
       : []),
-    ...(role === 'owner' ? [{ id: 'impact', label: t.navImpact, icon: Leaf }] : []),
+    ...(role === 'owner' ? [{ id: 'impact', label: t.navEsg, icon: Leaf }] : []),
     ...(role === 'owner' ? [{ id: 'report', label: t.navReport, icon: TrendingUp }] : []),
   ]
   const gridColumns = role === 'owner' ? 'grid-cols-5' : 'grid-cols-3'
