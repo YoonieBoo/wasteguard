@@ -72,14 +72,26 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
     const absDiff = Math.abs(diff)
 
     const action = isReducing ? 'Reduce' : diff > 0 ? 'Increase' : 'Maintain'
-    const trendSign = item.trend_percent >= 0 ? '+' : ''
+
+    let reason: string
+    let reasonTh: string
+    if (isReducing) {
+      reason = `Your 7-day average for ${item.menu_item} is ${avg} portions, but today's demand looks lower. Preparing ${qty} should be just enough — helping you cut down on leftovers.`
+      reasonTh = `ค่าเฉลี่ย 7 วันของ ${item.menu_item} อยู่ที่ ${avg} ส่วน แต่วันนี้ความต้องการดูต่ำลง การเตรียม ${qty} ส่วนน่าจะพอดี ช่วยลดของเหลือได้`
+    } else if (diff > 0) {
+      reason = `${item.menu_item} has been selling fast lately — your 7-day average is ${avg} portions and demand is rising. Preparing ${qty} helps you meet orders without running short.`
+      reasonTh = `${item.menu_item} ขายดีในช่วงนี้ — ค่าเฉลี่ย 7 วันอยู่ที่ ${avg} ส่วน และความต้องการเพิ่มขึ้น การเตรียม ${qty} ส่วนช่วยให้ไม่ขาด`
+    } else {
+      reason = `Sales for ${item.menu_item} have been steady around ${avg} portions a day. Preparing ${qty} matches today's expected demand well.`
+      reasonTh = `ยอดขายของ ${item.menu_item} อยู่ที่ประมาณ ${avg} ส่วนต่อวัน การเตรียม ${qty} ส่วนตรงกับความต้องการวันนี้`
+    }
 
     recs.push({
       id: `ai-prep-${i}`,
-      title: `${action} ${item.menu_item}: prepare ${qty} units`,
-      titleTh: `${action === 'Reduce' ? 'ลด' : action === 'Increase' ? 'เพิ่ม' : 'คง'} ${item.menu_item}: เตรียม ${qty} ชิ้น`,
-      reason: `AI forecast ${item.ai_forecast} units (${trendSign}${item.trend_percent.toFixed(1)}% trend vs 7-day avg of ${avg}). Safety buffer: +${item.safety_buffer_percent}%. ${item.demand_status} · ${item.waste_risk_status}.`,
-      reasonTh: `AI คาดการณ์ ${item.ai_forecast} ชิ้น (แนวโน้ม ${trendSign}${item.trend_percent.toFixed(1)}% เทียบกับ 7 วันเฉลี่ย ${avg} ชิ้น) บัฟเฟอร์ความปลอดภัย +${item.safety_buffer_percent}%`,
+      title: `${action} ${item.menu_item} — prepare ${qty} portions`,
+      titleTh: `${action === 'Reduce' ? 'ลด' : action === 'Increase' ? 'เพิ่ม' : 'คง'} ${item.menu_item} — เตรียม ${qty} ส่วน`,
+      reason,
+      reasonTh,
       estimatedSavings: isReducing ? absDiff * THB_PER_UNIT : 0,
       co2Impact: isReducing ? absDiff * CO2_PER_UNIT : -(absDiff * CO2_PER_UNIT),
       confidence: Math.max(60, 100 - item.safety_buffer_percent),
@@ -109,8 +121,8 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
       id: `ai-anomaly-${i}`,
       title: rec.recommendation,
       titleTh: rec.recommendation,
-      reason: `${rec.date ? `Date: ${rec.date}. ` : ''}${rec.reason}`,
-      reasonTh: `${rec.date ? `วันที่: ${rec.date}. ` : ''}${rec.reason}`,
+      reason: rec.reason,
+      reasonTh: rec.reason,
       estimatedSavings: 0,
       co2Impact: 0,
       confidence: parsePct(rec.confidence),
