@@ -19,6 +19,11 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
   const [modifyingId, setModifyingId] = useState<string | null>(null)
   const [modifyQuantity, setModifyQuantity] = useState('')
   const [showReviewed, setShowReviewed] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  function toggleExpanded(id: string) {
+    setExpandedId((current) => (current === id ? null : id))
+  }
 
   const pendingRecs = recommendations.filter((r) => r.status === 'pending')
   const reviewedRecs = recommendations.filter((r) => r.status !== 'pending')
@@ -97,25 +102,38 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
             return (
               <div
                 key={rec.id}
-                className="overflow-hidden rounded-[1.45rem] bg-white shadow-[0_18px_45px_rgba(41,91,67,0.1)]"
+                className="group overflow-hidden rounded-[1.45rem] bg-white shadow-[0_18px_45px_rgba(41,91,67,0.1)]"
               >
                 <div className="p-6 md:p-7">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-3 py-1 text-xs font-black ${confidenceTone}`}>
-                      {rec.confidence}% {t.confidenceLabel}
-                    </span>
-                    {rec.affectedItemFileName && (
-                      <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-muted-foreground">
-                        {translateItemName(cleanBakeryTitle(rec.affectedItemFileName), language)}
+                  {/* Tap target on mobile — hover activates group on desktop */}
+                  <button
+                    type="button"
+                    onClick={() => toggleExpanded(rec.id)}
+                    className="w-full text-left focus:outline-none"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-3 py-1 text-xs font-black ${confidenceTone}`}>
+                        {rec.confidence}% {t.confidenceLabel}
                       </span>
-                    )}
-                  </div>
+                      {rec.affectedItemFileName && (
+                        <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-muted-foreground">
+                          {translateItemName(cleanBakeryTitle(rec.affectedItemFileName), language)}
+                        </span>
+                      )}
+                    </div>
 
-                  <h2 className="mt-4 text-xl font-black leading-tight text-foreground sm:text-2xl">
-                    {title}
-                  </h2>
+                    <h2 className="mt-4 text-xl font-black leading-tight text-foreground sm:text-2xl">
+                      {title}
+                    </h2>
+                  </button>
 
-                  <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground sm:text-base sm:leading-7">
+                  <p
+                    className={`text-sm font-medium leading-6 text-muted-foreground sm:text-base sm:leading-7 ${
+                      expandedId === rec.id
+                        ? 'mt-2 block'
+                        : 'mt-0 hidden group-hover:mt-2 group-hover:block'
+                    }`}
+                  >
                     {reason}
                   </p>
 
