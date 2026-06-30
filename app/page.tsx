@@ -8,6 +8,7 @@ import { Navigation } from '@/components/navigation'
 import { CreateAccountScreen, SignInScreen, WelcomeScreen } from '@/components/welcome-screen'
 import { MorningBriefing } from '@/components/morning-briefing'
 import { RecommendationCenter } from '@/components/recommendation-center'
+import { SavingsReport } from '@/components/savings-report'
 import { getText, type Language } from '@/lib/i18n'
 import { getBusinessInsightData, type FoodRow, type WasteGuardRole } from '@/lib/mock-data'
 import { defaultRecommendations, type Recommendation, type RecommendationStatus } from '@/lib/recommendations'
@@ -24,7 +25,7 @@ const recommendationsKey = 'wasteGuardRecommendations'
 const briefingDateKey = 'wasteGuardBriefingDate'
 
 type AuthScreen = 'welcome' | 'sign-in' | 'create-account'
-type AppScreen = 'home' | 'input' | 'impact' | 'recommendations'
+type AppScreen = 'home' | 'input' | 'impact' | 'recommendations' | 'report'
 
 type AuthProfile = {
   fullName: string
@@ -102,7 +103,8 @@ export default function Home() {
     currentScreen === 'home' ||
     currentScreen === 'input' ||
     currentScreen === 'impact' ||
-    currentScreen === 'recommendations'
+    currentScreen === 'recommendations' ||
+    currentScreen === 'report'
 
   useEffect(() => {
     const savedLanguage = window.localStorage.getItem(languageKey)
@@ -509,7 +511,7 @@ export default function Home() {
               ? 'w-full'
               : currentScreen === 'impact'
                 ? 'w-full'
-              : isOwnerDashboard || currentScreen === 'recommendations'
+              : isOwnerDashboard || currentScreen === 'recommendations' || currentScreen === 'report'
                 ? 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[920px] md:px-5 md:pt-5 xl:max-w-[1180px] xl:px-10 xl:pt-7'
               : 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[620px] md:px-6 lg:max-w-[1180px] lg:px-10 lg:pt-7'
           }`}
@@ -582,6 +584,15 @@ export default function Home() {
               dailyInputs={dailyInputs}
               onSave={handleDailyInputSave}
               onViewResults={() => setCurrentScreen('home')}
+            />
+          )}
+          {currentScreen === 'report' && (
+            <SavingsReport
+              recommendations={recommendations}
+              dailyInputs={dailyInputs}
+              language={language}
+              bakeryName={authProfile?.bakeryName}
+              onGoToRecommendations={() => setCurrentScreen('recommendations')}
             />
           )}
           {currentScreen === 'impact' && (

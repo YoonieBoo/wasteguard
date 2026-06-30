@@ -1,4 +1,4 @@
-import { Home, Leaf, LogOut, PlusCircle, Sparkles, type LucideIcon } from 'lucide-react'
+import { Home, Leaf, LogOut, PlusCircle, Sparkles, TrendingUp, type LucideIcon } from 'lucide-react'
 import { getText, type Language } from '@/lib/i18n'
 import type { WasteGuardRole } from '@/lib/mock-data'
 
@@ -34,8 +34,9 @@ export function Navigation({
         ]
       : []),
     ...(role === 'owner' ? [{ id: 'impact', label: t.navImpact, icon: Leaf }] : []),
+    ...(role === 'owner' ? [{ id: 'report', label: t.navReport, icon: TrendingUp }] : []),
   ]
-  const gridColumns = role === 'owner' ? 'grid-cols-4' : 'grid-cols-3'
+  const gridColumns = role === 'owner' ? 'grid-cols-5' : 'grid-cols-3'
 
   return (
     <>
