@@ -168,19 +168,19 @@
   }
 
   .wg-card {
-    @apply rounded-[1.5rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] md:p-5;
+    @apply rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] md:p-5;
   }
 
   .wg-panel {
-    @apply rounded-[1.5rem] bg-white p-5 shadow-[0_16px_40px_rgba(41,91,67,0.08)] md:p-6;
+    @apply rounded-[0.75rem] bg-white p-5 shadow-[0_16px_40px_rgba(41,91,67,0.08)] md:p-6;
   }
 
   .wg-control {
-    @apply h-12 rounded-[1rem] px-4 text-sm font-bold sm:text-base;
+    @apply h-12 rounded-[0.5rem] px-4 text-sm font-bold sm:text-base;
   }
 
   .wg-action {
-    @apply h-14 rounded-[1rem] text-base font-black shadow-[0_14px_28px_rgba(68,179,126,0.2)] md:h-[3.75rem];
+    @apply h-14 rounded-[0.5rem] text-base font-black shadow-[0_14px_28px_rgba(68,179,126,0.2)] md:h-[3.75rem];
   }
 }
 

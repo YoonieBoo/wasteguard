@@ -68,7 +68,7 @@ export function WelcomeScreen({ language, onStart, onSignIn }: WelcomeScreenProp
         <Button
           onClick={onSignIn}
           variant="secondary"
-          className="mt-3 h-[3.25rem] w-full rounded-[1rem] bg-white/20 text-base font-black text-white shadow-[0_12px_30px_rgba(28,91,57,0.14)] hover:bg-white/25"
+          className="mt-3 h-[3.25rem] w-full rounded-[0.5rem] bg-white/20 text-base font-black text-white shadow-[0_12px_30px_rgba(28,91,57,0.14)] hover:bg-white/25"
         >
           {t.signIn}
         </Button>
@@ -111,7 +111,7 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
       >
         <div className="space-y-3">
           {notice && (
-            <p className="rounded-[1rem] bg-white px-4 py-3 text-sm font-bold leading-6 text-primary shadow-sm">
+            <p className="rounded-[0.5rem] bg-white px-4 py-3 text-sm font-bold leading-6 text-primary shadow-sm">
               {notice}
             </p>
           )}
@@ -146,7 +146,7 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
         type="button"
         onClick={onCreateAccount}
         variant="secondary"
-        className="mt-3 h-[3.25rem] w-full rounded-[1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
+        className="mt-3 h-[3.25rem] w-full rounded-[0.5rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
       >
         {t.needAccount}
       </Button>
@@ -229,7 +229,7 @@ export function CreateAccountScreen({
               type="button"
               key={option}
               onClick={() => setForm((current) => ({ ...current, role: option }))}
-              className={`min-h-[3.25rem] rounded-[1rem] px-3 py-3 text-sm font-black transition ${
+              className={`min-h-[3.25rem] rounded-[0.5rem] px-3 py-3 text-sm font-black transition ${
                 form.role === option
                   ? 'bg-primary text-primary-foreground shadow-[0_10px_20px_rgba(68,179,126,0.2)]'
                   : 'bg-white text-foreground shadow-sm hover:bg-secondary'
@@ -293,7 +293,7 @@ export function CreateAccountScreen({
         type="button"
         onClick={onSignIn}
         variant="secondary"
-        className="mt-3 h-[3.25rem] w-full rounded-[1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
+        className="mt-3 h-[3.25rem] w-full rounded-[0.5rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
       >
         {t.alreadyHaveAccount}
       </Button>
@@ -310,7 +310,7 @@ function AuthShell({ title, subtitle, children }: { title: string; subtitle: str
           <h1 className="wg-page-title">{title}</h1>
           <p className="wg-page-subtitle">{subtitle}</p>
         </div>
-        <section className="rounded-[1.5rem] bg-secondary/70 p-4 md:p-5">{children}</section>
+        <section className="rounded-[0.75rem] bg-secondary/70 p-4 md:p-5">{children}</section>
       </div>
     </main>
   )

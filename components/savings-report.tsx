@@ -93,7 +93,7 @@ export function SavingsReport({
         {statCards.map((card) => (
           <div
             key={card.label}
-            className={`flex flex-col justify-between rounded-[1.5rem] p-4 sm:p-5 ${card.tone}`}
+            className={`flex flex-col justify-between rounded-[0.75rem] p-4 sm:p-5 ${card.tone}`}
           >
             <p className="wg-label mb-3">{card.label}</p>
             <p className="text-lg font-black leading-tight sm:text-xl">{card.value}</p>
@@ -106,7 +106,7 @@ export function SavingsReport({
         <h2 className="wg-section-title mb-4">{t.acceptedRecsBreakdown}</h2>
 
         {acceptedRecs.length === 0 ? (
-          <div className="rounded-[1.5rem] bg-white p-8 text-center shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
+          <div className="rounded-[0.75rem] bg-white p-8 text-center shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
               <Sparkles className="h-6 w-6" />
             </div>
@@ -114,13 +114,13 @@ export function SavingsReport({
             <p className="wg-meta mt-1 mb-5">{t.noAcceptedRecsReportNote}</p>
             <Button
               onClick={onGoToRecommendations}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-[1rem] h-11 px-6 text-sm font-black"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-[0.5rem] h-11 px-6 text-sm font-black"
             >
               {t.goToRecs}
             </Button>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-[1.5rem] bg-white shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
+          <div className="overflow-hidden rounded-[0.75rem] bg-white shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
             {acceptedRecs.map((rec, i) => {
               const title = language === 'th' ? rec.titleTh : rec.title
               const isModified = rec.status === 'modified'
@@ -192,12 +192,12 @@ export function SavingsReport({
         <h2 className="wg-section-title mb-4">{t.monthlyPerformance}</h2>
 
         {monthlyData.length === 0 ? (
-          <div className="rounded-[1.5rem] bg-white p-8 text-center shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
+          <div className="rounded-[0.75rem] bg-white p-8 text-center shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
             <p className="text-sm font-black text-foreground">{t.noHistoricalData}</p>
             <p className="wg-meta mt-1">{t.noHistoricalDataNote}</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-[1.5rem] bg-white shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
+          <div className="overflow-hidden rounded-[0.75rem] bg-white shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
             {/* Table header */}
             <div className="grid grid-cols-4 border-b border-secondary/60 px-5 py-3 sm:px-6">
               <p className="wg-label">{language === 'th' ? 'เดือน' : 'Month'}</p>

@@ -123,7 +123,7 @@ export function DashboardHome({
           <button
             type="button"
             onClick={onGoToRecommendations}
-            className="mb-5 flex w-full items-center gap-3 rounded-[1.5rem] bg-primary/10 px-5 py-4 text-left transition hover:bg-primary/15"
+            className="mb-5 flex w-full items-center gap-3 rounded-[0.75rem] bg-primary/10 px-5 py-4 text-left transition hover:bg-primary/15"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-white">
               <Sparkles className="h-4 w-4" />
@@ -148,10 +148,10 @@ export function DashboardHome({
               value={range}
               onChange={setRange}
               language={language}
-              className="grid w-full shrink-0 grid-cols-3 gap-2 rounded-[1.5rem] bg-white p-2 shadow-[0_12px_28px_rgba(41,91,67,0.08)] xl:mt-5 xl:w-[31rem] xl:max-w-full"
+              className="grid w-full shrink-0 grid-cols-3 gap-2 rounded-[0.75rem] bg-white p-2 shadow-[0_12px_28px_rgba(41,91,67,0.08)] xl:mt-5 xl:w-[31rem] xl:max-w-full"
             />
             {inviteCode && (
-              <section className="rounded-[1.5rem] bg-secondary/70 px-4 py-3 text-left md:flex md:w-full md:items-center md:justify-center md:gap-2 md:whitespace-nowrap xl:block xl:w-auto xl:text-right xl:whitespace-normal">
+              <section className="rounded-[0.75rem] bg-secondary/70 px-4 py-3 text-left md:flex md:w-full md:items-center md:justify-center md:gap-2 md:whitespace-nowrap xl:block xl:w-auto xl:text-right xl:whitespace-normal">
                 <p className="text-sm font-black text-primary">
                   {t.staffInviteCode}
                   <span className="hidden md:inline xl:hidden">:</span>
@@ -162,7 +162,7 @@ export function DashboardHome({
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-[1.5rem] bg-white shadow-[0_18px_45px_rgba(41,91,67,0.08)]">
+        <div className="overflow-hidden rounded-[0.75rem] bg-white shadow-[0_18px_45px_rgba(41,91,67,0.08)]">
           <div className="grid xl:grid-cols-[1.75fr_1fr]">
             <section className="border-secondary/80 p-5 md:p-5 xl:border-r xl:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -173,7 +173,7 @@ export function DashboardHome({
                     {formatPercentChange(business.revenueChangePercent)} {t.fromLastWeek}
                   </p>
                 </div>
-                <p className="rounded-[0.5rem] border border-secondary px-3 py-2 text-xs font-black text-foreground">{periodTitle}</p>
+                <p className="rounded-[0.25rem] border border-secondary px-3 py-2 text-xs font-black text-foreground">{periodTitle}</p>
               </div>
 
               <div className="mt-7 flex h-36 min-w-0 items-end gap-1.5 overflow-hidden border-b border-secondary/80 pb-4 sm:h-40 sm:gap-3">
@@ -190,7 +190,7 @@ export function DashboardHome({
                     aria-label={`${item.label}: ${formatRevenue(item.current, language)}`}
                   >
                     {activeRevenueIndex === index && (
-                      <span className="pointer-events-none absolute top-1 z-10 rounded-[0.5rem] bg-foreground px-2 py-1 text-[10px] font-black text-white shadow-[0_8px_20px_rgba(41,91,67,0.18)]">
+                      <span className="pointer-events-none absolute top-1 z-10 rounded-[0.25rem] bg-foreground px-2 py-1 text-[10px] font-black text-white shadow-[0_8px_20px_rgba(41,91,67,0.18)]">
                         {formatRevenue(item.current, language)}
                       </span>
                     )}
@@ -220,7 +220,7 @@ export function DashboardHome({
                 <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-secondary" />{t.fromLastWeek}</span>
               </div>
               {activeRevenueBar && (
-                <div className="mt-4 rounded-[1rem] bg-secondary/70 px-4 py-3 text-sm font-bold text-foreground">
+                <div className="mt-4 rounded-[0.5rem] bg-secondary/70 px-4 py-3 text-sm font-bold text-foreground">
                   <p className="text-xs font-black text-muted-foreground">{activeRevenueBar.label}</p>
                   <p className="mt-1 text-lg font-black text-primary">{formatRevenue(activeRevenueBar.current, language)}</p>
                 </div>
@@ -233,7 +233,7 @@ export function DashboardHome({
                   <p className="wg-section-title">{t.demandAnalytics}</p>
                   <p className="wg-meta mt-2">{periodTitle}</p>
                 </div>
-                <p className="rounded-[0.5rem] border border-secondary px-3 py-2 text-xs font-black text-foreground">{periodTitle}</p>
+                <p className="rounded-[0.25rem] border border-secondary px-3 py-2 text-xs font-black text-foreground">{periodTitle}</p>
               </div>
 
               <div
@@ -281,7 +281,7 @@ export function DashboardHome({
                 </svg>
 
                 <div
-                  className={`pointer-events-none absolute left-1/2 top-2 w-[min(11rem,92%)] -translate-x-1/2 rounded-[1rem] bg-primary px-4 py-3 text-sm font-black text-primary-foreground shadow-[0_12px_25px_rgba(68,179,126,0.22)] transition-all duration-200 ${
+                  className={`pointer-events-none absolute left-1/2 top-2 w-[min(11rem,92%)] -translate-x-1/2 rounded-[0.5rem] bg-primary px-4 py-3 text-sm font-black text-primary-foreground shadow-[0_12px_25px_rgba(68,179,126,0.22)] transition-all duration-200 ${
                     activeDemandSegment ? 'translate-y-0 scale-100 opacity-100' : '-translate-y-1 scale-95 opacity-0'
                   }`}
                 >
@@ -343,7 +343,7 @@ export function DashboardHome({
           </div>
         </div>
 
-        <section className="mt-5 grid grid-cols-1 overflow-hidden rounded-[1.5rem] bg-white shadow-[0_12px_28px_rgba(41,91,67,0.08)] sm:grid-cols-3">
+        <section className="mt-5 grid grid-cols-1 overflow-hidden rounded-[0.75rem] bg-white shadow-[0_12px_28px_rgba(41,91,67,0.08)] sm:grid-cols-3">
           {([
             [
               t.estimatedSavingsToday,
@@ -384,7 +384,7 @@ export function DashboardHome({
       <button
         type="button"
         onClick={() => setSelectedBakeryItem(featuredBakeryItem)}
-        className={`block w-full overflow-hidden rounded-[1.5rem] bg-white text-left shadow-[0_18px_45px_rgba(41,91,67,0.1)] outline-none transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_52px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
+        className={`block w-full overflow-hidden rounded-[0.75rem] bg-white text-left shadow-[0_18px_45px_rgba(41,91,67,0.1)] outline-none transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_52px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
           selectedBakeryItem?.fileName === featuredBakeryItem.fileName ? 'ring-4 ring-primary/20' : ''
         }`}
       >
@@ -453,7 +453,7 @@ export function DashboardHome({
                 type="button"
                 key={item.fileName}
                 onClick={() => setSelectedBakeryItem(item)}
-                className={`group min-w-[11rem] snap-start overflow-hidden rounded-[1.5rem] bg-white text-left shadow-[0_14px_35px_rgba(41,91,67,0.09)] outline-none transition duration-300 animate-in fade-in-0 zoom-in-95 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
+                className={`group min-w-[11rem] snap-start overflow-hidden rounded-[0.75rem] bg-white text-left shadow-[0_14px_35px_rgba(41,91,67,0.09)] outline-none transition duration-300 animate-in fade-in-0 zoom-in-95 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
                   isSelected ? 'ring-4 ring-primary/20' : ''
                 } ${isManagerApproved ? 'ring-2 ring-primary/30' : ''}`}
               >
@@ -483,7 +483,7 @@ export function DashboardHome({
                   {isManagerApproved && !isCompleted && (
                     <p className="mt-1 text-[10px] font-bold text-primary/70">{t.approvedByManager}</p>
                   )}
-                  <span className="mt-3 flex h-10 w-full items-center justify-center rounded-[1rem] bg-secondary text-xs font-black text-foreground transition group-hover:bg-primary group-hover:text-primary-foreground">
+                  <span className="mt-3 flex h-10 w-full items-center justify-center rounded-[0.5rem] bg-secondary text-xs font-black text-foreground transition group-hover:bg-primary group-hover:text-primary-foreground">
                     {isCompleted ? t.completed : t.viewDetails}
                   </span>
                 </div>
@@ -573,7 +573,7 @@ function PreparationDetailsPanel({
         </div>
 
         <div className="mx-auto w-full max-w-3xl px-4 pb-28 pt-5 sm:px-6 md:pt-6 xl:max-w-none xl:px-6 xl:pb-5 xl:pt-0">
-          <div className="overflow-hidden rounded-[1.5rem] bg-secondary shadow-[0_16px_36px_rgba(41,91,67,0.08)] xl:shadow-none">
+          <div className="overflow-hidden rounded-[0.75rem] bg-secondary shadow-[0_16px_36px_rgba(41,91,67,0.08)] xl:shadow-none">
             <img src={item.imageSrc} alt={translateItemName(item.title, language)} className="aspect-[4/3] w-full object-cover md:aspect-[16/9] xl:aspect-[4/3]" />
           </div>
 

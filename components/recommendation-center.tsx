@@ -63,7 +63,7 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
       </div>
 
       {acceptedSavings > 0 && (
-        <div className="mb-5 flex items-center gap-3 rounded-[1.5rem] bg-primary/10 px-5 py-4">
+        <div className="mb-5 flex items-center gap-3 rounded-[0.75rem] bg-primary/10 px-5 py-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-white">
             <Check className="h-4 w-4" />
           </div>
@@ -79,7 +79,7 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
       )}
 
       {pendingRecs.length === 0 ? (
-        <div className="rounded-[1.5rem] bg-white p-10 text-center shadow-[0_18px_45px_rgba(41,91,67,0.08)]">
+        <div className="rounded-[0.75rem] bg-white p-10 text-center shadow-[0_18px_45px_rgba(41,91,67,0.08)]">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
             <Check className="h-7 w-7" />
           </div>
@@ -102,7 +102,7 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
             return (
               <div
                 key={rec.id}
-                className="group overflow-hidden rounded-[1.5rem] bg-white shadow-[0_18px_45px_rgba(41,91,67,0.1)]"
+                className="group overflow-hidden rounded-[0.75rem] bg-white shadow-[0_18px_45px_rgba(41,91,67,0.1)]"
               >
                 <div className="p-6 md:p-7">
                   {/* Tap target on mobile — hover activates group on desktop */}
@@ -166,7 +166,7 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
                           value={modifyQuantity}
                           onChange={(e) => setModifyQuantity(e.target.value)}
                           inputMode="numeric"
-                          className="h-11 rounded-[1rem] border-secondary bg-secondary/45 text-center text-base font-black"
+                          className="h-11 rounded-[0.5rem] border-secondary bg-secondary/45 text-center text-base font-black"
                         />
                         <button
                           type="button"
@@ -185,14 +185,14 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
                       <>
                         <Button
                           onClick={() => saveModify(rec.id)}
-                          className="h-12 rounded-[1rem] bg-primary text-sm font-black text-primary-foreground hover:bg-primary/90"
+                          className="h-12 rounded-[0.5rem] bg-primary text-sm font-black text-primary-foreground hover:bg-primary/90"
                         >
                           {t.saveModification}
                         </Button>
                         <Button
                           onClick={cancelModify}
                           variant="secondary"
-                          className="h-12 rounded-[1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80"
+                          className="h-12 rounded-[0.5rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80"
                         >
                           {t.cancelModification}
                         </Button>
@@ -201,21 +201,21 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
                       <>
                         <Button
                           onClick={() => onUpdate(rec.id, 'accepted')}
-                          className="h-12 rounded-[1rem] bg-primary text-sm font-black text-primary-foreground hover:bg-primary/90"
+                          className="h-12 rounded-[0.5rem] bg-primary text-sm font-black text-primary-foreground hover:bg-primary/90"
                         >
                           {t.accept}
                         </Button>
                         <Button
                           onClick={() => startModify(rec)}
                           variant="secondary"
-                          className="h-12 rounded-[1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80"
+                          className="h-12 rounded-[0.5rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80"
                         >
                           {t.modify}
                         </Button>
                         <Button
                           onClick={() => onUpdate(rec.id, 'ignored')}
                           variant="secondary"
-                          className="h-12 rounded-[1rem] bg-secondary/50 text-sm font-black text-muted-foreground hover:bg-secondary"
+                          className="h-12 rounded-[0.5rem] bg-secondary/50 text-sm font-black text-muted-foreground hover:bg-secondary"
                         >
                           {t.ignore}
                         </Button>
@@ -234,7 +234,7 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
           <button
             type="button"
             onClick={() => setShowReviewed((v) => !v)}
-            className="flex w-full items-center justify-between rounded-[1rem] bg-secondary/60 px-4 py-3 text-sm font-black text-foreground transition hover:bg-secondary"
+            className="flex w-full items-center justify-between rounded-[0.5rem] bg-secondary/60 px-4 py-3 text-sm font-black text-foreground transition hover:bg-secondary"
           >
             <span>
               {t.reviewedRecsSection} ({reviewedRecs.length})
@@ -264,7 +264,7 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
                 return (
                   <div
                     key={rec.id}
-                    className="flex items-center justify-between gap-3 rounded-[1rem] bg-white px-4 py-4 shadow-[0_8px_20px_rgba(41,91,67,0.06)]"
+                    className="flex items-center justify-between gap-3 rounded-[0.5rem] bg-white px-4 py-4 shadow-[0_8px_20px_rgba(41,91,67,0.06)]"
                   >
                     <div className="min-w-0">
                       <p

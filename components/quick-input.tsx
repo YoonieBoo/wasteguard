@@ -188,7 +188,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
           </p>
         </div>
 
-        <section className="mb-5 overflow-hidden rounded-[1.5rem] bg-white shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
+        <section className="mb-5 overflow-hidden rounded-[0.75rem] bg-white shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
           {productionItems.map((item) => {
             function adjustBaked(delta: number) {
               setActualBaked((current) => ({
@@ -225,7 +225,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
                       onChange={(event) => setActualBaked((current) => ({ ...current, [item.key]: event.target.value }))}
                       inputMode="numeric"
                       aria-label={`${item.name} ${t.actualBaked}`}
-                      className="h-11 rounded-[1rem] border-secondary bg-secondary/45 text-center text-base font-black"
+                      className="h-11 rounded-[0.5rem] border-secondary bg-secondary/45 text-center text-base font-black"
                     />
                     <button
                       type="button"
@@ -245,7 +245,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
                     onChange={(event) => setLeftovers((current) => ({ ...current, [item.key]: event.target.value }))}
                     inputMode="numeric"
                     aria-label={`${item.name} ${t.leftovers}`}
-                    className="h-11 rounded-[1rem] border-secondary bg-secondary/45 px-4 text-center text-base font-black"
+                    className="h-11 rounded-[0.5rem] border-secondary bg-secondary/45 px-4 text-center text-base font-black"
                   />
                 </div>
               </div>
@@ -267,7 +267,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
     return (
       <main className="flex min-h-[calc(100dvh-9rem)] items-center py-6 animate-in fade-in-0 duration-300 md:py-8">
         <section className="mx-auto w-full max-w-[32rem] text-center">
-          <div className="mx-auto mb-6 grid h-24 w-24 place-items-center rounded-[2rem] bg-primary/12 text-primary shadow-[0_18px_40px_rgba(68,179,126,0.14)]">
+          <div className="mx-auto mb-6 grid h-24 w-24 place-items-center rounded-[1rem] bg-primary/12 text-primary shadow-[0_18px_40px_rgba(68,179,126,0.14)]">
             <LoaderCircle className="h-12 w-12 animate-spin" />
           </div>
           <h1 className="text-2xl font-black leading-tight text-foreground sm:text-3xl">
@@ -285,7 +285,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
     return (
       <main className="flex min-h-[calc(100dvh-9rem)] items-center py-6 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 md:py-8">
         <section className="mx-auto w-full max-w-[32rem] text-center">
-          <div className="mx-auto mb-6 grid h-24 w-24 place-items-center rounded-[2rem] bg-primary/12 text-primary shadow-[0_18px_40px_rgba(68,179,126,0.14)]">
+          <div className="mx-auto mb-6 grid h-24 w-24 place-items-center rounded-[1rem] bg-primary/12 text-primary shadow-[0_18px_40px_rgba(68,179,126,0.14)]">
             <CheckCircle2 className="h-14 w-14" />
           </div>
           <h1 className="text-2xl font-black leading-tight text-foreground sm:text-3xl">
@@ -327,7 +327,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
                 onClick={() => {
                   setDemand(option.value)
                 }}
-                className={`h-auto min-h-[3.75rem] whitespace-normal rounded-[1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all ${
+                className={`h-auto min-h-[3.75rem] whitespace-normal rounded-[0.5rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all ${
                   demand === option.value
                     ? 'bg-primary text-primary-foreground shadow-[0_10px_20px_rgba(68,179,126,0.2)]'
                     : 'bg-white text-foreground shadow-sm hover:bg-secondary'
@@ -353,7 +353,7 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
                 onClick={() => {
                   setWaste(option.value)
                 }}
-                className={`h-auto min-h-[3.75rem] whitespace-normal rounded-[1rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all ${
+                className={`h-auto min-h-[3.75rem] whitespace-normal rounded-[0.5rem] px-2 py-3 text-center text-sm font-bold leading-tight transition-all ${
                   waste === option.value
                     ? 'bg-accent text-accent-foreground shadow-[0_10px_20px_rgba(199,168,76,0.18)]'
                     : 'bg-white text-foreground shadow-sm hover:bg-secondary'
