@@ -201,11 +201,17 @@ export default function Home() {
     }
   }, [])
 
-  // Fetch real AI recommendations from the Python engine (owner only)
+  // Fetch AI recommendations from the Python engine (owner only).
+  // POSTs real dailyInputs so the full pipeline runs on actual bakery data.
+  // Falls back to mock recommendations silently if the engine is offline.
   useEffect(() => {
     if (!isInitialized || role !== 'owner' || aiRecsLoaded) return
 
-    fetch('/api/recommendations')
+    fetch('/api/recommendations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ daily_inputs: dailyInputs }),
+    })
       .then((res) => (res.ok ? res.json() : null))
       .then((data: FlaskRecommendationsResponse | null) => {
         if (!data || 'error' in data) return
@@ -216,7 +222,7 @@ export default function Home() {
           window.localStorage.setItem(recommendationsKey, JSON.stringify(aiRecs))
         }
       })
-      .catch(() => undefined) // silently fall back to mock recs if engine is down
+      .catch(() => undefined)
       .finally(() => setAiRecsLoaded(true))
   }, [isInitialized, role, aiRecsLoaded])
 
