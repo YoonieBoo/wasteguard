@@ -97,6 +97,7 @@ export default function Home() {
   const [completedBakeryItems, setCompletedBakeryItems] = useState<Record<string, boolean>>({})
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [showMorningBriefing, setShowMorningBriefing] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
   const showNavigation =
     currentScreen === 'home' ||
     currentScreen === 'input' ||
@@ -104,18 +105,27 @@ export default function Home() {
     currentScreen === 'recommendations'
 
   useEffect(() => {
-    const savedInputs = window.localStorage.getItem(dailyInputsKey)
     const savedLanguage = window.localStorage.getItem(languageKey)
+    if (savedLanguage === 'en' || savedLanguage === 'th') setLanguage(savedLanguage)
 
-    if (savedLanguage === 'en' || savedLanguage === 'th') {
-      setLanguage(savedLanguage)
+    const savedInputs = window.localStorage.getItem(dailyInputsKey)
+    if (savedInputs) {
+      try { setDailyInputs(JSON.parse(savedInputs) as FoodRow[]) } catch { /* ignore */ }
     }
 
-    if (savedInputs) {
-      try {
-        setDailyInputs(JSON.parse(savedInputs) as FoodRow[])
-      } catch {
-        setDailyInputs([])
+    function restoreFromLocalStorage() {
+      const savedState = window.localStorage.getItem(authStateKey)
+      const savedProfile = window.localStorage.getItem(authProfileKey)
+      if (savedState === 'signed-in' && savedProfile) {
+        try {
+          const profile = JSON.parse(savedProfile) as AuthProfile
+          setAuthProfile(profile)
+          setRole(profile.role)
+          setCurrentScreen('home')
+        } catch {
+          window.localStorage.removeItem(authStateKey)
+          window.localStorage.removeItem(authProfileKey)
+        }
       }
     }
 
@@ -135,9 +145,13 @@ export default function Home() {
             inviteCode: String(metadata.invite_code || window.localStorage.getItem(inviteCodeKey) || ''),
             bakeryId: typeof metadata.bakery_id === 'string' ? metadata.bakery_id : undefined,
           })
+        } else {
+          // No Supabase session (demo accounts sign out after creation) — restore from localStorage
+          restoreFromLocalStorage()
         }
       })
-      .catch(() => undefined)
+      .catch(() => restoreFromLocalStorage())
+      .finally(() => setIsInitialized(true))
   }, [])
 
   useEffect(() => {
@@ -463,6 +477,14 @@ export default function Home() {
   const totalRecommendedSavings = recommendations.reduce((sum, r) => sum + r.estimatedSavings, 0)
   const insights = getBusinessInsightData(dailyInputs)
 
+  if (!isInitialized) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-white">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-secondary border-t-primary" />
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden bg-white text-foreground lg:bg-[#f7fbf8]">
       <button
@@ -483,7 +505,8 @@ export default function Home() {
         }`}
       >
         <div
-          className={
+          key={currentScreen}
+          className={`animate-in fade-in-0 duration-200 ${
             currentScreen === 'welcome' || currentScreen === 'sign-in' || currentScreen === 'create-account'
               ? 'w-full'
               : currentScreen === 'impact'
@@ -491,7 +514,7 @@ export default function Home() {
               : isOwnerDashboard || currentScreen === 'recommendations'
                 ? 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[920px] md:px-5 md:pt-5 xl:max-w-[1180px] xl:px-10 xl:pt-7'
               : 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[620px] md:px-6 lg:max-w-[1180px] lg:px-10 lg:pt-7'
-          }
+          }`}
         >
           {currentScreen === 'welcome' && (
             <WelcomeScreen
