@@ -96,8 +96,14 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
               rec.confidence >= 80
                 ? 'bg-primary/12 text-primary'
                 : rec.confidence >= 60
-                  ? 'bg-amber-50 text-amber-700'
+                  ? 'bg-primary/8 text-primary/70'
                   : 'bg-secondary text-muted-foreground'
+            const confidenceLabel =
+              rec.confidence >= 80
+                ? t.confidenceHigh
+                : rec.confidence >= 60
+                  ? t.confidenceMedium
+                  : t.confidenceLow
 
             return (
               <div
@@ -113,7 +119,7 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`rounded-full px-3 py-1 text-xs font-black ${confidenceTone}`}>
-                        {rec.confidence}% {t.confidenceLabel}
+                        {confidenceLabel}
                       </span>
                       {rec.affectedItemFileName && (
                         <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-muted-foreground">
