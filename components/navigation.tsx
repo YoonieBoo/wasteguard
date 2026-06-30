@@ -1,4 +1,4 @@
-import { Home, Leaf, LogOut, PlusCircle, type LucideIcon } from 'lucide-react'
+import { Home, Leaf, LogOut, PlusCircle, Sparkles, type LucideIcon } from 'lucide-react'
 import { getText, type Language } from '@/lib/i18n'
 import type { WasteGuardRole } from '@/lib/mock-data'
 
@@ -6,18 +6,36 @@ interface NavigationProps {
   currentScreen: string
   language: Language
   role?: WasteGuardRole
+  pendingRecommendationsCount?: number
   onLogout: () => void
   onScreenChange: (screen: string) => void
 }
 
-export function Navigation({ currentScreen, language, role = 'staff', onLogout, onScreenChange }: NavigationProps) {
+export function Navigation({
+  currentScreen,
+  language,
+  role = 'staff',
+  pendingRecommendationsCount = 0,
+  onLogout,
+  onScreenChange,
+}: NavigationProps) {
   const t = getText(language)
-  const navItems: Array<{ id: string; label: string; icon: LucideIcon }> = [
+  const navItems: Array<{ id: string; label: string; icon: LucideIcon; badge?: number }> = [
     { id: 'home', label: t.navHome, icon: Home },
     ...(role === 'staff' ? [{ id: 'input', label: t.navCheck, icon: PlusCircle }] : []),
+    ...(role === 'owner'
+      ? [
+          {
+            id: 'recommendations',
+            label: t.navRecommendations,
+            icon: Sparkles,
+            badge: pendingRecommendationsCount > 0 ? pendingRecommendationsCount : undefined,
+          },
+        ]
+      : []),
     ...(role === 'owner' ? [{ id: 'impact', label: t.navImpact, icon: Leaf }] : []),
   ]
-  const gridColumns = 'grid-cols-3'
+  const gridColumns = role === 'owner' ? 'grid-cols-4' : 'grid-cols-3'
 
   return (
     <>
@@ -38,7 +56,7 @@ export function Navigation({ currentScreen, language, role = 'staff', onLogout, 
               <button
                 key={item.id}
                 onClick={() => onScreenChange(item.id)}
-                className={`flex h-[3.25rem] w-full items-center gap-3 rounded-[1rem] px-4 text-left text-sm font-black transition-all duration-200 ${
+                className={`relative flex h-[3.25rem] w-full items-center gap-3 rounded-[1rem] px-4 text-left text-sm font-black transition-all duration-200 ${
                   isActive
                     ? 'bg-primary text-primary-foreground shadow-[0_10px_22px_rgba(68,179,126,0.2)]'
                     : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
@@ -46,6 +64,15 @@ export function Navigation({ currentScreen, language, role = 'staff', onLogout, 
               >
                 <Icon className="h-5 w-5 shrink-0" />
                 <span className="truncate">{item.label}</span>
+                {item.badge != null && (
+                  <span
+                    className={`ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black ${
+                      isActive ? 'bg-white/25 text-white' : 'bg-primary text-white'
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
               </button>
             )
           })}
@@ -71,14 +98,23 @@ export function Navigation({ currentScreen, language, role = 'staff', onLogout, 
                 <button
                   key={item.id}
                   onClick={() => onScreenChange(item.id)}
-                  className={`flex h-[3.75rem] flex-col items-center justify-center rounded-[1rem] transition-all duration-200 md:h-16 ${
+                  className={`relative flex h-[3.75rem] flex-col items-center justify-center rounded-[1rem] transition-all duration-200 md:h-16 ${
                     isActive
                       ? 'bg-primary text-primary-foreground shadow-[0_8px_18px_rgba(68,179,126,0.22)]'
                       : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                   }`}
                 >
-                  <Icon className="mb-1 h-5 w-5" />
-                  <span className="max-w-full truncate px-0.5 text-[10px] font-bold leading-none sm:text-[11px]">{item.label}</span>
+                  <div className="relative">
+                    <Icon className="mb-1 h-5 w-5" />
+                    {item.badge != null && (
+                      <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-black text-white ring-2 ring-white">
+                        {item.badge}
+                      </span>
+                    )}
+                  </div>
+                  <span className="max-w-full truncate px-0.5 text-[10px] font-bold leading-none sm:text-[11px]">
+                    {item.label}
+                  </span>
                 </button>
               )
             })}
@@ -87,7 +123,9 @@ export function Navigation({ currentScreen, language, role = 'staff', onLogout, 
               className="flex h-[3.75rem] flex-col items-center justify-center rounded-[1rem] text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground md:h-16"
             >
               <LogOut className="mb-1 h-5 w-5" />
-              <span className="max-w-full truncate px-0.5 text-[10px] font-bold leading-none sm:text-[11px]">{t.logOut}</span>
+              <span className="max-w-full truncate px-0.5 text-[10px] font-bold leading-none sm:text-[11px]">
+                {t.logOut}
+              </span>
             </button>
           </div>
         </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, X } from 'lucide-react'
+import { ChevronLeft, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
@@ -33,7 +33,10 @@ interface DashboardHomeProps {
   bakeryName?: string
   inviteCode?: string
   completedBakeryItems?: Record<string, boolean>
+  approvedOverrides?: Record<string, number>
+  pendingRecommendationsCount?: number
   onCompleteBakeryItem?: (fileName: string) => void
+  onGoToRecommendations?: () => void
 }
 
 type DemandSegmentKey = 'morning' | 'afternoon' | 'evening'
@@ -45,7 +48,10 @@ export function DashboardHome({
   bakeryName,
   inviteCode,
   completedBakeryItems = {},
+  approvedOverrides = {},
+  pendingRecommendationsCount = 0,
   onCompleteBakeryItem,
+  onGoToRecommendations,
 }: DashboardHomeProps) {
   const t = getText(language)
   const [range, setRange] = useState<TimeRange>('week')
@@ -59,9 +65,24 @@ export function DashboardHome({
     dailyInputs,
     prepList.reduce((total, item) => total + item.quantity, 0),
   )
-  const [featuredBakeryItem, ...supportingBakeryItems] = bakeryItems
+  const effectiveBakeryItems = bakeryItems
+    .map((item) => ({
+      ...item,
+      prepQuantity: approvedOverrides[item.fileName] ?? item.prepQuantity,
+    }))
+    .sort((a, b) => {
+      const aApproved = a.fileName in approvedOverrides
+      const bApproved = b.fileName in approvedOverrides
+      if (aApproved && !bApproved) return -1
+      if (!aApproved && bApproved) return 1
+      return 0
+    })
+  const [featuredBakeryItem, ...supportingBakeryItems] = effectiveBakeryItems
+  void supportingBakeryItems
   const filteredBakeryItems =
-    selectedCategory === 'All' ? bakeryItems : bakeryItems.filter((item) => item.category === selectedCategory)
+    selectedCategory === 'All'
+      ? effectiveBakeryItems
+      : effectiveBakeryItems.filter((item) => item.category === selectedCategory)
 
   useEffect(() => {
     setActiveRevenueIndex(null)
@@ -98,6 +119,24 @@ export function DashboardHome({
 
     return (
       <main className="wg-page w-full min-w-0 md:py-5 xl:py-7">
+        {pendingRecommendationsCount > 0 && (
+          <button
+            type="button"
+            onClick={onGoToRecommendations}
+            className="mb-5 flex w-full items-center gap-3 rounded-[1.25rem] bg-primary/10 px-5 py-4 text-left transition hover:bg-primary/15"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-foreground">
+                {pendingRecommendationsCount} {t.pendingRecs}
+              </p>
+              <p className="wg-meta mt-0.5">{t.reviewRecs}</p>
+            </div>
+            <ChevronLeft className="h-5 w-5 shrink-0 rotate-180 text-primary" />
+          </button>
+        )}
         <div className="wg-page-header md:mb-5 md:pt-1 xl:mb-7 xl:pt-4">
           <div className="min-w-0">
             <p className="wg-eyebrow">{bakeryName || t.today}</p>
@@ -362,6 +401,11 @@ export function DashboardHome({
           </div>
 
           <div className="flex flex-col justify-center p-6 md:p-8 lg:p-9">
+            {featuredBakeryItem.fileName in approvedOverrides && (
+              <span className="mb-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-primary/12 px-3 py-1 text-xs font-black text-primary">
+                ✓ {t.approvedByManager}
+              </span>
+            )}
             <h3 className="text-2xl font-black leading-tight text-foreground sm:text-3xl">{translateItemName(featuredBakeryItem.title, language)}</h3>
             <div className="mt-5 flex items-end gap-2 leading-none md:mt-6">
               <span className="text-4xl font-black text-primary md:text-5xl">{featuredBakeryItem.prepQuantity.toLocaleString()}</span>
@@ -402,6 +446,7 @@ export function DashboardHome({
           {filteredBakeryItems.map((item) => {
             const isSelected = selectedBakeryItem?.fileName === item.fileName
             const isCompleted = completedBakeryItems[item.fileName]
+            const isManagerApproved = item.fileName in approvedOverrides
 
             return (
               <button
@@ -410,7 +455,7 @@ export function DashboardHome({
                 onClick={() => setSelectedBakeryItem(item)}
                 className={`group min-w-[11rem] snap-start overflow-hidden rounded-[1.25rem] bg-white text-left shadow-[0_14px_35px_rgba(41,91,67,0.09)] outline-none transition duration-300 animate-in fade-in-0 zoom-in-95 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
                   isSelected ? 'ring-4 ring-primary/20' : ''
-                }`}
+                } ${isManagerApproved ? 'ring-2 ring-primary/30' : ''}`}
               >
                 <div className="aspect-[4/3] overflow-hidden bg-secondary">
                   <img
@@ -422,16 +467,23 @@ export function DashboardHome({
                 <div className="p-4">
                   <div className="flex min-h-10 items-start justify-between gap-2">
                     <p className="line-clamp-2 text-sm font-black leading-snug text-foreground">{translateItemName(item.title, language)}</p>
-                    {isCompleted && (
+                    {isCompleted ? (
                       <span className="shrink-0 rounded-full bg-primary/12 px-2 py-1 text-[10px] font-black text-primary">
                         {t.completed}
                       </span>
-                    )}
+                    ) : isManagerApproved ? (
+                      <span className="shrink-0 rounded-full bg-primary px-2 py-1 text-[10px] font-black text-primary-foreground">
+                        ✓
+                      </span>
+                    ) : null}
                   </div>
                   <p className="mt-3 text-xs font-black text-primary">
                     {item.prepQuantity.toLocaleString()} {translatePrepUnit(item.prepUnit, language)}
                   </p>
-                  <span className="mt-4 flex h-10 w-full items-center justify-center rounded-[1rem] bg-secondary text-xs font-black text-foreground transition group-hover:bg-primary group-hover:text-primary-foreground">
+                  {isManagerApproved && !isCompleted && (
+                    <p className="mt-1 text-[10px] font-bold text-primary/70">{t.approvedByManager}</p>
+                  )}
+                  <span className="mt-3 flex h-10 w-full items-center justify-center rounded-[1rem] bg-secondary text-xs font-black text-foreground transition group-hover:bg-primary group-hover:text-primary-foreground">
                     {isCompleted ? t.completed : t.viewDetails}
                   </span>
                 </div>

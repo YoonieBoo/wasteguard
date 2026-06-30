@@ -6,8 +6,11 @@ import { QuickInput } from '@/components/quick-input'
 import { CarbonImpact } from '@/components/carbon-impact'
 import { Navigation } from '@/components/navigation'
 import { CreateAccountScreen, SignInScreen, WelcomeScreen } from '@/components/welcome-screen'
+import { MorningBriefing } from '@/components/morning-briefing'
+import { RecommendationCenter } from '@/components/recommendation-center'
 import { getText, type Language } from '@/lib/i18n'
-import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
+import { getBusinessInsightData, type FoodRow, type WasteGuardRole } from '@/lib/mock-data'
+import { defaultRecommendations, type Recommendation, type RecommendationStatus } from '@/lib/recommendations'
 import { supabase } from '@/lib/supabase'
 
 const dailyInputsKey = 'wasteGuardDailyInputs'
@@ -17,9 +20,11 @@ const authStateKey = 'wasteGuardAuthState'
 const authProfileKey = 'wasteGuardAuthProfile'
 const bakeryNameKey = 'wasteGuardBakeryName'
 const inviteCodeKey = 'wasteGuardInviteCode'
+const recommendationsKey = 'wasteGuardRecommendations'
+const briefingDateKey = 'wasteGuardBriefingDate'
 
 type AuthScreen = 'welcome' | 'sign-in' | 'create-account'
-type AppScreen = 'home' | 'input' | 'impact'
+type AppScreen = 'home' | 'input' | 'impact' | 'recommendations'
 
 type AuthProfile = {
   fullName: string
@@ -90,7 +95,13 @@ export default function Home() {
   const [signInEmail, setSignInEmail] = useState('')
   const [signInNotice, setSignInNotice] = useState('')
   const [completedBakeryItems, setCompletedBakeryItems] = useState<Record<string, boolean>>({})
-  const showNavigation = currentScreen === 'home' || currentScreen === 'input' || currentScreen === 'impact'
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([])
+  const [showMorningBriefing, setShowMorningBriefing] = useState(false)
+  const showNavigation =
+    currentScreen === 'home' ||
+    currentScreen === 'input' ||
+    currentScreen === 'impact' ||
+    currentScreen === 'recommendations'
 
   useEffect(() => {
     const savedInputs = window.localStorage.getItem(dailyInputsKey)
@@ -153,10 +164,24 @@ export default function Home() {
   }, [authProfile?.bakeryId])
 
   useEffect(() => {
-    if (role === 'owner' && currentScreen === 'input') {
+    if (role === 'owner' && (currentScreen === 'input')) {
       setCurrentScreen('home')
     }
   }, [currentScreen, role])
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(recommendationsKey)
+    if (saved) {
+      try {
+        setRecommendations(JSON.parse(saved) as Recommendation[])
+      } catch {
+        setRecommendations(defaultRecommendations)
+      }
+    } else {
+      setRecommendations(defaultRecommendations)
+      window.localStorage.setItem(recommendationsKey, JSON.stringify(defaultRecommendations))
+    }
+  }, [])
 
   function handleDailyInputSave(newInput: FoodRow) {
     const nextInputs = [...dailyInputs.filter((input) => input.date !== newInput.date), newInput]
@@ -222,6 +247,35 @@ export default function Home() {
     window.localStorage.setItem(roleKey, profile.role)
     window.localStorage.setItem(bakeryNameKey, profile.bakeryName)
     window.localStorage.setItem(inviteCodeKey, profile.inviteCode)
+
+    if (profile.role === 'owner') {
+      const today = new Date().toISOString().slice(0, 10)
+      const lastBriefingDate = window.localStorage.getItem(briefingDateKey)
+      if (lastBriefingDate !== today) {
+        setShowMorningBriefing(true)
+      }
+    }
+  }
+
+  function handleDismissBriefing() {
+    const today = new Date().toISOString().slice(0, 10)
+    window.localStorage.setItem(briefingDateKey, today)
+    setShowMorningBriefing(false)
+  }
+
+  function handleDismissBriefingAndGoToRecs() {
+    handleDismissBriefing()
+    setCurrentScreen('recommendations')
+  }
+
+  function handleUpdateRecommendation(id: string, status: RecommendationStatus, modifiedQuantity?: number) {
+    setRecommendations((current) => {
+      const next = current.map((rec) =>
+        rec.id === id ? { ...rec, status, ...(modifiedQuantity != null ? { modifiedQuantity } : {}) } : rec,
+      )
+      window.localStorage.setItem(recommendationsKey, JSON.stringify(next))
+      return next
+    })
   }
 
   function saveDemoAccount(profile: AuthProfile, password: string) {
@@ -395,6 +449,20 @@ export default function Home() {
 
   const isOwnerDashboard = currentScreen === 'home' && role === 'owner'
 
+  const pendingRecommendations = recommendations.filter((r) => r.status === 'pending')
+  const pendingCount = pendingRecommendations.length
+  const approvedOverrides = recommendations.reduce<Record<string, number>>((acc, rec) => {
+    if ((rec.status === 'accepted' || rec.status === 'modified') && rec.affectedItemFileName) {
+      acc[rec.affectedItemFileName] =
+        rec.status === 'modified' && rec.modifiedQuantity != null
+          ? rec.modifiedQuantity
+          : (rec.suggestedQuantity ?? 0)
+    }
+    return acc
+  }, {})
+  const totalRecommendedSavings = recommendations.reduce((sum, r) => sum + r.estimatedSavings, 0)
+  const insights = getBusinessInsightData(dailyInputs)
+
   return (
     <div className="flex min-h-dvh flex-col overflow-x-hidden bg-white text-foreground lg:bg-[#f7fbf8]">
       <button
@@ -420,7 +488,7 @@ export default function Home() {
               ? 'w-full'
               : currentScreen === 'impact'
                 ? 'w-full'
-              : isOwnerDashboard
+              : isOwnerDashboard || currentScreen === 'recommendations'
                 ? 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[920px] md:px-5 md:pt-5 xl:max-w-[1180px] xl:px-10 xl:pt-7'
               : 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[620px] md:px-6 lg:max-w-[1180px] lg:px-10 lg:pt-7'
           }
@@ -471,9 +539,19 @@ export default function Home() {
               bakeryName={authProfile?.bakeryName}
               inviteCode={authProfile?.inviteCode}
               completedBakeryItems={completedBakeryItems}
+              approvedOverrides={approvedOverrides}
+              pendingRecommendationsCount={pendingCount}
               onCompleteBakeryItem={(fileName) =>
                 setCompletedBakeryItems((current) => ({ ...current, [fileName]: true }))
               }
+              onGoToRecommendations={() => setCurrentScreen('recommendations')}
+            />
+          )}
+          {currentScreen === 'recommendations' && (
+            <RecommendationCenter
+              recommendations={recommendations}
+              language={language}
+              onUpdate={handleUpdateRecommendation}
             />
           )}
           {currentScreen === 'input' && (
@@ -501,8 +579,21 @@ export default function Home() {
           currentScreen={currentScreen}
           language={language}
           role={role}
+          pendingRecommendationsCount={role === 'owner' ? pendingCount : 0}
           onLogout={handleLogout}
           onScreenChange={handleScreenChange}
+        />
+      )}
+
+      {showMorningBriefing && role === 'owner' && (
+        <MorningBriefing
+          language={language}
+          bakeryName={authProfile?.bakeryName}
+          pendingRecommendations={pendingRecommendations}
+          estimatedSavingsTotal={totalRecommendedSavings}
+          wasteDelta={insights.wasteDelta}
+          onReviewRecs={handleDismissBriefingAndGoToRecs}
+          onDismiss={handleDismissBriefing}
         />
       )}
     </div>

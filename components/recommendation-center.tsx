@@ -1,0 +1,288 @@
+'use client'
+
+import { useState } from 'react'
+import { Check, ChevronDown, Minus, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { getText, translateItemName, type Language } from '@/lib/i18n'
+import { cleanBakeryTitle } from '@/lib/bakery-catalog'
+import type { Recommendation, RecommendationStatus } from '@/lib/recommendations'
+
+interface RecommendationCenterProps {
+  recommendations: Recommendation[]
+  language: Language
+  onUpdate: (id: string, status: RecommendationStatus, modifiedQuantity?: number) => void
+}
+
+export function RecommendationCenter({ recommendations, language, onUpdate }: RecommendationCenterProps) {
+  const t = getText(language)
+  const [modifyingId, setModifyingId] = useState<string | null>(null)
+  const [modifyQuantity, setModifyQuantity] = useState('')
+  const [showReviewed, setShowReviewed] = useState(false)
+
+  const pendingRecs = recommendations.filter((r) => r.status === 'pending')
+  const reviewedRecs = recommendations.filter((r) => r.status !== 'pending')
+  const acceptedSavings = recommendations
+    .filter((r) => r.status === 'accepted' || r.status === 'modified')
+    .reduce((sum, r) => sum + r.estimatedSavings, 0)
+
+  function startModify(rec: Recommendation) {
+    setModifyingId(rec.id)
+    setModifyQuantity(String(rec.suggestedQuantity ?? ''))
+  }
+
+  function saveModify(id: string) {
+    const qty = Number(modifyQuantity)
+    if (!isNaN(qty) && qty > 0) {
+      onUpdate(id, 'modified', qty)
+    }
+    setModifyingId(null)
+    setModifyQuantity('')
+  }
+
+  function cancelModify() {
+    setModifyingId(null)
+    setModifyQuantity('')
+  }
+
+  function adjustModifyQty(delta: number) {
+    setModifyQuantity((current) => String(Math.max(1, Number(current || 0) + delta)))
+  }
+
+  return (
+    <main className="wg-page">
+      <div className="wg-page-header">
+        <p className="wg-eyebrow">{t.today}</p>
+        <h1 className="wg-page-title">{t.recommendationCenter}</h1>
+        <p className="wg-page-subtitle">{t.recommendationCenterNote}</p>
+      </div>
+
+      {acceptedSavings > 0 && (
+        <div className="mb-5 flex items-center gap-3 rounded-[1.25rem] bg-primary/10 px-5 py-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+            <Check className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-black text-foreground">
+              {language === 'th'
+                ? `${t.recsSavedBanner}: ${acceptedSavings.toLocaleString()} บาท`
+                : `${t.recsSavedBanner}: THB ${acceptedSavings.toLocaleString()}`}
+            </p>
+            <p className="wg-meta mt-0.5">{t.approvedByManager}</p>
+          </div>
+        </div>
+      )}
+
+      {pendingRecs.length === 0 ? (
+        <div className="rounded-[1.35rem] bg-white p-8 text-center shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/12 text-primary">
+            <Check className="h-8 w-8" />
+          </div>
+          <p className="text-base font-black text-foreground">{t.noPendingRecs}</p>
+          <p className="wg-meta mt-1">{t.allRecsReviewed}</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {pendingRecs.map((rec) => {
+            const isModifying = modifyingId === rec.id
+            const confidenceTone =
+              rec.confidence >= 80
+                ? 'bg-primary text-primary-foreground'
+                : rec.confidence >= 60
+                  ? 'bg-amber-100 text-amber-800'
+                  : 'bg-secondary text-muted-foreground'
+            const title = language === 'th' ? rec.titleTh : rec.title
+            const reason = language === 'th' ? rec.reasonTh : rec.reason
+            const itemLabel = rec.affectedItemFileName
+              ? translateItemName(cleanBakeryTitle(rec.affectedItemFileName), language)
+              : null
+
+            return (
+              <div
+                key={rec.id}
+                className="overflow-hidden rounded-[1.35rem] bg-white shadow-[0_14px_35px_rgba(41,91,67,0.08)]"
+              >
+                <div className="p-5 md:p-6">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-3 py-1 text-xs font-black ${confidenceTone}`}>
+                      {rec.confidence}% {t.confidenceLabel}
+                    </span>
+                    {itemLabel && (
+                      <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-muted-foreground">
+                        {itemLabel}
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 className="mt-3 text-lg font-black leading-tight text-foreground sm:text-xl">{title}</h2>
+
+                  <div className="mt-3 rounded-[0.9rem] bg-secondary/60 px-4 py-3">
+                    <p className="wg-label mb-1">{t.whyAiRecommends}</p>
+                    <p className="text-sm font-medium leading-6 text-foreground">{reason}</p>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-3 gap-3">
+                    <div className="rounded-[0.9rem] bg-secondary/40 px-3 py-3 text-center">
+                      <p className="wg-label mb-1">{t.estimatedSavingsLabel}</p>
+                      <p className="text-base font-black text-primary">
+                        {language === 'th'
+                          ? `${rec.estimatedSavings.toLocaleString()} ฿`
+                          : `฿${rec.estimatedSavings.toLocaleString()}`}
+                      </p>
+                    </div>
+                    <div className="rounded-[0.9rem] bg-secondary/40 px-3 py-3 text-center">
+                      <p className="wg-label mb-1">{t.co2ImpactLabel}</p>
+                      <p className={`text-base font-black ${rec.co2Impact >= 0 ? 'text-primary' : 'text-amber-700'}`}>
+                        {rec.co2Impact >= 0 ? '↓' : '↑'} {Math.abs(rec.co2Impact)} {t.kgCo2}
+                      </p>
+                    </div>
+                    <div className="rounded-[0.9rem] bg-secondary/40 px-3 py-3 text-center">
+                      <p className="wg-label mb-1">{t.confidenceLabel}</p>
+                      <p className="text-base font-black text-foreground">{rec.confidence}%</p>
+                    </div>
+                  </div>
+
+                  {isModifying ? (
+                    <div className="mt-4">
+                      <p className="wg-label mb-2">{t.adjustQuantity}</p>
+                      <div className="grid grid-cols-[2.5rem_1fr_2.5rem] items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => adjustModifyQty(-1)}
+                          className="grid h-10 w-10 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/75"
+                          aria-label="Decrease"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <Input
+                          value={modifyQuantity}
+                          onChange={(e) => setModifyQuantity(e.target.value)}
+                          inputMode="numeric"
+                          className="h-11 rounded-[0.95rem] border-secondary bg-secondary/45 text-center text-base font-black"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => adjustModifyQty(1)}
+                          className="grid h-10 w-10 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/75"
+                          aria-label="Increase"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button
+                          onClick={() => saveModify(rec.id)}
+                          className="h-12 rounded-[1rem] bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                          {t.saveModification}
+                        </Button>
+                        <Button
+                          onClick={cancelModify}
+                          variant="secondary"
+                          className="h-12 rounded-[1rem] bg-secondary text-foreground hover:bg-secondary/80"
+                        >
+                          {t.cancelModification}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      <Button
+                        onClick={() => onUpdate(rec.id, 'accepted')}
+                        className="h-12 rounded-[1rem] bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-black"
+                      >
+                        {t.accept}
+                      </Button>
+                      <Button
+                        onClick={() => startModify(rec)}
+                        variant="secondary"
+                        className="h-12 rounded-[1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80"
+                      >
+                        {t.modify}
+                      </Button>
+                      <Button
+                        onClick={() => onUpdate(rec.id, 'ignored')}
+                        variant="secondary"
+                        className="h-12 rounded-[1rem] bg-secondary/50 text-sm font-black text-muted-foreground hover:bg-secondary"
+                      >
+                        {t.ignore}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {reviewedRecs.length > 0 && (
+        <section className="mt-6">
+          <button
+            type="button"
+            onClick={() => setShowReviewed((v) => !v)}
+            className="flex w-full items-center justify-between rounded-[1rem] bg-secondary/60 px-4 py-3 text-sm font-black text-foreground transition hover:bg-secondary"
+          >
+            <span>
+              {t.reviewedRecsSection} ({reviewedRecs.length})
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 transition-transform duration-200 ${showReviewed ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {showReviewed && (
+            <div className="mt-3 space-y-3">
+              {reviewedRecs.map((rec) => {
+                const title = language === 'th' ? rec.titleTh : rec.title
+                const statusLabel =
+                  rec.status === 'accepted'
+                    ? t.acceptedBadge
+                    : rec.status === 'modified'
+                      ? t.modifiedBadge
+                      : t.ignoredBadge
+                const statusTone =
+                  rec.status === 'accepted'
+                    ? 'bg-primary/12 text-primary'
+                    : rec.status === 'modified'
+                      ? 'bg-amber-50 text-amber-700'
+                      : 'bg-secondary text-muted-foreground'
+
+                return (
+                  <div
+                    key={rec.id}
+                    className="flex items-center justify-between gap-3 rounded-[1.1rem] bg-white px-4 py-4 shadow-[0_8px_20px_rgba(41,91,67,0.06)]"
+                  >
+                    <div className="min-w-0">
+                      <p
+                        className={`truncate text-sm font-black text-foreground ${rec.status === 'ignored' ? 'opacity-45' : ''}`}
+                      >
+                        {title}
+                      </p>
+                      {rec.status === 'modified' && rec.modifiedQuantity != null && (
+                        <p className="wg-meta mt-0.5">
+                          → {rec.modifiedQuantity}{' '}
+                          {language === 'th' ? 'หน่วย' : 'units'}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className={`rounded-full px-3 py-1 text-xs font-black ${statusTone}`}>{statusLabel}</span>
+                      <button
+                        type="button"
+                        onClick={() => onUpdate(rec.id, 'pending')}
+                        className="text-xs font-bold text-muted-foreground/60 transition hover:text-muted-foreground"
+                      >
+                        {t.undoAction}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </section>
+      )}
+    </main>
+  )
+}
