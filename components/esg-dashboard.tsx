@@ -22,14 +22,14 @@ function getRatingLabel(rating: string, t: ReturnType<typeof getText>) {
   return '--'
 }
 
-function scoreColor(s: number) {
-  return s >= 80 ? '#16a34a' : s >= 60 ? '#d97706' : '#dc2626'
+function scoreColor(_s: number) {
+  return '#15803d'
 }
-function scoreBadgeBg(s: number) {
-  return s >= 80 ? '#dcfce7' : s >= 60 ? '#fef3c7' : '#fee2e2'
+function scoreBadgeBg(_s: number) {
+  return '#dcfce7'
 }
-function scoreBadgeText(s: number) {
-  return s >= 80 ? '#166534' : s >= 60 ? '#92400e' : '#991b1b'
+function scoreBadgeText(_s: number) {
+  return '#166534'
 }
 
 function computeMonthlyWaste(inputs: FoodRow[]) {
@@ -79,7 +79,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
   const barMax = Math.max(...monthly.map(m => m.avg), 50) // must be ≥50 so 50% grid line stays at y≥0
   const barChartW = monthly.length * (barW + barGap) - barGap
 
-  const barColor = (v: number) => v < 20 ? '#16a34a' : v < 35 ? '#d97706' : '#dc2626'
+  const barColor = (v: number) => v < 20 ? '#15803d' : v < 35 ? '#4ade80' : '#86efac'
 
   const kpiCards = [
     {
@@ -124,7 +124,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
     },
     {
       letter: 'S', label: t.social, note: t.socialPillarNote,
-      score: esg.socialScore, color: '#2563eb', badgeBg: '#dbeafe', cardBg: '#eff6ff',
+      score: esg.socialScore, color: '#4ade80', badgeBg: '#dcfce7', cardBg: '#f0fdf4',
       metrics: [
         { label: t.teamReporting,     value: `${esg.daysLogged} / ${esg.totalDays}` },
         { label: t.donationPotential, value: esg.hasData ? esg.totalLeftover.toLocaleString() : '--' },
@@ -132,7 +132,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
     },
     {
       letter: 'G', label: t.governance, note: t.govPillarNote,
-      score: esg.govScore, color: '#7c3aed', badgeBg: '#ede9fe', cardBg: '#f5f3ff',
+      score: esg.govScore, color: '#86efac', badgeBg: '#dcfce7', cardBg: '#f0fdf4',
       metrics: [
         { label: t.daysLoggedOf,   value: `${esg.daysLogged} / ${esg.totalDays}` },
         { label: t.aiRecAdherence, value: esg.recsTotal > 0 ? `${esg.recsActed} / ${esg.recsTotal}` : '--' },
@@ -202,11 +202,11 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
                 {esg.hasData ? (
                   <>
                     <path d={arcPath(cx, cy, r, 0, eAngle)}
-                      fill="none" stroke="#16a34a" strokeWidth={sw} strokeLinecap="butt" />
+                      fill="none" stroke="#15803d" strokeWidth={sw} strokeLinecap="butt" />
                     <path d={arcPath(cx, cy, r, eAngle, eAngle + sAngle)}
-                      fill="none" stroke="#2563eb" strokeWidth={sw} strokeLinecap="butt" />
+                      fill="none" stroke="#4ade80" strokeWidth={sw} strokeLinecap="butt" />
                     <path d={arcPath(cx, cy, r, eAngle + sAngle, eAngle + sAngle + gAngle)}
-                      fill="none" stroke="#7c3aed" strokeWidth={sw} strokeLinecap="butt" />
+                      fill="none" stroke="#86efac" strokeWidth={sw} strokeLinecap="butt" />
                   </>
                 ) : (
                   <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth={sw} />
@@ -228,9 +228,9 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
 
               <div className="flex-1 space-y-3">
                 {[
-                  { letter: 'E', label: t.environmental, color: '#16a34a', score: esg.envScore },
-                  { letter: 'S', label: t.social,         color: '#2563eb', score: esg.socialScore },
-                  { letter: 'G', label: t.governance,     color: '#7c3aed', score: esg.govScore },
+                  { letter: 'E', label: t.environmental, color: '#15803d', score: esg.envScore },
+                  { letter: 'S', label: t.social,         color: '#4ade80', score: esg.socialScore },
+                  { letter: 'G', label: t.governance,     color: '#86efac', score: esg.govScore },
                 ].map(p => (
                   <div key={p.letter}>
                     <div className="mb-1 flex items-center justify-between">
@@ -298,9 +298,9 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
 
             <div className="mt-3 flex flex-wrap gap-3">
               {[
-                { color: '#16a34a', label: language === 'th' ? 'ดี <20%' : 'Good <20%' },
-                { color: '#d97706', label: language === 'th' ? 'ปานกลาง' : 'Fair 20–35%' },
-                { color: '#dc2626', label: language === 'th' ? 'สูง >35%' : 'High >35%' },
+                { color: '#15803d', label: language === 'th' ? 'ดี <20%' : 'Good <20%' },
+                { color: '#4ade80', label: language === 'th' ? 'ปานกลาง' : 'Fair 20–35%' },
+                { color: '#86efac', label: language === 'th' ? 'สูง >35%' : 'High >35%' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-1">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
