@@ -311,52 +311,6 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
           </div>
         </div>
 
-        {/* Pillar detail cards */}
-        <div className="space-y-3">
-          {pillars.map(p => (
-            <div key={p.letter} className="rounded-[0.75rem] bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)] sm:p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black"
-                    style={{ backgroundColor: p.badgeBg, color: p.color }}
-                  >
-                    {p.letter}
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-gray-900">{p.label}</p>
-                    <p className="text-xs font-medium text-gray-400">{p.note}</p>
-                  </div>
-                </div>
-                <p className="shrink-0 text-3xl font-black" style={{ color: esg.hasData ? scoreColor(p.score) : '#d1d5db' }}>
-                  {esg.hasData ? p.score : '--'}
-                </p>
-              </div>
-
-              <div className="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${esg.hasData ? p.score : 0}%`, backgroundColor: p.color }}
-                />
-              </div>
-
-              <div className="mt-4 grid gap-2.5" style={{ gridTemplateColumns: `repeat(${p.metrics.length}, minmax(0,1fr))` }}>
-                {p.metrics.map(m => (
-                  <div key={m.label} className="rounded-[0.5rem] p-3" style={{ backgroundColor: p.cardBg }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: p.color, opacity: 0.65 }}>
-                      {m.label}
-                    </p>
-                    <p className="mt-1 text-base font-black text-gray-900 sm:text-lg">{m.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-5 text-center text-[11px] font-medium text-gray-400">
-          {language === 'th' ? 'น้ำหนักคะแนน: E 50% · S 25% · G 25%' : 'Score weighting: E 50% · S 25% · G 25%'}
-        </p>
 
       </div>
     </main>
