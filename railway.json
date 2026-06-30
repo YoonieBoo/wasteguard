@@ -4,7 +4,6 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "cd engine && gunicorn app:app --bind 0.0.0.0:$PORT",
     "healthcheckPath": "/"
   }
 }
