@@ -46,7 +46,7 @@ export function TodayPlan({ dailyInputs = [] }: TodayPlanProps) {
     return (
       <main className="wg-page">
         <div className="wg-page-header text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[1.25rem] bg-primary/12 text-primary">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-primary/12 text-primary">
             <Check className="h-8 w-8" />
           </div>
           <h1 className="wg-page-title">You&apos;re ready for today</h1>

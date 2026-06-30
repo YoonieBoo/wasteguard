@@ -68,7 +68,7 @@ export function WelcomeScreen({ language, onStart, onSignIn }: WelcomeScreenProp
         <Button
           onClick={onSignIn}
           variant="secondary"
-          className="mt-3 h-[3.25rem] w-full rounded-[1.1rem] bg-white/20 text-base font-black text-white shadow-[0_12px_30px_rgba(28,91,57,0.14)] hover:bg-white/25"
+          className="mt-3 h-[3.25rem] w-full rounded-[1rem] bg-white/20 text-base font-black text-white shadow-[0_12px_30px_rgba(28,91,57,0.14)] hover:bg-white/25"
         >
           {t.signIn}
         </Button>
@@ -146,7 +146,7 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
         type="button"
         onClick={onCreateAccount}
         variant="secondary"
-        className="mt-3 h-[3.25rem] w-full rounded-[1.1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
+        className="mt-3 h-[3.25rem] w-full rounded-[1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
       >
         {t.needAccount}
       </Button>
@@ -293,7 +293,7 @@ export function CreateAccountScreen({
         type="button"
         onClick={onSignIn}
         variant="secondary"
-        className="mt-3 h-[3.25rem] w-full rounded-[1.1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
+        className="mt-3 h-[3.25rem] w-full rounded-[1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
       >
         {t.alreadyHaveAccount}
       </Button>

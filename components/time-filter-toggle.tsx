@@ -17,7 +17,7 @@ export function TimeFilterToggle({ value, onChange, language = 'en', className }
   ]
 
   return (
-    <div className={className ?? 'mt-5 grid w-full shrink-0 grid-cols-3 gap-2 rounded-[1.35rem] bg-white p-2 shadow-[0_12px_28px_rgba(41,91,67,0.08)] sm:w-[31rem] sm:max-w-full'}>
+    <div className={className ?? 'mt-5 grid w-full shrink-0 grid-cols-3 gap-2 rounded-[1.5rem] bg-white p-2 shadow-[0_12px_28px_rgba(41,91,67,0.08)] sm:w-[31rem] sm:max-w-full'}>
       {options.map((option) => {
         const isActive = value === option.value
 

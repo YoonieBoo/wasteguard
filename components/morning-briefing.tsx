@@ -89,7 +89,7 @@ export function MorningBriefing({
             <Button
               onClick={onDismiss}
               variant="secondary"
-              className="h-[3.25rem] w-full rounded-[1.1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80"
+              className="h-[3.25rem] w-full rounded-[1rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80"
             >
               {t.goToDashboard}
             </Button>

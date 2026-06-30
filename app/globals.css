@@ -168,7 +168,7 @@
   }
 
   .wg-card {
-    @apply rounded-[1.35rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] md:p-5;
+    @apply rounded-[1.5rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] md:p-5;
   }
 
   .wg-panel {
@@ -180,7 +180,7 @@
   }
 
   .wg-action {
-    @apply h-14 rounded-[1.15rem] text-base font-black shadow-[0_14px_28px_rgba(68,179,126,0.2)] md:h-[3.75rem];
+    @apply h-14 rounded-[1rem] text-base font-black shadow-[0_14px_28px_rgba(68,179,126,0.2)] md:h-[3.75rem];
   }
 }
 

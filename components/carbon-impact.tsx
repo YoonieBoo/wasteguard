@@ -74,7 +74,7 @@ export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAdd
           )}
         </div>
 
-        <section className="rounded-[1.45rem] bg-white/[0.08] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] backdrop-blur md:max-xl:mx-auto md:max-xl:w-full md:max-xl:max-w-[720px] md:max-xl:p-5 xl:p-6">
+        <section className="rounded-[1.5rem] bg-white/[0.08] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.12)] backdrop-blur md:max-xl:mx-auto md:max-xl:w-full md:max-xl:max-w-[720px] md:max-xl:p-5 xl:p-6">
           <div className="grid items-center gap-6 md:grid-cols-[auto_minmax(0,1fr)] md:max-xl:grid-cols-1 md:max-xl:justify-items-center md:max-xl:gap-5 xl:gap-8">
             <button
               onClick={() => setShowGoalDetail((isOpen) => !isOpen)}
@@ -167,7 +167,7 @@ export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAdd
               <button
                 type="button"
                 onClick={() => setShowGoalDetail((isOpen) => !isOpen)}
-                className="mt-4 min-h-12 w-full rounded-[1.1rem] bg-white/[0.08] px-4 py-3 text-sm font-black text-emerald-100 transition hover:bg-white/[0.12]"
+                className="mt-4 min-h-12 w-full rounded-[1rem] bg-white/[0.08] px-4 py-3 text-sm font-black text-emerald-100 transition hover:bg-white/[0.12]"
               >
                 {showGoalDetail ? `${t.goal}: ${goalTons} ${t.tons}` : t.goal}
               </button>
@@ -175,13 +175,13 @@ export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAdd
             {role !== 'owner' && (
               <div className="mt-5">
                 {isTodaySaved ? (
-                  <p className="rounded-[1.15rem] bg-white/[0.08] px-4 py-3 text-center text-sm font-black text-emerald-200">
+                  <p className="rounded-[1rem] bg-white/[0.08] px-4 py-3 text-center text-sm font-black text-emerald-200">
                     {t.resultSaved}
                   </p>
                 ) : (
                   <button
                     onClick={onAddToday}
-                    className="flex min-h-14 w-full items-center justify-center gap-2 rounded-[1.25rem] bg-emerald-400 px-4 py-3 text-center text-base font-black leading-tight text-emerald-950 shadow-[0_14px_30px_rgba(71,211,137,0.25)] transition hover:bg-emerald-300"
+                    className="flex min-h-14 w-full items-center justify-center gap-2 rounded-[1.5rem] bg-emerald-400 px-4 py-3 text-center text-base font-black leading-tight text-emerald-950 shadow-[0_14px_30px_rgba(71,211,137,0.25)] transition hover:bg-emerald-300"
                   >
                     {t.addTodayResult}
                     <ArrowRight className="h-5 w-5 shrink-0" />
