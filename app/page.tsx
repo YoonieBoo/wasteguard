@@ -113,29 +113,31 @@ export default function Home() {
       try { setDailyInputs(JSON.parse(savedInputs) as FoodRow[]) } catch { /* ignore */ }
     }
 
-    function restoreFromLocalStorage() {
-      const savedState = window.localStorage.getItem(authStateKey)
-      const savedProfile = window.localStorage.getItem(authProfileKey)
-      if (savedState === 'signed-in' && savedProfile) {
-        try {
-          const profile = JSON.parse(savedProfile) as AuthProfile
-          setAuthProfile(profile)
-          setRole(profile.role)
-          setCurrentScreen('home')
-        } catch {
-          window.localStorage.removeItem(authStateKey)
-          window.localStorage.removeItem(authProfileKey)
-        }
+    // Restore from localStorage immediately — no network wait
+    const savedState = window.localStorage.getItem(authStateKey)
+    const savedProfile = window.localStorage.getItem(authProfileKey)
+    if (savedState === 'signed-in' && savedProfile) {
+      try {
+        const profile = JSON.parse(savedProfile) as AuthProfile
+        setAuthProfile(profile)
+        setRole(profile.role)
+        setCurrentScreen('home')
+      } catch {
+        window.localStorage.removeItem(authStateKey)
+        window.localStorage.removeItem(authProfileKey)
       }
     }
 
+    // Mark ready now — Supabase session check runs silently in background
+    setIsInitialized(true)
+
+    // Background: validate / refresh Supabase session (real accounts only)
     supabase.auth
       .getSession()
       .then(({ data }) => {
         const user = data.session?.user
         const metadata = user?.user_metadata
         const metadataRole = metadata?.role
-
         if (user && metadata && (metadataRole === 'staff' || metadataRole === 'owner')) {
           saveAuthProfile({
             fullName: String(metadata.full_name || user.email?.split('@')[0] || 'Bakery Team'),
@@ -145,13 +147,9 @@ export default function Home() {
             inviteCode: String(metadata.invite_code || window.localStorage.getItem(inviteCodeKey) || ''),
             bakeryId: typeof metadata.bakery_id === 'string' ? metadata.bakery_id : undefined,
           })
-        } else {
-          // No Supabase session (demo accounts sign out after creation) — restore from localStorage
-          restoreFromLocalStorage()
         }
       })
-      .catch(() => restoreFromLocalStorage())
-      .finally(() => setIsInitialized(true))
+      .catch(() => undefined)
   }, [])
 
   useEffect(() => {
