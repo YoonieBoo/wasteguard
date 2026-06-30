@@ -76,7 +76,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
   const barH = 96
   const barW = 28
   const barGap = 10
-  const barMax = Math.max(...monthly.map(m => m.avg), 40)
+  const barMax = Math.max(...monthly.map(m => m.avg), 50) // must be ≥50 so 50% grid line stays at y≥0
   const barChartW = monthly.length * (barW + barGap) - barGap
 
   const barColor = (v: number) => v < 20 ? '#16a34a' : v < 35 ? '#d97706' : '#dc2626'
@@ -263,13 +263,14 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
               {language === 'th' ? '6 เดือนล่าสุด' : 'Last 6 months'}
             </p>
 
-            <svg viewBox={`0 0 ${barChartW} ${barH + 26}`} className="w-full overflow-visible">
+            {/* viewBox left margin=28 for y-axis labels, top margin=14 for value labels above bars */}
+            <svg viewBox={`-28 -14 ${barChartW + 28} ${barH + 42}`} className="w-full">
               {[0, 25, 50].map(pct => {
                 const y = barH - (pct / barMax) * barH
                 return (
                   <g key={pct}>
                     <line x1={0} y1={y} x2={barChartW} y2={y} stroke="#f3f4f6" strokeWidth={1} />
-                    <text x={-2} y={y + 3} textAnchor="end" fontSize={7.5} fill="#d1d5db" fontFamily="inherit">{pct}%</text>
+                    <text x={-5} y={y + 3} textAnchor="end" fontSize={8} fill="#c8d0cd" fontFamily="inherit">{pct}%</text>
                   </g>
                 )
               })}
@@ -281,7 +282,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
                     <rect x={x} y={barH - h} width={barW} height={h}
                       fill={m.hasData ? barColor(m.avg) : '#e5e7eb'} rx={3} />
                     {m.hasData && (
-                      <text x={x + barW / 2} y={barH - h - 4} textAnchor="middle"
+                      <text x={x + barW / 2} y={barH - h - 5} textAnchor="middle"
                         fontSize={8} fontWeight={700} fill={barColor(m.avg)} fontFamily="inherit">
                         {m.avg}%
                       </text>
