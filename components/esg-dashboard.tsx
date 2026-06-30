@@ -12,18 +12,7 @@ interface EsgDashboardProps {
   recsActed: number
 }
 
-function ScoreBar({ score, color }: { score: number; color: string }) {
-  return (
-    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/15">
-      <div
-        className={`h-full rounded-full transition-all duration-700 ${color}`}
-        style={{ width: `${score}%` }}
-      />
-    </div>
-  )
-}
-
-function ratingLabel(rating: string, t: ReturnType<typeof getText>) {
+function getRatingLabel(rating: string, t: ReturnType<typeof getText>) {
   if (rating === 'A+' || rating === 'A') return t.ratingExcellent
   if (rating === 'B+') return t.ratingVeryGood
   if (rating === 'B') return t.ratingGood
@@ -32,10 +21,10 @@ function ratingLabel(rating: string, t: ReturnType<typeof getText>) {
   return '--'
 }
 
-function ratingColor(score: number) {
-  if (score >= 80) return 'text-emerald-300'
-  if (score >= 60) return 'text-amber-300'
-  return 'text-red-400'
+function scoreColor(score: number) {
+  if (score >= 80) return '#6ee7b7'   // emerald-300
+  if (score >= 60) return '#fcd34d'   // amber-300
+  return '#f87171'                     // red-400
 }
 
 export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: EsgDashboardProps) {
@@ -43,17 +32,27 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
   const [range, setRange] = useState<TimeRange>('month')
   const esg = getEsgData(range, dailyInputs, recsTotal, recsActed)
 
+  // Ring chart math (same approach as carbon-impact)
+  const circleSize = 200
+  const strokeWidth = 14
+  const radius = (circleSize - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const progress = esg.hasData ? esg.overallScore / 100 : 0
+  const progressOffset = circumference - progress * circumference
+  const ringColor = esg.hasData ? scoreColor(esg.overallScore) : 'rgba(255,255,255,0.15)'
+
   const pillars = [
     {
       letter: 'E',
       label: t.environmental,
       note: t.envPillarNote,
       score: esg.envScore,
-      barColor: 'bg-emerald-400',
+      accent: '#6ee7b7',
+      trackColor: 'rgba(110,231,183,0.18)',
       metrics: [
-        { label: t.avgFoodWaste, value: esg.hasData ? `${esg.avgWaste}%` : '--' },
-        { label: t.co2SavedTotal, value: esg.hasData ? `${esg.totalCo2Saved} kg` : '--' },
-        { label: t.portionsSaved, value: esg.hasData ? esg.totalPortionsSaved.toLocaleString() : '--' },
+        { label: t.avgFoodWaste,  value: esg.hasData ? `${esg.avgWaste}%`                         : '--' },
+        { label: t.co2SavedTotal, value: esg.hasData ? `${esg.totalCo2Saved} kg`                  : '--' },
+        { label: t.portionsSaved, value: esg.hasData ? esg.totalPortionsSaved.toLocaleString()     : '--' },
       ],
     },
     {
@@ -61,13 +60,11 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
       label: t.social,
       note: t.socialPillarNote,
       score: esg.socialScore,
-      barColor: 'bg-sky-400',
+      accent: '#7dd3fc',
+      trackColor: 'rgba(125,211,252,0.18)',
       metrics: [
-        {
-          label: t.teamReporting,
-          value: `${esg.daysLogged} / ${esg.totalDays}`,
-        },
-        { label: t.donationPotential, value: esg.hasData ? esg.totalLeftover.toLocaleString() : '--' },
+        { label: t.teamReporting,     value: `${esg.daysLogged} / ${esg.totalDays}` },
+        { label: t.donationPotential, value: esg.hasData ? `${esg.totalLeftover.toLocaleString()} portions` : '--' },
       ],
     },
     {
@@ -75,23 +72,18 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
       label: t.governance,
       note: t.govPillarNote,
       score: esg.govScore,
-      barColor: 'bg-violet-400',
+      accent: '#c4b5fd',
+      trackColor: 'rgba(196,181,253,0.18)',
       metrics: [
-        {
-          label: t.daysLoggedOf,
-          value: `${esg.daysLogged} / ${esg.totalDays}`,
-        },
-        {
-          label: t.aiRecAdherence,
-          value: esg.recsTotal > 0 ? `${esg.recsActed} / ${esg.recsTotal}` : '--',
-        },
+        { label: t.daysLoggedOf,   value: `${esg.daysLogged} / ${esg.totalDays}` },
+        { label: t.aiRecAdherence, value: esg.recsTotal > 0 ? `${esg.recsActed} / ${esg.recsTotal}` : '--' },
       ],
     },
   ]
 
   return (
     <main className="min-h-dvh w-full bg-[radial-gradient(circle_at_18%_10%,rgba(91,211,151,0.28),transparent_18rem),radial-gradient(circle_at_88%_20%,rgba(99,226,172,0.16),transparent_20rem),linear-gradient(180deg,#073f3f_0%,#0b322f_100%)] px-4 pb-28 pt-8 text-white sm:px-5 md:px-6 lg:px-8 lg:pb-8 lg:pt-7">
-      <div className="mx-auto w-full max-w-[960px]">
+      <div className="mx-auto w-full max-w-[900px]">
 
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -107,92 +99,120 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
           </div>
         </div>
 
-        {/* Overall ESG score hero */}
-        <div className="mb-5 overflow-hidden rounded-[0.75rem] bg-white/[0.08] backdrop-blur">
-          <div className="flex items-center gap-6 p-5 sm:p-6 lg:gap-10">
-            {/* Big score number */}
-            <div className="shrink-0 text-center">
-              <p className={`text-5xl font-black leading-none sm:text-6xl ${esg.hasData ? ratingColor(esg.overallScore) : 'text-white/40'}`}>
-                {esg.hasData ? esg.overallScore : '--'}
-              </p>
-              <p className="mt-1 text-xs font-black uppercase tracking-normal text-emerald-200">
-                {t.overallEsgScore}
-              </p>
+        {/* Hero — ring + E/S/G summary */}
+        <section className="mb-5 rounded-[0.75rem] bg-white/[0.08] p-5 backdrop-blur sm:p-6">
+          <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-10">
+
+            {/* SVG ring */}
+            <div className="relative mx-auto shrink-0" style={{ width: circleSize, height: circleSize }}>
+              <svg className="-rotate-90" width={circleSize} height={circleSize}>
+                <circle cx={circleSize / 2} cy={circleSize / 2} r={radius}
+                  fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth={strokeWidth} />
+                <circle cx={circleSize / 2} cy={circleSize / 2} r={radius}
+                  fill="none" stroke={ringColor} strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={progressOffset}
+                  style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <p className="text-4xl font-black leading-none" style={{ color: esg.hasData ? ringColor : 'rgba(255,255,255,0.3)' }}>
+                  {esg.hasData ? esg.overallScore : '--'}
+                </p>
+                <p className="mt-1 text-[11px] font-black uppercase tracking-normal text-emerald-200">
+                  {t.overallEsgScore}
+                </p>
+                <p className="mt-2 text-xl font-black" style={{ color: esg.hasData ? ringColor : 'rgba(255,255,255,0.3)' }}>
+                  {esg.rating}
+                </p>
+              </div>
             </div>
 
-            {/* Divider */}
-            <div className="h-16 w-px shrink-0 bg-white/15" />
-
-            {/* Rating + description */}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-baseline gap-3">
-                <span className={`text-3xl font-black sm:text-4xl ${esg.hasData ? ratingColor(esg.overallScore) : 'text-white/40'}`}>
-                  {esg.rating}
-                </span>
-                <span className="text-base font-black text-white">
-                  {esg.hasData ? ratingLabel(esg.rating, t) : t.noEsgData}
-                </span>
-              </div>
+            {/* Rating label + pillar mini-bars */}
+            <div className="w-full min-w-0 flex-1">
+              <p className="text-xl font-black text-white sm:text-2xl">
+                {esg.hasData ? getRatingLabel(esg.rating, t) : t.noEsgData}
+              </p>
               <p className="mt-1 text-sm font-medium text-emerald-100">
                 {esg.hasData ? t.esgDashboardNote : t.noEsgDataNote}
               </p>
-              {/* Overall progress bar */}
-              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/15">
-                <div
-                  className="h-full rounded-full bg-emerald-400 transition-all duration-700"
-                  style={{ width: `${esg.overallScore}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* E / S / G pillar cards */}
-        <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-          {pillars.map((pillar) => (
-            <div
-              key={pillar.letter}
-              className="rounded-[0.75rem] bg-white/[0.08] p-5 backdrop-blur"
-            >
-              {/* Letter badge + label */}
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-normal text-emerald-200">
-                    {pillar.letter}
-                  </p>
-                  <p className="mt-0.5 text-base font-black text-white">{pillar.label}</p>
-                  <p className="mt-0.5 text-[11px] font-medium leading-4 text-emerald-100/80">
-                    {pillar.note}
-                  </p>
-                </div>
-                <span className={`shrink-0 text-2xl font-black ${esg.hasData ? ratingColor(pillar.score) : 'text-white/40'}`}>
-                  {esg.hasData ? pillar.score : '--'}
-                </span>
-              </div>
-
-              <ScoreBar score={esg.hasData ? pillar.score : 0} color={pillar.barColor} />
-
-              {/* Metrics */}
-              <div className="mt-4 space-y-2.5">
-                {pillar.metrics.map((metric) => (
-                  <div key={metric.label} className="flex items-baseline justify-between gap-2">
-                    <p className="text-[11px] font-bold text-emerald-200/80">{metric.label}</p>
-                    <p className="shrink-0 text-sm font-black text-white">{metric.value}</p>
+              <div className="mt-6 space-y-4">
+                {pillars.map((p) => (
+                  <div key={p.letter} className="flex items-center gap-4">
+                    <span className="w-5 shrink-0 text-xs font-black" style={{ color: p.accent }}>{p.letter}</span>
+                    <div className="flex-1 overflow-hidden rounded-full bg-white/10" style={{ height: 8 }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${esg.hasData ? p.score : 0}%`, backgroundColor: p.accent }}
+                      />
+                    </div>
+                    <span className="w-8 shrink-0 text-right text-sm font-black text-white">
+                      {esg.hasData ? p.score : '--'}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Pillar detail rows */}
+        <div className="space-y-3">
+          {pillars.map((p) => (
+            <section key={p.letter} className="rounded-[0.75rem] bg-white/[0.08] p-5 backdrop-blur sm:p-6">
+              {/* Top row: letter + label + score */}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-black"
+                    style={{ backgroundColor: p.trackColor, color: p.accent }}
+                  >
+                    {p.letter}
+                  </div>
+                  <div>
+                    <p className="text-base font-black text-white">{p.label}</p>
+                    <p className="text-xs font-medium text-emerald-100/70">{p.note}</p>
+                  </div>
+                </div>
+                <p
+                  className="shrink-0 text-3xl font-black leading-none"
+                  style={{ color: esg.hasData ? scoreColor(p.score) : 'rgba(255,255,255,0.3)' }}
+                >
+                  {esg.hasData ? p.score : '--'}
+                </p>
+              </div>
+
+              {/* Progress bar */}
+              <div className="mt-4 overflow-hidden rounded-full bg-white/10" style={{ height: 6 }}>
+                <div
+                  className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${esg.hasData ? p.score : 0}%`, backgroundColor: p.accent }}
+                />
+              </div>
+
+              {/* Metrics */}
+              <div className="mt-5 grid gap-4" style={{ gridTemplateColumns: `repeat(${p.metrics.length}, minmax(0,1fr))` }}>
+                {p.metrics.map((m) => (
+                  <div key={m.label}>
+                    <p className="text-[11px] font-bold uppercase tracking-normal" style={{ color: p.accent, opacity: 0.7 }}>
+                      {m.label}
+                    </p>
+                    <p className="mt-1 text-lg font-black leading-tight text-white sm:text-xl">{m.value}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
 
-        {/* Scoring methodology note */}
-        <div className="mt-6 rounded-[0.75rem] bg-white/[0.06] px-5 py-4">
-          <p className="text-xs font-bold leading-5 text-emerald-100/70">
-            {language === 'th'
-              ? 'คะแนน ESG คำนวณจาก: สิ่งแวดล้อม (50%) · สังคม (25%) · ธรรมาภิบาล (25%) — อิงจากข้อมูลที่บันทึกในช่วงเวลาที่เลือก'
-              : 'ESG score is weighted: Environmental (50%) · Social (25%) · Governance (25%) — calculated from data logged in the selected period.'}
-          </p>
-        </div>
+        {/* Weighting note — minimal */}
+        <p className="mt-5 text-center text-xs font-bold text-emerald-100/40">
+          {language === 'th'
+            ? 'น้ำหนักคะแนน: E 50% · S 25% · G 25%'
+            : 'Score weighting: E 50% · S 25% · G 25%'}
+        </p>
 
       </div>
     </main>
