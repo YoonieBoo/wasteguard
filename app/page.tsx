@@ -146,8 +146,8 @@ export default function Home() {
         const metadataRole = metadata?.role
         if (user && metadata && (metadataRole === 'staff' || metadataRole === 'owner')) {
           saveAuthProfile({
-            fullName: String(metadata.full_name || user.email?.split('@')[0] || 'Bakery Team'),
-            bakeryName: String(metadata.bakery_name || window.localStorage.getItem(bakeryNameKey) || 'My Bakery'),
+            fullName: String(metadata.full_name || user.email?.split('@')[0] || 'Restaurant Team'),
+            bakeryName: String(metadata.bakery_name || window.localStorage.getItem(bakeryNameKey) || 'My Restaurant'),
             email: user.email || '',
             role: metadataRole,
             inviteCode: String(metadata.invite_code || window.localStorage.getItem(inviteCodeKey) || ''),
@@ -444,7 +444,8 @@ export default function Home() {
     }
 
     saveDemoAccount(profile, account.password)
-    await supabase.auth.signOut()
+    await supabase.auth.signOut().catch(() => undefined)
+    saveAuthProfile(profile)
   }
 
   async function handleSignIn(email: string, password: string) {
@@ -467,8 +468,8 @@ export default function Home() {
 
     if (metadataRole === 'staff' || metadataRole === 'owner') {
       saveAuthProfile({
-        fullName: String(metadata.full_name || normalizedEmail.split('@')[0] || 'Bakery Team'),
-        bakeryName: String(metadata.bakery_name || window.localStorage.getItem(bakeryNameKey) || 'My Bakery'),
+        fullName: String(metadata.full_name || normalizedEmail.split('@')[0] || 'Restaurant Team'),
+        bakeryName: String(metadata.bakery_name || window.localStorage.getItem(bakeryNameKey) || 'My Restaurant'),
         email: normalizedEmail,
         role: metadataRole,
         inviteCode: String(metadata.invite_code || window.localStorage.getItem(inviteCodeKey) || ''),
@@ -590,7 +591,7 @@ export default function Home() {
             <CreateAccountScreen
               language={language}
               onAccountExists={(email) => showSignIn(email, getText(language).accountExists)}
-              onAccountCreated={(email) => showSignIn(email, getText(language).accountCreated)}
+              onAccountCreated={() => {}}
               onCreateAccount={handleCreateAccount}
               onSignIn={() => {
                 setSignInNotice('')
