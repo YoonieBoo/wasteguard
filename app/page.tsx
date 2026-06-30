@@ -13,6 +13,7 @@ import { EsgDashboard } from '@/components/esg-dashboard'
 import { getText, type Language } from '@/lib/i18n'
 import { getBusinessInsightData, type FoodRow, type WasteGuardRole } from '@/lib/mock-data'
 import { defaultRecommendations, type Recommendation, type RecommendationStatus } from '@/lib/recommendations'
+import { transformFlaskToRecommendations, type FlaskFoodPrepItem, type FlaskRecommendationsResponse } from '@/lib/ai-api'
 import { supabase } from '@/lib/supabase'
 
 const dailyInputsKey = 'wasteGuardDailyInputs'
@@ -98,6 +99,8 @@ export default function Home() {
   const [signInNotice, setSignInNotice] = useState('')
   const [completedBakeryItems, setCompletedBakeryItems] = useState<Record<string, boolean>>({})
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
+  const [rawFoodPrepItems, setRawFoodPrepItems] = useState<FlaskFoodPrepItem[]>([])
+  const [aiRecsLoaded, setAiRecsLoaded] = useState(false)
   const [showMorningBriefing, setShowMorningBriefing] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const showNavigation =
@@ -198,6 +201,25 @@ export default function Home() {
     }
   }, [])
 
+  // Fetch real AI recommendations from the Python engine (owner only)
+  useEffect(() => {
+    if (!isInitialized || role !== 'owner' || aiRecsLoaded) return
+
+    fetch('/api/recommendations')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: FlaskRecommendationsResponse | null) => {
+        if (!data || 'error' in data) return
+        setRawFoodPrepItems(data.food_preparation_recommendations ?? [])
+        const aiRecs = transformFlaskToRecommendations(data)
+        if (aiRecs.length > 0) {
+          setRecommendations(aiRecs)
+          window.localStorage.setItem(recommendationsKey, JSON.stringify(aiRecs))
+        }
+      })
+      .catch(() => undefined) // silently fall back to mock recs if engine is down
+      .finally(() => setAiRecsLoaded(true))
+  }, [isInitialized, role, aiRecsLoaded])
+
   function handleDailyInputSave(newInput: FoodRow) {
     const nextInputs = [...dailyInputs.filter((input) => input.date !== newInput.date), newInput]
     setDailyInputs(nextInputs)
@@ -291,6 +313,21 @@ export default function Home() {
       window.localStorage.setItem(recommendationsKey, JSON.stringify(next))
       return next
     })
+
+    // Notify Python engine when a food-prep rec is accepted/modified
+    if (id.startsWith('ai-prep-') && (status === 'accepted' || status === 'modified')) {
+      const idx = parseInt(id.replace('ai-prep-', ''), 10)
+      const item = rawFoodPrepItems[idx]
+      if (item) {
+        fetch('/api/confirm-preparation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: [{ ...item, final_prep_recommendation: modifiedQuantity ?? item.final_prep_recommendation }],
+          }),
+        }).catch(() => undefined)
+      }
+    }
   }
 
   function saveDemoAccount(profile: AuthProfile, password: string) {
