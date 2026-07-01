@@ -222,8 +222,10 @@ export default function Home() {
         setRawFoodPrepItems(data.food_preparation_recommendations ?? [])
         const aiRecs = transformFlaskToRecommendations(data)
         if (aiRecs.length > 0) {
-          setRecommendations(aiRecs)
-          window.localStorage.setItem(recommendationsKey, JSON.stringify(aiRecs))
+          const nonFoodDefaults = defaultRecommendations.filter((r) => !r.affectedItemFileName)
+          const merged = [...aiRecs, ...nonFoodDefaults]
+          setRecommendations(merged)
+          window.localStorage.setItem(recommendationsKey, JSON.stringify(merged))
           window.localStorage.setItem(recommendationsVersionKey, recommendationsVersion)
         }
       })
