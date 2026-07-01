@@ -57,9 +57,15 @@ function parsePct(s: string): number {
 
 // ── Transform Flask → Recommendation[] ───────────────────────────────────────
 
-const THB_COST_PER_UNIT = 40   // estimated ingredient cost per portion (THB)
-const THB_SELL_PER_UNIT = 60   // estimated selling price per portion (THB)
-const CO2_PER_UNIT = 0.08      // kg CO₂ per food item not produced/wasted
+// Per-item pricing from mock_datas.py menu_sales
+const MENU_PRICING: Record<string, { foodCost: number; sellingPrice: number }> = {
+  'Breakfast Buffet': { foodCost: 24, sellingPrice: 65 },
+  'Fried Rice':       { foodCost: 5,  sellingPrice: 15 },
+  'Caesar Salad':     { foodCost: 4,  sellingPrice: 12 },
+  'Chicken Steak':    { foodCost: 8,  sellingPrice: 22 },
+}
+const DEFAULT_PRICING = { foodCost: 10, sellingPrice: 30 }
+const CO2_PER_UNIT = 0.75  // kg CO₂ per portion (2.5 kg CO₂/kg × ~0.3 kg/portion)
 
 export function transformFlaskToRecommendations(data: FlaskRecommendationsResponse): Recommendation[] {
   const recs: Recommendation[] = []
@@ -71,6 +77,7 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
     const diff = qty - avg
     const isReducing = diff < 0
     const absDiff = Math.abs(diff)
+    const pricing = MENU_PRICING[item.menu_item] ?? DEFAULT_PRICING
 
     const action = isReducing ? 'Reduce' : diff > 0 ? 'Increase' : 'Maintain'
 
@@ -94,10 +101,10 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
       reason,
       reasonTh,
       estimatedSavings: isReducing
-        ? absDiff * THB_COST_PER_UNIT                    // waste cost avoided
+        ? absDiff * pricing.foodCost                                           // waste cost avoided
         : diff > 0
-          ? absDiff * (THB_SELL_PER_UNIT - THB_COST_PER_UNIT) // revenue captured from not running short
-          : Math.round(avg * THB_COST_PER_UNIT * 0.03),  // ~3% efficiency gain from accurate planning
+          ? absDiff * (pricing.sellingPrice - pricing.foodCost)                // profit margin captured
+          : Math.round(avg * pricing.foodCost * 0.03),                         // ~3% planning efficiency
       co2Impact: isReducing ? absDiff * CO2_PER_UNIT : -(absDiff * CO2_PER_UNIT),
       confidence: Math.max(60, 100 - item.safety_buffer_percent),
       status: 'pending',

@@ -1,4 +1,4 @@
-import data from '@/data/mockData2.json'
+import data from '@/data/hotelMockData.json'
 
 export type FoodRow = {
   date: string
@@ -85,8 +85,8 @@ function getPreviousRowsForRange(range: TimeRange, inputRows: FoodRow[] = []) {
   return getSortedRows(inputRows).slice(count, count * 2)
 }
 
-const savedPerPortion = 35
-const co2PerGoodPortion = 0.1
+const savedPerPortion = 15    // avg food cost per portion (THB) — hotel restaurant
+const co2PerGoodPortion = 0.75 // kg CO₂ per portion (food_waste factor 2.5 × ~0.3 kg/portion)
 
 export function getDashboardData(inputRows: FoodRow[] = []) {
   const demoRows = getDemoRows(inputRows)
@@ -97,7 +97,7 @@ export function getDashboardData(inputRows: FoodRow[] = []) {
   const cookThisMuch = todayRow.food_prepared
   const wasteYesterday = Math.round(yesterdayRow.waste_percent)
   const moneySaved = Math.round(Math.max(0, averageLeftover - todayRow.leftover) * savedPerPortion)
-  const revenueToday = Math.round(todayRow.food_sold * 75)
+  const revenueToday = todayRow.revenue ?? Math.round(todayRow.orders * 578)
   const co2Saved = Math.round(todayRow.food_sold * (1 - todayRow.waste_percent / 100) * co2PerGoodPortion)
   const wasteReduced = Math.max(0, Math.round(averageLeftover - todayRow.leftover))
 
