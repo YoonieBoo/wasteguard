@@ -6,8 +6,14 @@ A food waste management platform built for hotels and restaurants. It tracks dai
 
 ## Dashboard
 
+**Owner view**
+
 ![Business Dashboard](docs/dashboard-home.png)
 ![Dashboard Scroll](docs/dashboard-scroll.png)
+
+**Staff view**
+
+![Staff Dashboard](docs/dashboard-staff.png)
 
 ---
 
@@ -21,11 +27,14 @@ A food waste management platform built for hotels and restaurants. It tracks dai
 - Estimated savings, waste risk status, and tomorrow's demand forecast
 - AI-generated recommendations for reducing food waste and cutting costs
 - ESG sustainability scoring (Environmental, Social, Governance)
+- Morning briefing popup on every sign-in with a summary of pending recommendations
 
 **For staff**
-- Preparation cards showing what to cook and how much
-- Items approved by the manager are clearly marked
-- Morning briefing popup for the owner on every sign-in
+- Hero card showing the most requested item for today with portion count
+- Grid of all menu items with how many plates to prepare
+- Items approved by the manager are badged so staff know which quantities are confirmed
+- Filter by category (Buffet, Main Course, Salad, etc.)
+- Tap any item to see full preparation details
 
 **AI engine (Python / Flask)**
 - Random Forest model that forecasts how much of each menu item to prepare based on day of week, weather, and promotions
