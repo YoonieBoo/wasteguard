@@ -57,8 +57,9 @@ function parsePct(s: string): number {
 
 // ── Transform Flask → Recommendation[] ───────────────────────────────────────
 
-const THB_PER_UNIT = 40   // estimated THB value per bakery item
-const CO2_PER_UNIT = 0.08 // kg CO₂ per food item not produced/wasted
+const THB_COST_PER_UNIT = 40   // estimated ingredient cost per portion (THB)
+const THB_SELL_PER_UNIT = 60   // estimated selling price per portion (THB)
+const CO2_PER_UNIT = 0.08      // kg CO₂ per food item not produced/wasted
 
 export function transformFlaskToRecommendations(data: FlaskRecommendationsResponse): Recommendation[] {
   const recs: Recommendation[] = []
@@ -92,7 +93,11 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
       titleTh: `${action === 'Reduce' ? 'ลด' : action === 'Increase' ? 'เพิ่ม' : 'คง'} ${item.menu_item} — เตรียม ${qty} ส่วน`,
       reason,
       reasonTh,
-      estimatedSavings: isReducing ? absDiff * THB_PER_UNIT : 0,
+      estimatedSavings: isReducing
+        ? absDiff * THB_COST_PER_UNIT                    // waste cost avoided
+        : diff > 0
+          ? absDiff * (THB_SELL_PER_UNIT - THB_COST_PER_UNIT) // revenue captured from not running short
+          : Math.round(avg * THB_COST_PER_UNIT * 0.03),  // ~3% efficiency gain from accurate planning
       co2Impact: isReducing ? absDiff * CO2_PER_UNIT : -(absDiff * CO2_PER_UNIT),
       confidence: Math.max(60, 100 - item.safety_buffer_percent),
       status: 'pending',
