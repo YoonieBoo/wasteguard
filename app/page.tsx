@@ -27,6 +27,7 @@ const recommendationsKey = 'wasteGuardRecommendations'
 const recommendationsVersionKey = 'wasteGuardRecommendationsVersion'
 const recommendationsVersion = 'v2'
 const briefingDateKey = 'wasteGuardBriefingDate'
+const approvedItemsKey = 'wasteGuardApprovedItems'
 
 type AuthScreen = 'welcome' | 'sign-in' | 'create-account'
 type AppScreen = 'home' | 'input' | 'impact' | 'recommendations' | 'report'
@@ -103,6 +104,7 @@ export default function Home() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [rawFoodPrepItems, setRawFoodPrepItems] = useState<FlaskFoodPrepItem[]>([])
   const [aiRecsLoaded, setAiRecsLoaded] = useState(false)
+  const [storedApprovedItems, setStoredApprovedItems] = useState<Record<string, number>>({})
   const [showMorningBriefing, setShowMorningBriefing] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const showNavigation =
@@ -119,6 +121,11 @@ export default function Home() {
     const savedInputs = window.localStorage.getItem(dailyInputsKey)
     if (savedInputs) {
       try { setDailyInputs(JSON.parse(savedInputs) as FoodRow[]) } catch { /* ignore */ }
+    }
+
+    const savedApproved = window.localStorage.getItem(approvedItemsKey)
+    if (savedApproved) {
+      try { setStoredApprovedItems(JSON.parse(savedApproved) as Record<string, number>) } catch { /* ignore */ }
     }
 
     // Restore from localStorage immediately — no network wait
@@ -324,6 +331,19 @@ export default function Home() {
         rec.id === id ? { ...rec, status, ...(modifiedQuantity != null ? { modifiedQuantity } : {}) } : rec,
       )
       window.localStorage.setItem(recommendationsKey, JSON.stringify(next))
+
+      // Persist approved food-prep items separately so staff can see the badge on any device
+      const approved: Record<string, number> = {}
+      next.forEach((rec) => {
+        if ((rec.status === 'accepted' || rec.status === 'modified') && rec.affectedItemFileName) {
+          approved[rec.affectedItemFileName] = rec.status === 'modified' && rec.modifiedQuantity != null
+            ? rec.modifiedQuantity
+            : (rec.suggestedQuantity ?? 0)
+        }
+      })
+      setStoredApprovedItems(approved)
+      window.localStorage.setItem(approvedItemsKey, JSON.stringify(approved))
+
       return next
     })
 
@@ -517,15 +537,20 @@ export default function Home() {
 
   const pendingRecommendations = recommendations.filter((r) => r.status === 'pending')
   const pendingCount = pendingRecommendations.length
-  const approvedOverrides = recommendations.reduce<Record<string, number>>((acc, rec) => {
-    if ((rec.status === 'accepted' || rec.status === 'modified') && rec.affectedItemFileName) {
-      acc[rec.affectedItemFileName] =
-        rec.status === 'modified' && rec.modifiedQuantity != null
-          ? rec.modifiedQuantity
-          : (rec.suggestedQuantity ?? 0)
-    }
-    return acc
-  }, {})
+  const approvedOverrides = {
+    // storedApprovedItems is loaded from localStorage on init — works even on fresh staff sessions
+    ...storedApprovedItems,
+    // in-session state takes precedence (reflects latest accept/ignore actions this session)
+    ...recommendations.reduce<Record<string, number>>((acc, rec) => {
+      if ((rec.status === 'accepted' || rec.status === 'modified') && rec.affectedItemFileName) {
+        acc[rec.affectedItemFileName] =
+          rec.status === 'modified' && rec.modifiedQuantity != null
+            ? rec.modifiedQuantity
+            : (rec.suggestedQuantity ?? 0)
+      }
+      return acc
+    }, {}),
+  }
   const totalRecommendedSavings = recommendations.reduce((sum, r) => sum + r.estimatedSavings, 0)
   const insights = getBusinessInsightData(dailyInputs)
 
