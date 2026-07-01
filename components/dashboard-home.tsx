@@ -382,7 +382,7 @@ export function DashboardHome({
 
   return (
     <>
-    <main className="wg-page">
+    <main className="wg-page pb-28 lg:pb-8">
       <div className="wg-page-header">
         <p className="wg-eyebrow">{t.today}</p>
         <h1 className="wg-page-title">{t.staffDashboard}</h1>
@@ -450,7 +450,7 @@ export function DashboardHome({
             })}
           </div>
         </div>
-        <div className="flex snap-x gap-4 overflow-x-auto pb-3 transition-all duration-300 sm:grid sm:grid-cols-2 sm:overflow-visible md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+        <div className="flex snap-x gap-4 overflow-x-auto pb-4 transition-all duration-300 sm:grid sm:grid-cols-2 sm:overflow-visible md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {filteredBakeryItems.map((item) => {
             const isSelected = selectedBakeryItem?.fileName === item.fileName
             const isCompleted = completedBakeryItems[item.fileName]
@@ -461,37 +461,33 @@ export function DashboardHome({
                 type="button"
                 key={item.fileName}
                 onClick={() => setSelectedBakeryItem(item)}
-                className={`group min-w-[11rem] snap-start overflow-hidden rounded-[0.75rem] bg-white text-left shadow-[0_14px_35px_rgba(41,91,67,0.09)] outline-none transition duration-300 animate-in fade-in-0 zoom-in-95 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
+                className={`group min-w-[10.5rem] snap-start overflow-hidden rounded-[0.75rem] bg-white text-left shadow-[0_14px_35px_rgba(41,91,67,0.09)] outline-none transition duration-300 animate-in fade-in-0 zoom-in-95 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
                   isSelected ? 'ring-4 ring-primary/20' : ''
-                } ${isManagerApproved ? 'ring-2 ring-primary/30' : ''}`}
+                } ${isManagerApproved && !isCompleted ? 'ring-2 ring-primary/40' : ''}`}
               >
-                <div className="aspect-[4/3] overflow-hidden bg-secondary">
+                <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
                   <img
                     src={item.imageSrc}
                     alt={item.title}
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   />
+                  {/* Status badge on image corner — no overlap with text */}
+                  {isCompleted ? (
+                    <span className="absolute right-2 top-2 rounded-full bg-primary/90 px-2 py-0.5 text-[9px] font-black text-white backdrop-blur-sm">
+                      {t.completed}
+                    </span>
+                  ) : isManagerApproved ? (
+                    <span className="absolute right-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[9px] font-black text-white shadow-sm">
+                      ✓ Manager
+                    </span>
+                  ) : null}
                 </div>
-                <div className="p-4">
-                  <div className="flex min-h-10 items-start justify-between gap-2">
-                    <p className="line-clamp-2 text-sm font-black leading-snug text-foreground">{translateItemName(item.title, language)}</p>
-                    {isCompleted ? (
-                      <span className="shrink-0 rounded-full bg-primary/12 px-2 py-1 text-[10px] font-black text-primary">
-                        {t.completed}
-                      </span>
-                    ) : isManagerApproved ? (
-                      <span className="shrink-0 rounded-full bg-primary px-2 py-1 text-[10px] font-black text-primary-foreground">
-                        ✓
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-3 text-xs font-black text-primary">
+                <div className="p-3">
+                  <p className="line-clamp-2 text-sm font-black leading-snug text-foreground">{translateItemName(item.title, language)}</p>
+                  <p className="mt-2 text-xs font-black text-primary">
                     {item.prepQuantity.toLocaleString()} {translatePrepUnit(item.prepUnit, language)}
                   </p>
-                  {isManagerApproved && !isCompleted && (
-                    <p className="mt-1 text-[10px] font-bold text-primary/70">{t.approvedByManager}</p>
-                  )}
-                  <span className="mt-3 flex h-10 w-full items-center justify-center rounded-[0.5rem] bg-secondary text-xs font-black text-foreground transition group-hover:bg-primary group-hover:text-primary-foreground">
+                  <span className="mt-2.5 flex h-9 w-full items-center justify-center rounded-[0.5rem] bg-secondary text-xs font-black text-foreground transition group-hover:bg-primary group-hover:text-primary-foreground">
                     {isCompleted ? t.completed : t.viewDetails}
                   </span>
                 </div>
@@ -553,34 +549,36 @@ function PreparationDetailsPanel({
   const riskTone = item.wasteRisk === 'Low waste risk' ? 'text-primary' : item.wasteRisk === 'Medium waste risk' ? 'text-amber-700' : 'text-destructive'
 
   return (
-    <>
-      <aside className="fixed inset-0 z-[70] h-dvh overflow-y-auto bg-white animate-in slide-in-from-right-4 duration-300 xl:inset-x-auto xl:bottom-auto xl:right-0 xl:top-0 xl:max-h-dvh xl:w-[420px] xl:border-l xl:border-secondary/80 xl:shadow-[-24px_0_70px_rgba(35,88,62,0.14)]">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-secondary/70 bg-white/94 px-4 py-3 backdrop-blur sm:px-6 xl:border-b-0 xl:px-6 xl:py-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 xl:hidden"
-              aria-label="Back"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-            <div className="min-w-0">
-              <p className="wg-eyebrow mb-0">{t.preparationDetails}</p>
-              <p className="wg-meta mt-1 truncate">{t.aiDemandForecast}</p>
-            </div>
-          </div>
+    <aside className="fixed inset-0 z-[70] flex flex-col bg-white animate-in slide-in-from-right-4 duration-300 xl:inset-x-auto xl:right-0 xl:w-[420px] xl:border-l xl:border-secondary/80 xl:shadow-[-24px_0_70px_rgba(35,88,62,0.14)]">
+      {/* Header */}
+      <div className="shrink-0 flex items-center justify-between gap-3 border-b border-secondary/70 bg-white/94 px-4 py-3 backdrop-blur sm:px-6 xl:border-b-0 xl:px-6 xl:py-4">
+        <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 xl:grid"
-            aria-label="Close preparation details"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 xl:hidden"
+            aria-label="Back"
           >
-            <X className="h-5 w-5" />
+            <ChevronLeft className="h-6 w-6" />
           </button>
+          <div className="min-w-0">
+            <p className="wg-eyebrow mb-0">{t.preparationDetails}</p>
+            <p className="wg-meta mt-1 truncate">{t.aiDemandForecast}</p>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="hidden h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/80 xl:grid"
+          aria-label="Close preparation details"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
 
-        <div className="mx-auto w-full max-w-3xl px-4 pb-28 pt-5 sm:px-6 md:pt-6 xl:max-w-none xl:px-6 xl:pb-5 xl:pt-0">
+      {/* Scrollable content — flex-1 so it fills space between header and button */}
+      <div className="flex-1 overflow-y-auto overscroll-contain">
+        <div className="mx-auto w-full max-w-3xl px-4 pb-6 pt-5 sm:px-6 md:pt-6 xl:max-w-none xl:px-6 xl:pt-0">
           <div className="overflow-hidden rounded-[0.75rem] bg-secondary shadow-[0_16px_36px_rgba(41,91,67,0.08)] xl:shadow-none">
             <img src={item.imageSrc} alt={translateItemName(item.title, language)} className="aspect-[4/3] w-full object-cover md:aspect-[16/9] xl:aspect-[4/3]" />
           </div>
@@ -621,23 +619,24 @@ function PreparationDetailsPanel({
             <p className="mt-2 text-base font-black leading-7 text-foreground">{translatePreparationNote(item.preparationNote, language)}</p>
           </section>
         </div>
+      </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-10 bg-white/95 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-14px_30px_rgba(41,91,67,0.08)] backdrop-blur sm:px-6 xl:sticky xl:px-6 xl:pb-5 xl:shadow-none">
-          <Button
-            type="button"
-            onClick={() => onComplete(item)}
-            disabled={isCompleted}
-            className={`wg-action w-full transition-all ${
-              isCompleted
-                ? 'bg-emerald-900 text-white opacity-95'
-                : 'bg-primary text-primary-foreground hover:bg-primary/90'
-            }`}
-          >
-            {isCompleted ? t.completed : t.done}
-          </Button>
-        </div>
-      </aside>
-    </>
+      {/* Done button — pinned to bottom as natural flex footer, works on iOS */}
+      <div className="shrink-0 bg-white/95 px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-14px_30px_rgba(41,91,67,0.08)] backdrop-blur sm:px-6 xl:px-6 xl:pb-5 xl:shadow-none">
+        <Button
+          type="button"
+          onClick={() => onComplete(item)}
+          disabled={isCompleted}
+          className={`wg-action w-full transition-all ${
+            isCompleted
+              ? 'bg-emerald-900 text-white opacity-95'
+              : 'bg-primary text-primary-foreground hover:bg-primary/90'
+          }`}
+        >
+          {isCompleted ? t.completed : t.done}
+        </Button>
+      </div>
+    </aside>
   )
 }
 
