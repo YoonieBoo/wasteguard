@@ -85,7 +85,6 @@ export function SavingsReport({
       <div className="wg-page-header">
         <p className="wg-eyebrow">{t.today}</p>
         <h1 className="wg-page-title">{t.savingsReport}</h1>
-        <p className="wg-page-subtitle">{t.savingsReportNote}</p>
       </div>
 
       {/* Hero stat cards */}

@@ -103,13 +103,6 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
       badgeLabel: t.teamReporting,
       Icon: Users,
     },
-    {
-      label: t.governance,
-      score: esg.govScore,
-      badge: esg.recsTotal > 0 ? `${esg.recsActed}/${esg.recsTotal}` : '--',
-      badgeLabel: t.aiRecAdherence,
-      Icon: Shield,
-    },
   ]
 
   const pillars = [
@@ -148,7 +141,6 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-2xl font-black text-gray-900 sm:text-3xl">{t.esgDashboard}</h1>
-            <p className="mt-1 text-sm font-medium text-gray-500">{t.esgDashboardNote}</p>
           </div>
           <div className="shrink-0">
             <TimeFilterToggle value={range} onChange={setRange} language={language} />
@@ -156,7 +148,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
         </div>
 
         {/* KPI cards — 4 across */}
-        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="mb-4 grid grid-cols-3 gap-3">
           {kpiCards.map((card) => {
             const Icon = card.Icon
             return (
