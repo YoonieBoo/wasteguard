@@ -677,6 +677,8 @@ export default function Home() {
               language={language}
               recsTotal={recommendations.length}
               recsActed={recommendations.filter((r) => r.status === 'accepted' || r.status === 'modified').length}
+              recommendations={recommendations}
+              onGoToRecommendations={() => setCurrentScreen('recommendations')}
             />
           )}
           {currentScreen === 'impact' && role === 'staff' && (
