@@ -137,6 +137,9 @@ export default function Home() {
         setAuthProfile(profile)
         setRole(profile.role)
         setCurrentScreen('home')
+        if (profile.role === 'owner') {
+          setShowMorningBriefing(true)
+        }
       } catch {
         window.localStorage.removeItem(authStateKey)
         window.localStorage.removeItem(authProfileKey)
