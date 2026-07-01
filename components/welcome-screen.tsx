@@ -61,14 +61,14 @@ export function WelcomeScreen({ language, onStart, onSignIn }: WelcomeScreenProp
       <div className="welcome-fade-up welcome-delay relative z-10 mx-auto w-full max-w-[360px] pb-4 md:max-w-[420px]">
         <Button
           onClick={onStart}
-          className="wg-action w-full bg-white text-base font-black text-emerald-700 shadow-[0_18px_40px_rgba(28,91,57,0.22)] hover:bg-white/90"
+          className="h-14 w-full rounded-[0.5rem] bg-white text-base font-black text-emerald-700 shadow-[0_18px_40px_rgba(28,91,57,0.22)] hover:bg-white/90"
         >
           {t.createAccount}
         </Button>
         <Button
           onClick={onSignIn}
           variant="secondary"
-          className="mt-3 h-[3.25rem] w-full rounded-[0.5rem] bg-white/20 text-base font-black text-white shadow-[0_12px_30px_rgba(28,91,57,0.14)] hover:bg-white/25"
+          className="mt-3 h-14 w-full rounded-[0.5rem] bg-white/20 text-base font-black text-white shadow-[0_12px_30px_rgba(28,91,57,0.14)] hover:bg-white/25"
         >
           {t.signIn}
         </Button>
