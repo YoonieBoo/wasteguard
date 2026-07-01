@@ -77,7 +77,6 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
       <div className="wg-page-header relative">
         <p className="wg-eyebrow">{t.today}</p>
         <h1 className="wg-page-title">{t.recommendationCenter}</h1>
-        <p className="wg-page-subtitle">{t.recommendationCenterNote}</p>
 
         {/* Filter dropdown */}
         <div ref={filterRef} className="absolute right-0 top-0">
@@ -86,25 +85,23 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
             onClick={() => setFilterOpen((v) => !v)}
             className="flex items-center gap-1.5 rounded-[0.5rem] border border-secondary bg-white px-3 py-2 text-xs font-black text-foreground shadow-sm transition hover:bg-secondary/50"
           >
-            <span>{activeFilterOption.emoji}</span>
             <span>{language === 'th' ? activeFilterOption.labelTh : activeFilterOption.label}</span>
             <ChevronDown className={`h-3 w-3 shrink-0 transition-transform duration-150 ${filterOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {filterOpen && (
-            <div className="absolute right-0 top-full z-20 mt-1.5 w-36 overflow-hidden rounded-[0.5rem] border border-secondary bg-white shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
+            <div className="absolute right-0 top-full z-20 mt-1.5 w-32 overflow-hidden rounded-[0.5rem] border border-secondary bg-white shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
               {FILTER_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => { setActiveFilter(opt.value); setFilterOpen(false) }}
-                  className={`flex w-full items-center gap-2 px-3 py-2.5 text-xs font-bold transition hover:bg-secondary/50 ${
+                  className={`flex w-full items-center justify-between px-3 py-2.5 text-xs font-bold transition hover:bg-secondary/50 ${
                     activeFilter === opt.value ? 'bg-primary/10 text-primary' : 'text-foreground'
                   }`}
                 >
-                  <span>{opt.emoji}</span>
                   <span>{language === 'th' ? opt.labelTh : opt.label}</span>
-                  {activeFilter === opt.value && <Check className="ml-auto h-3 w-3" />}
+                  {activeFilter === opt.value && <Check className="h-3 w-3" />}
                 </button>
               ))}
             </div>
