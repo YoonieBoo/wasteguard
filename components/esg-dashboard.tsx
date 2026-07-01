@@ -1,11 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Leaf, Users, Shield, Award, Zap, Droplets, UtensilsCrossed, Wind, BadgeDollarSign, Download, TrendingDown, CheckCircle2, ClipboardList } from 'lucide-react'
+import { Leaf, Users, Shield, Award } from 'lucide-react'
 import { getText, type Language } from '@/lib/i18n'
 import { getEsgData, type FoodRow, type TimeRange } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
-import { Button } from '@/components/ui/button'
 
 interface EsgDashboardProps {
   dailyInputs: FoodRow[]
@@ -14,20 +13,35 @@ interface EsgDashboardProps {
   recsActed: number
 }
 
-function getRatingLabel(rating: string) {
-  if (rating === 'A+' || rating === 'A') return 'Excellent'
-  if (rating === 'B+') return 'Very Good'
-  if (rating === 'B') return 'Good'
-  if (rating === 'C') return 'Fair'
-  if (rating === 'D') return 'Needs Work'
+function getRatingLabel(rating: string, t: ReturnType<typeof getText>) {
+  if (rating === 'A+' || rating === 'A') return t.ratingExcellent
+  if (rating === 'B+') return t.ratingVeryGood
+  if (rating === 'B') return t.ratingGood
+  if (rating === 'C') return t.ratingFair
+  if (rating === 'D') return t.ratingPoor
   return '--'
 }
 
-function scoreColor(s: number) {
-  if (s >= 80) return '#15803d'
-  if (s >= 60) return '#16a34a'
-  if (s >= 40) return '#ca8a04'
-  return '#dc2626'
+function scoreColor(_s: number) {
+  return '#15803d'
+}
+function scoreBadgeBg(_s: number) {
+  return '#dcfce7'
+}
+function scoreBadgeText(_s: number) {
+  return '#166534'
+}
+
+function computeMonthlyWaste(inputs: FoodRow[]) {
+  const now = new Date()
+  return Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    const label = d.toLocaleDateString('en', { month: 'short' })
+    const rows = inputs.filter(r => r.date.startsWith(key))
+    const avg = rows.length > 0 ? rows.reduce((s, r) => s + r.waste_percent, 0) / rows.length : 0
+    return { label, avg: parseFloat(avg.toFixed(1)), hasData: rows.length > 0 }
+  })
 }
 
 function polarToCartesian(cx: number, cy: number, r: number, deg: number) {
@@ -44,264 +58,259 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
   return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`
 }
 
-const SECTION = 'mb-4 rounded-[0.75rem] bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)] sm:p-6'
-const LABEL = 'text-[11px] font-bold uppercase tracking-wide text-gray-400'
-const DIVIDER = 'my-4 border-t border-gray-100'
-
 export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: EsgDashboardProps) {
   const t = getText(language)
   const [range, setRange] = useState<TimeRange>('month')
   const esg = getEsgData(range, dailyInputs, recsTotal, recsActed)
+  const monthly = computeMonthlyWaste(dailyInputs)
 
-  // Donut
-  const cx = 72, cy = 72, r = 54, sw = 18
+  // Donut chart dimensions
+  const cx = 84, cy = 84, r = 62, sw = 24
+
+  // Weighted score angle per pillar (E=50%, S=25%, G=25% of 360°)
   const eAngle = esg.hasData ? (esg.envScore * 0.5 / 100) * 360 : 0
   const sAngle = esg.hasData ? (esg.socialScore * 0.25 / 100) * 360 : 0
   const gAngle = esg.hasData ? (esg.govScore * 0.25 / 100) * 360 : 0
 
-  // Derived mock env-impact values
-  const electricitySaved = esg.hasData ? Math.round(esg.totalPortionsSaved * 0.15) : 0   // kWh
-  const waterSaved       = esg.hasData ? Math.round(esg.totalPortionsSaved * 2.8)  : 0   // liters
-  const foodWastePct     = esg.hasData ? esg.avgWaste : 0
-  const co2Saved         = esg.hasData ? esg.totalCo2Saved : 0
-  const moneySaved       = esg.hasData ? esg.totalMoneySaved : 0
+  // Bar chart
+  const barH = 96
+  const barW = 28
+  const barGap = 10
+  const barMax = Math.max(...monthly.map(m => m.avg), 50) // must be ≥50 so 50% grid line stays at y≥0
+  const barChartW = monthly.length * (barW + barGap) - barGap
 
-  // Improvement progress goals
-  const goals = [
+  const barColor = (v: number) => v < 20 ? '#15803d' : v < 35 ? '#4ade80' : '#86efac'
+
+  const kpiCards = [
     {
-      label: 'Food Waste < 15%',
-      current: esg.hasData ? Math.max(0, 100 - (foodWastePct / 15) * 100) : 0,
-      detail: esg.hasData ? `${foodWastePct}% avg waste` : 'No data',
-      color: '#15803d',
+      label: t.overallEsgScore,
+      score: esg.overallScore,
+      badge: esg.rating,
+      badgeLabel: esg.hasData ? getRatingLabel(esg.rating, t) : '--',
+      Icon: Award,
     },
     {
-      label: 'CO₂ Reduction Goal (500 kg)',
-      current: esg.hasData ? Math.min(100, (co2Saved / 500) * 100) : 0,
-      detail: esg.hasData ? `${co2Saved.toFixed(1)} kg saved` : 'No data',
-      color: '#16a34a',
+      label: t.environmental,
+      score: esg.envScore,
+      badge: esg.hasData ? `${esg.avgWaste}%` : '--',
+      badgeLabel: t.avgFoodWaste,
+      Icon: Leaf,
     },
     {
-      label: 'Team Reporting Consistency',
-      current: Math.round(esg.reportingRate * 100),
-      detail: `${esg.daysLogged}/${esg.totalDays} days logged`,
-      color: '#4ade80',
+      label: t.social,
+      score: esg.socialScore,
+      badge: `${esg.daysLogged}/${esg.totalDays}d`,
+      badgeLabel: t.teamReporting,
+      Icon: Users,
     },
     {
-      label: 'Recommendation Adherence',
-      current: recsTotal > 0 ? Math.round((recsActed / recsTotal) * 100) : 0,
-      detail: recsTotal > 0 ? `${recsActed}/${recsTotal} acted on` : 'No recs yet',
-      color: '#86efac',
+      label: t.governance,
+      score: esg.govScore,
+      badge: esg.recsTotal > 0 ? `${esg.recsActed}/${esg.recsTotal}` : '--',
+      badgeLabel: t.aiRecAdherence,
+      Icon: Shield,
     },
   ]
 
-  // Recent activity — last 5 days from dailyInputs, newest first
-  const recentActivity = [...dailyInputs]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 5)
-    .map(row => ({
-      date: row.date,
-      waste: row.waste_percent,
-      co2: Math.round(row.food_sold * (1 - row.waste_percent / 100) * 0.75 * 10) / 10,
-      money: Math.round(row.money_saved ?? 0),
-    }))
+  const pillars = [
+    {
+      letter: 'E', label: t.environmental, note: t.envPillarNote,
+      score: esg.envScore, color: '#16a34a', badgeBg: '#dcfce7', cardBg: '#f0fdf4',
+      metrics: [
+        { label: t.avgFoodWaste,  value: esg.hasData ? `${esg.avgWaste}%` : '--' },
+        { label: t.co2SavedTotal, value: esg.hasData ? `${esg.totalCo2Saved} kg` : '--' },
+        { label: t.portionsSaved, value: esg.hasData ? esg.totalPortionsSaved.toLocaleString() : '--' },
+      ],
+    },
+    {
+      letter: 'S', label: t.social, note: t.socialPillarNote,
+      score: esg.socialScore, color: '#4ade80', badgeBg: '#dcfce7', cardBg: '#f0fdf4',
+      metrics: [
+        { label: t.teamReporting,     value: `${esg.daysLogged} / ${esg.totalDays}` },
+        { label: t.donationPotential, value: esg.hasData ? esg.totalLeftover.toLocaleString() : '--' },
+      ],
+    },
+    {
+      letter: 'G', label: t.governance, note: t.govPillarNote,
+      score: esg.govScore, color: '#86efac', badgeBg: '#dcfce7', cardBg: '#f0fdf4',
+      metrics: [
+        { label: t.daysLoggedOf,   value: `${esg.daysLogged} / ${esg.totalDays}` },
+        { label: t.aiRecAdherence, value: esg.recsTotal > 0 ? `${esg.recsActed} / ${esg.recsTotal}` : '--' },
+      ],
+    },
+  ]
 
   return (
     <main className="min-h-dvh w-full bg-[#eef2ef] px-4 pb-28 pt-8 sm:px-5 md:px-6 lg:px-8 lg:pb-8 lg:pt-7">
-      <div className="mx-auto w-full max-w-[680px]">
+      <div className="mx-auto w-full max-w-[960px]">
 
         {/* Header */}
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-black text-gray-900 sm:text-3xl">{t.esgDashboard}</h1>
-          <TimeFilterToggle value={range} onChange={setRange} language={language} />
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 sm:text-3xl">{t.esgDashboard}</h1>
+            <p className="mt-1 text-sm font-medium text-gray-500">{t.esgDashboardNote}</p>
+          </div>
+          <div className="shrink-0">
+            <TimeFilterToggle value={range} onChange={setRange} language={language} />
+          </div>
         </div>
 
-        {/* ── 1. Overall Sustainability Score ───────────────────────────── */}
-        <div className={SECTION}>
-          <p className={LABEL}>Overall Sustainability Score</p>
-          <hr className={DIVIDER} />
-          <div className="flex items-center gap-6">
-            <svg width={cx * 2} height={cy * 2} viewBox={`0 0 ${cx * 2} ${cy * 2}`} className="shrink-0">
-              <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f4f6" strokeWidth={sw} />
-              {esg.hasData ? (
-                <>
-                  <path d={arcPath(cx, cy, r, 0, eAngle)}
-                    fill="none" stroke="#15803d" strokeWidth={sw} strokeLinecap="butt" />
-                  <path d={arcPath(cx, cy, r, eAngle, eAngle + sAngle)}
-                    fill="none" stroke="#4ade80" strokeWidth={sw} strokeLinecap="butt" />
-                  <path d={arcPath(cx, cy, r, eAngle + sAngle, eAngle + sAngle + gAngle)}
-                    fill="none" stroke="#86efac" strokeWidth={sw} strokeLinecap="butt" />
-                </>
-              ) : (
-                <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth={sw} />
-              )}
-              <text x={cx} y={cy - 8} textAnchor="middle" fontSize={26} fontWeight={900}
-                fill={esg.hasData ? scoreColor(esg.overallScore) : '#d1d5db'} fontFamily="inherit">
-                {esg.hasData ? esg.overallScore : '--'}
-              </text>
-              <text x={cx} y={cy + 8} textAnchor="middle" fontSize={9} fontWeight={700}
-                fill="#9ca3af" fontFamily="inherit">Overall</text>
-              <text x={cx} y={cy + 23} textAnchor="middle" fontSize={14} fontWeight={900}
-                fill={esg.hasData ? scoreColor(esg.overallScore) : '#d1d5db'} fontFamily="inherit">
-                {esg.rating}
-              </text>
-            </svg>
-            <div className="flex-1">
-              <p className="text-3xl font-black leading-none" style={{ color: scoreColor(esg.overallScore) }}>
-                {esg.hasData ? esg.overallScore : '--'}
-                <span className="ml-1 text-lg">/100</span>
-              </p>
-              <p className="mt-1 text-base font-black text-gray-700">{esg.rating} · {getRatingLabel(esg.rating)}</p>
-              <p className="mt-2 text-xs font-medium text-gray-400">
-                Based on {esg.daysLogged} day{esg.daysLogged !== 1 ? 's' : ''} of data
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
+        {/* KPI cards — 4 across */}
+        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {kpiCards.map((card) => {
+            const Icon = card.Icon
+            return (
+              <div key={card.label} className="rounded-[0.75rem] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)] sm:p-5">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-[11px] font-bold leading-snug text-gray-500 sm:text-xs">{card.label}</p>
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a3328]">
+                    <Icon className="h-4 w-4 text-emerald-400" />
+                  </div>
+                </div>
+                <p className="mt-3 text-4xl font-black leading-none" style={{ color: esg.hasData ? scoreColor(card.score) : '#d1d5db' }}>
+                  {esg.hasData ? card.score : '--'}
+                </p>
+                <div className="mt-2.5 flex items-center gap-1.5">
+                  <span
+                    className="inline-block rounded-[0.25rem] px-1.5 py-0.5 text-[11px] font-black"
+                    style={{
+                      backgroundColor: esg.hasData ? scoreBadgeBg(card.score) : '#f3f4f6',
+                      color: esg.hasData ? scoreBadgeText(card.score) : '#9ca3af',
+                    }}
+                  >
+                    {card.badge}
+                  </span>
+                  <span className="truncate text-[10px] font-medium text-gray-400">{card.badgeLabel}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Charts row */}
+        <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+
+          {/* Donut chart */}
+          <div className="rounded-[0.75rem] bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)]">
+            <p className="mb-4 text-sm font-black text-gray-900">
+              {language === 'th' ? 'การกระจายคะแนน ESG' : 'ESG Score Breakdown'}
+            </p>
+            <div className="flex items-center gap-6">
+              <svg width={cx * 2} height={cy * 2} viewBox={`0 0 ${cx * 2} ${cy * 2}`} className="shrink-0">
+                {/* Track */}
+                <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f4f6" strokeWidth={sw} />
+                {esg.hasData ? (
+                  <>
+                    <path d={arcPath(cx, cy, r, 0, eAngle)}
+                      fill="none" stroke="#15803d" strokeWidth={sw} strokeLinecap="butt" />
+                    <path d={arcPath(cx, cy, r, eAngle, eAngle + sAngle)}
+                      fill="none" stroke="#4ade80" strokeWidth={sw} strokeLinecap="butt" />
+                    <path d={arcPath(cx, cy, r, eAngle + sAngle, eAngle + sAngle + gAngle)}
+                      fill="none" stroke="#86efac" strokeWidth={sw} strokeLinecap="butt" />
+                  </>
+                ) : (
+                  <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth={sw} />
+                )}
+                {/* Center */}
+                <text x={cx} y={cy - 9} textAnchor="middle" fontSize={24} fontWeight={900}
+                  fill={esg.hasData ? scoreColor(esg.overallScore) : '#d1d5db'} fontFamily="inherit">
+                  {esg.hasData ? esg.overallScore : '--'}
+                </text>
+                <text x={cx} y={cy + 8} textAnchor="middle" fontSize={10} fontWeight={700}
+                  fill="#9ca3af" fontFamily="inherit">
+                  {language === 'th' ? 'คะแนนรวม' : 'Overall'}
+                </text>
+                <text x={cx} y={cy + 24} textAnchor="middle" fontSize={15} fontWeight={900}
+                  fill={esg.hasData ? scoreColor(esg.overallScore) : '#d1d5db'} fontFamily="inherit">
+                  {esg.rating}
+                </text>
+              </svg>
+
+              <div className="flex-1 space-y-3">
                 {[
-                  { dot: '#15803d', label: 'Environmental (50%)' },
-                  { dot: '#4ade80', label: 'Social (25%)' },
-                  { dot: '#86efac', label: 'Governance (25%)' },
-                ].map(l => (
-                  <div key={l.label} className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: l.dot }} />
-                    <span className="text-[10px] font-medium text-gray-400">{l.label}</span>
+                  { letter: 'E', label: t.environmental, color: '#15803d', score: esg.envScore },
+                  { letter: 'S', label: t.social,         color: '#4ade80', score: esg.socialScore },
+                  { letter: 'G', label: t.governance,     color: '#86efac', score: esg.govScore },
+                ].map(p => (
+                  <div key={p.letter}>
+                    <div className="mb-1 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                        <span className="text-xs font-bold text-gray-600">{p.label}</span>
+                      </div>
+                      <span className="text-sm font-black" style={{ color: esg.hasData ? scoreColor(p.score) : '#d1d5db' }}>
+                        {esg.hasData ? p.score : '--'}
+                      </span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${esg.hasData ? p.score : 0}%`, backgroundColor: p.color }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ── 2. E / S / G Pillar Cards ─────────────────────────────────── */}
-        <div className={SECTION}>
-          <p className={LABEL}>Pillars</p>
-          <hr className={DIVIDER} />
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { icon: Leaf,   label: 'Environmental', score: esg.envScore,    meta: `${foodWastePct}% avg waste`,               color: '#15803d' },
-              { icon: Users,  label: 'Social',        score: esg.socialScore, meta: `${esg.daysLogged}/${esg.totalDays}d logged`, color: '#4ade80' },
-              { icon: Shield, label: 'Governance',    score: esg.govScore,    meta: recsTotal > 0 ? `${recsActed}/${recsTotal} recs` : 'No recs', color: '#86efac' },
-            ].map(({ icon: Icon, label, score, meta, color }) => (
-              <div key={label} className="rounded-[0.5rem] bg-gray-50 p-3 text-center">
-                <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#1a3328]">
-                  <Icon className="h-4 w-4 text-emerald-400" />
-                </div>
-                <p className="text-2xl font-black" style={{ color: esg.hasData ? color : '#d1d5db' }}>
-                  {esg.hasData ? score : '--'}
-                </p>
-                <p className="mt-0.5 text-[10px] font-black text-gray-600">{label}</p>
-                <p className="mt-1 text-[9px] font-medium text-gray-400">{esg.hasData ? meta : 'No data'}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+          {/* Bar chart — monthly waste % */}
+          <div className="rounded-[0.75rem] bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)]">
+            <p className="text-sm font-black text-gray-900">
+              {language === 'th' ? 'ของเสียเฉลี่ยรายเดือน' : 'Monthly Avg Waste %'}
+            </p>
+            <p className="mb-5 text-[11px] font-medium text-gray-400">
+              {language === 'th' ? '6 เดือนล่าสุด' : 'Last 6 months'}
+            </p>
 
-        {/* ── 3. Environmental Impact ───────────────────────────────────── */}
-        <div className={SECTION}>
-          <p className={LABEL}>Environmental Impact</p>
-          <hr className={DIVIDER} />
-          <div className="space-y-3">
-            {[
-              { icon: Zap,              label: 'Electricity Saved',  value: esg.hasData ? `${electricitySaved} kWh` : '--',           sub: 'from reduced prep' },
-              { icon: Droplets,         label: 'Water Saved',        value: esg.hasData ? `${waterSaved.toLocaleString()} L` : '--',   sub: 'estimated reduction' },
-              { icon: UtensilsCrossed,  label: 'Food Waste',         value: esg.hasData ? `${foodWastePct}%` : '--',                   sub: 'average waste rate' },
-              { icon: Wind,             label: 'CO₂ Reduced',        value: esg.hasData ? `${co2Saved.toFixed(1)} kg` : '--',          sub: 'carbon saved' },
-              { icon: BadgeDollarSign,  label: 'Savings',            value: esg.hasData ? `THB ${moneySaved.toLocaleString()}` : '--', sub: 'total period savings' },
-            ].map(({ icon: Icon, label, value, sub }) => (
-              <div key={label} className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-50">
-                    <Icon className="h-4 w-4 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-gray-800">{label}</p>
-                    <p className="text-[10px] font-medium text-gray-400">{sub}</p>
-                  </div>
-                </div>
-                <p className="text-sm font-black" style={{ color: esg.hasData ? '#15803d' : '#d1d5db' }}>{value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── 4. Improvement Progress ───────────────────────────────────── */}
-        <div className={SECTION}>
-          <p className={LABEL}>Improvement Progress</p>
-          <hr className={DIVIDER} />
-          <div className="space-y-4">
-            {goals.map(goal => (
-              <div key={goal.label}>
-                <div className="mb-1.5 flex items-center justify-between gap-2">
-                  <p className="text-xs font-black text-gray-700">{goal.label}</p>
-                  <p className="shrink-0 text-xs font-black" style={{ color: goal.color }}>{Math.round(goal.current)}%</p>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${goal.current}%`, backgroundColor: goal.color }}
-                  />
-                </div>
-                <p className="mt-1 text-[10px] font-medium text-gray-400">{goal.detail}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── 5. Recent Sustainability Activity ────────────────────────── */}
-        <div className={SECTION}>
-          <p className={LABEL}>Recent Sustainability Activity</p>
-          <hr className={DIVIDER} />
-          {recentActivity.length === 0 ? (
-            <p className="text-sm font-medium text-gray-400">No activity logged yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {recentActivity.map(item => {
-                const good = item.waste < 15
+            {/* viewBox left margin=28 for y-axis labels, top margin=14 for value labels above bars */}
+            <svg viewBox={`-28 -14 ${barChartW + 28} ${barH + 42}`} className="w-full">
+              {[0, 25, 50].map(pct => {
+                const y = barH - (pct / barMax) * barH
                 return (
-                  <div key={item.date} className="flex items-start gap-3">
-                    <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${good ? 'bg-emerald-50' : 'bg-amber-50'}`}>
-                      {good
-                        ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        : <TrendingDown className="h-4 w-4 text-amber-500" />
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-black text-gray-800">{item.date}</p>
-                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-black ${good ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                          {item.waste}% waste
-                        </span>
-                      </div>
-                      <p className="mt-0.5 text-[10px] font-medium text-gray-400">
-                        CO₂ saved: {item.co2} kg · Savings: THB {item.money.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
+                  <g key={pct}>
+                    <line x1={0} y1={y} x2={barChartW} y2={y} stroke="#f3f4f6" strokeWidth={1} />
+                    <text x={-5} y={y + 3} textAnchor="end" fontSize={8} fill="#c8d0cd" fontFamily="inherit">{pct}%</text>
+                  </g>
                 )
               })}
-            </div>
-          )}
-        </div>
+              {monthly.map((m, i) => {
+                const h = m.hasData ? Math.max(4, (m.avg / barMax) * barH) : 3
+                const x = i * (barW + barGap)
+                return (
+                  <g key={m.label}>
+                    <rect x={x} y={barH - h} width={barW} height={h}
+                      fill={m.hasData ? barColor(m.avg) : '#e5e7eb'} rx={3} />
+                    {m.hasData && (
+                      <text x={x + barW / 2} y={barH - h - 5} textAnchor="middle"
+                        fontSize={8} fontWeight={700} fill={barColor(m.avg)} fontFamily="inherit">
+                        {m.avg}%
+                      </text>
+                    )}
+                    <text x={x + barW / 2} y={barH + 14} textAnchor="middle"
+                      fontSize={9} fill="#9ca3af" fontFamily="inherit">
+                      {m.label}
+                    </text>
+                  </g>
+                )
+              })}
+            </svg>
 
-        {/* ── 6. Downloads ─────────────────────────────────────────────── */}
-        <div className={SECTION}>
-          <p className={LABEL}>Reports</p>
-          <hr className={DIVIDER} />
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="secondary"
-              className="flex h-12 items-center justify-center gap-2 rounded-[0.5rem] bg-[#1a3328] text-xs font-black text-white hover:bg-[#1a3328]/90"
-            >
-              <Download className="h-4 w-4" />
-              Download ESG Report
-            </Button>
-            <Button
-              variant="secondary"
-              className="flex h-12 items-center justify-center gap-2 rounded-[0.5rem] bg-emerald-700 text-xs font-black text-white hover:bg-emerald-700/90"
-            >
-              <Download className="h-4 w-4" />
-              Download Carbon Report
-            </Button>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {[
+                { color: '#15803d', label: language === 'th' ? 'ดี <20%' : 'Good <20%' },
+                { color: '#4ade80', label: language === 'th' ? 'ปานกลาง' : 'Fair 20–35%' },
+                { color: '#86efac', label: language === 'th' ? 'สูง >35%' : 'High >35%' },
+              ].map(l => (
+                <div key={l.label} className="flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
+                  <span className="text-[10px] font-medium text-gray-400">{l.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+
 
       </div>
     </main>

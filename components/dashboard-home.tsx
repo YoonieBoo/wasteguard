@@ -141,6 +141,7 @@ export function DashboardHome({
           <div className="min-w-0">
             <p className="wg-eyebrow">{bakeryName || t.today}</p>
             <h1 className="wg-page-title">{t.ownerDashboard}</h1>
+            <p className="wg-page-subtitle">{ownerDashboardNote}</p>
           </div>
           <div className="mt-5 flex flex-col gap-3 xl:mt-8 xl:flex-row xl:items-center xl:justify-between xl:gap-4">
             <TimeFilterToggle
@@ -385,6 +386,7 @@ export function DashboardHome({
       <div className="wg-page-header">
         <p className="wg-eyebrow">{t.today}</p>
         <h1 className="wg-page-title">{t.staffDashboard}</h1>
+        <p className="wg-page-subtitle">{t.staffDashboardNote}</p>
       </div>
 
       <button
