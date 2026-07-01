@@ -24,6 +24,8 @@ const authProfileKey = 'wasteGuardAuthProfile'
 const bakeryNameKey = 'wasteGuardBakeryName'
 const inviteCodeKey = 'wasteGuardInviteCode'
 const recommendationsKey = 'wasteGuardRecommendations'
+const recommendationsVersionKey = 'wasteGuardRecommendationsVersion'
+const recommendationsVersion = 'v2'
 const briefingDateKey = 'wasteGuardBriefingDate'
 
 type AuthScreen = 'welcome' | 'sign-in' | 'create-account'
@@ -188,17 +190,19 @@ export default function Home() {
   }, [currentScreen, role])
 
   useEffect(() => {
+    const savedVersion = window.localStorage.getItem(recommendationsVersionKey)
     const saved = window.localStorage.getItem(recommendationsKey)
-    if (saved) {
+    if (savedVersion === recommendationsVersion && saved) {
       try {
         setRecommendations(JSON.parse(saved) as Recommendation[])
+        return
       } catch {
-        setRecommendations(defaultRecommendations)
+        // fall through to reset
       }
-    } else {
-      setRecommendations(defaultRecommendations)
-      window.localStorage.setItem(recommendationsKey, JSON.stringify(defaultRecommendations))
     }
+    setRecommendations(defaultRecommendations)
+    window.localStorage.setItem(recommendationsKey, JSON.stringify(defaultRecommendations))
+    window.localStorage.setItem(recommendationsVersionKey, recommendationsVersion)
   }, [])
 
   // Fetch AI recommendations from the Python engine (owner only).
@@ -220,6 +224,7 @@ export default function Home() {
         if (aiRecs.length > 0) {
           setRecommendations(aiRecs)
           window.localStorage.setItem(recommendationsKey, JSON.stringify(aiRecs))
+          window.localStorage.setItem(recommendationsVersionKey, recommendationsVersion)
         }
       })
       .catch(() => undefined)
