@@ -323,8 +323,8 @@ export function DashboardHome({
               <p className="wg-section-title">{t.mostRequestedItems}</p>
               <p className="wg-meta mt-2">{t.mostRequestedNote}</p>
               <div className="mt-8 divide-y divide-secondary/80">
-                {requestedItems.map((item) => (
-                  <div key={item.bakeryItem.fileName} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
+                {requestedItems.map((item, idx) => (
+                  <div key={`${item.bakeryItem.fileName}-${idx}`} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
                     <div className="flex min-w-0 items-center gap-3">
                       <img
                         src={item.bakeryItem.imageSrc}
