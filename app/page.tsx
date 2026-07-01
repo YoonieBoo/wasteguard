@@ -306,11 +306,7 @@ export default function Home() {
     window.localStorage.setItem(inviteCodeKey, profile.inviteCode)
 
     if (profile.role === 'owner') {
-      const today = new Date().toISOString().slice(0, 10)
-      const lastBriefingDate = window.localStorage.getItem(briefingDateKey)
-      if (lastBriefingDate !== today) {
-        setShowMorningBriefing(true)
-      }
+      setShowMorningBriefing(true)
     }
   }
 
