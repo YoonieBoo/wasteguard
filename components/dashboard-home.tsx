@@ -323,7 +323,9 @@ export function DashboardHome({
               <p className="wg-section-title">{t.mostRequestedItems}</p>
               <p className="wg-meta mt-2">{t.mostRequestedNote}</p>
               <div className="mt-8 divide-y divide-secondary/80">
-                {requestedItems.map((item, idx) => (
+                {requestedItems.map((item, idx) => {
+                  const isApproved = item.bakeryItem.fileName in approvedOverrides
+                  return (
                   <div key={`${item.bakeryItem.fileName}-${idx}`} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
                     <div className="flex min-w-0 items-center gap-3">
                       <img
@@ -331,13 +333,19 @@ export function DashboardHome({
                         alt={item.bakeryItem.title}
                         className="h-10 w-10 shrink-0 rounded-full object-cover shadow-[0_8px_16px_rgba(41,91,67,0.12)]"
                       />
-                      <p className="truncate text-sm font-black text-foreground">{translateItemName(item.bakeryItem.title, language)}</p>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-foreground">{translateItemName(item.bakeryItem.title, language)}</p>
+                        {isApproved && (
+                          <p className="mt-0.5 text-[10px] font-bold text-primary">✓ {t.approvedByManager}</p>
+                        )}
+                      </div>
                     </div>
                     <p className="shrink-0 text-sm font-bold text-muted-foreground">
                       {language === 'th' ? `${item.amount.toLocaleString()} บาท` : `THB ${item.amount.toLocaleString()}`}
                     </p>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </section>
           </div>
