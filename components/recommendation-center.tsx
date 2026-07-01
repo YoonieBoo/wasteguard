@@ -128,7 +128,7 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
                       )}
                     </div>
 
-                    <h2 className="mt-4 text-xl font-black leading-tight text-foreground sm:text-2xl">
+                    <h2 className="mt-4 text-base font-black leading-tight text-foreground sm:text-lg">
                       {title}
                     </h2>
                   </button>
