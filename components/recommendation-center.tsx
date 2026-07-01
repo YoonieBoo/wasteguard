@@ -199,12 +199,16 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
                   </p>
 
                   <p className="mt-4 text-sm font-black">
-                    <span className="text-primary">
-                      {language === 'th'
-                        ? `ประหยัด ${rec.estimatedSavings.toLocaleString()} บาท`
-                        : `Saves THB ${rec.estimatedSavings.toLocaleString()}`}
-                    </span>
-                    <span className="text-muted-foreground"> · </span>
+                    {rec.estimatedSavings > 0 && (
+                      <>
+                        <span className="text-primary">
+                          {language === 'th'
+                            ? `ประหยัด ${rec.estimatedSavings.toLocaleString()} บาท`
+                            : `Saves THB ${rec.estimatedSavings.toLocaleString()}`}
+                        </span>
+                        <span className="text-muted-foreground"> · </span>
+                      </>
+                    )}
                     <span className={rec.co2Impact >= 0 ? 'text-primary' : 'text-amber-600'}>
                       {rec.co2Impact >= 0 ? '↓' : '↑'}
                       {Math.abs(rec.co2Impact)} {t.kgCo2}

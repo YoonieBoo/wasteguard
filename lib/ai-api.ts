@@ -1,3 +1,4 @@
+import type { BakeryImageFile } from '@/lib/bakery-catalog'
 import type { Recommendation, WasteType } from '@/lib/recommendations'
 
 // ── Flask API response types ──────────────────────────────────────────────────
@@ -64,6 +65,14 @@ const MENU_PRICING: Record<string, { foodCost: number; sellingPrice: number }> =
   'Caesar Salad':     { foodCost: 4,  sellingPrice: 12 },
   'Chicken Steak':    { foodCost: 8,  sellingPrice: 22 },
 }
+
+// Maps Flask menu_item names → image filenames for the home dashboard approvedOverrides
+const MENU_FILE_MAP: Record<string, BakeryImageFile> = {
+  'Breakfast Buffet': 'breakfast_buffet',
+  'Fried Rice':       'fried_rice',
+  'Caesar Salad':     'caesar_salad',
+  'Chicken Steak':    'chicken_steak',
+}
 const DEFAULT_PRICING = { foodCost: 10, sellingPrice: 30 }
 const CO2_PER_UNIT = 0.75  // kg CO₂ per portion (2.5 kg CO₂/kg × ~0.3 kg/portion)
 
@@ -109,6 +118,7 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
       confidence: Math.max(60, 100 - item.safety_buffer_percent),
       status: 'pending',
       wasteType: 'food',
+      affectedItemFileName: MENU_FILE_MAP[item.menu_item],
       suggestedQuantity: qty,
     })
   })
@@ -136,14 +146,17 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
 
   // 3. Anomaly recommendations
   data.anomaly_recommendations.forEach((rec, i) => {
+    const cleanText = (s: string) =>
+      s.replace(/\bAI[- ]powered\b/gi, 'pattern-based')
+       .replace(/\bAI\b/g, 'system')
     recs.push({
       id: `ai-anomaly-${i}`,
-      title: rec.recommendation,
-      titleTh: rec.recommendation,
-      reason: rec.reason,
-      reasonTh: rec.reason,
-      estimatedSavings: 0,
-      co2Impact: 0,
+      title: cleanText(rec.recommendation),
+      titleTh: cleanText(rec.recommendation),
+      reason: cleanText(rec.reason),
+      reasonTh: cleanText(rec.reason),
+      estimatedSavings: parseThb(rec.date ?? '') || 200,
+      co2Impact: 0.5,
       confidence: parsePct(rec.confidence),
       status: 'pending',
       wasteType: 'food' as WasteType,
