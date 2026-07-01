@@ -11,7 +11,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: 'Waste Guard - Food Waste Management',
-  description: 'AI-powered food waste management for bakeries',
+  description: 'Smart food waste management for hotels and restaurants',
   generator: 'v0.app',
   icons: {
     icon: [
