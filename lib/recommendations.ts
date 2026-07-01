@@ -1,6 +1,7 @@
 import type { BakeryImageFile } from '@/lib/bakery-catalog'
 
 export type RecommendationStatus = 'pending' | 'accepted' | 'modified' | 'ignored'
+export type WasteType = 'food' | 'energy' | 'water' | 'packaging'
 
 export type Recommendation = {
   id: string
@@ -12,6 +13,7 @@ export type Recommendation = {
   co2Impact: number
   confidence: number
   status: RecommendationStatus
+  wasteType?: WasteType
   affectedItemFileName?: BakeryImageFile
   suggestedQuantity?: number
   modifiedQuantity?: number
@@ -30,6 +32,7 @@ export const defaultRecommendations: Recommendation[] = [
     co2Impact: 2.5,
     confidence: 87,
     status: 'pending',
+    wasteType: 'food',
     affectedItemFileName: 'breakfast_buffet',
     suggestedQuantity: 285,
   },
@@ -45,6 +48,7 @@ export const defaultRecommendations: Recommendation[] = [
     co2Impact: -0.3,
     confidence: 79,
     status: 'pending',
+    wasteType: 'food',
     affectedItemFileName: 'fried_rice',
     suggestedQuantity: 105,
   },
@@ -60,6 +64,7 @@ export const defaultRecommendations: Recommendation[] = [
     co2Impact: 1.2,
     confidence: 72,
     status: 'pending',
+    wasteType: 'food',
     affectedItemFileName: 'caesar_salad',
     suggestedQuantity: 47,
   },
@@ -75,6 +80,7 @@ export const defaultRecommendations: Recommendation[] = [
     co2Impact: 4.8,
     confidence: 83,
     status: 'pending',
+    wasteType: 'energy',
   },
   {
     id: 'rec-005',
@@ -88,6 +94,7 @@ export const defaultRecommendations: Recommendation[] = [
     co2Impact: 1.5,
     confidence: 76,
     status: 'pending',
+    wasteType: 'water',
   },
   {
     id: 'rec-006',
@@ -101,5 +108,6 @@ export const defaultRecommendations: Recommendation[] = [
     co2Impact: 3.2,
     confidence: 68,
     status: 'pending',
+    wasteType: 'packaging',
   },
 ]

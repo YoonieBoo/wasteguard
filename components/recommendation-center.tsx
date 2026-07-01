@@ -1,12 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Check, ChevronDown, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
 import { cleanBakeryTitle } from '@/lib/bakery-catalog'
-import type { Recommendation, RecommendationStatus } from '@/lib/recommendations'
+import type { Recommendation, RecommendationStatus, WasteType } from '@/lib/recommendations'
+
+type FilterType = 'all' | WasteType
+
+const FILTER_OPTIONS: { value: FilterType; label: string; labelTh: string; emoji: string }[] = [
+  { value: 'all',       label: 'All',       labelTh: 'ทั้งหมด',    emoji: '🔍' },
+  { value: 'food',      label: 'Food',      labelTh: 'อาหาร',      emoji: '🍽️' },
+  { value: 'energy',    label: 'Energy',    labelTh: 'พลังงาน',    emoji: '⚡' },
+  { value: 'water',     label: 'Water',     labelTh: 'น้ำ',        emoji: '💧' },
+  { value: 'packaging', label: 'Packaging', labelTh: 'บรรจุภัณฑ์', emoji: '📦' },
+]
 
 interface RecommendationCenterProps {
   recommendations: Recommendation[]
@@ -20,12 +30,20 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
   const [modifyQuantity, setModifyQuantity] = useState('')
   const [showReviewed, setShowReviewed] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all')
+  const [filterOpen, setFilterOpen] = useState(false)
+  const filterRef = useRef<HTMLDivElement>(null)
 
   function toggleExpanded(id: string) {
     setExpandedId((current) => (current === id ? null : id))
   }
 
-  const pendingRecs = recommendations.filter((r) => r.status === 'pending')
+  const allPendingRecs = recommendations.filter((r) => r.status === 'pending')
+  const pendingRecs = activeFilter === 'all'
+    ? allPendingRecs
+    : allPendingRecs.filter((r) => r.wasteType === activeFilter)
+
+  const activeFilterOption = FILTER_OPTIONS.find((o) => o.value === activeFilter)!
   const reviewedRecs = recommendations.filter((r) => r.status !== 'pending')
   const acceptedSavings = recommendations
     .filter((r) => r.status === 'accepted' || r.status === 'modified')
@@ -56,10 +74,42 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
 
   return (
     <main className="wg-page">
-      <div className="wg-page-header">
+      <div className="wg-page-header relative">
         <p className="wg-eyebrow">{t.today}</p>
         <h1 className="wg-page-title">{t.recommendationCenter}</h1>
         <p className="wg-page-subtitle">{t.recommendationCenterNote}</p>
+
+        {/* Filter dropdown */}
+        <div ref={filterRef} className="absolute right-0 top-0">
+          <button
+            type="button"
+            onClick={() => setFilterOpen((v) => !v)}
+            className="flex items-center gap-1.5 rounded-[0.5rem] border border-secondary bg-white px-3 py-2 text-xs font-black text-foreground shadow-sm transition hover:bg-secondary/50"
+          >
+            <span>{activeFilterOption.emoji}</span>
+            <span>{language === 'th' ? activeFilterOption.labelTh : activeFilterOption.label}</span>
+            <ChevronDown className={`h-3 w-3 shrink-0 transition-transform duration-150 ${filterOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {filterOpen && (
+            <div className="absolute right-0 top-full z-20 mt-1.5 w-36 overflow-hidden rounded-[0.5rem] border border-secondary bg-white shadow-[0_8px_24px_rgba(0,0,0,0.1)]">
+              {FILTER_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { setActiveFilter(opt.value); setFilterOpen(false) }}
+                  className={`flex w-full items-center gap-2 px-3 py-2.5 text-xs font-bold transition hover:bg-secondary/50 ${
+                    activeFilter === opt.value ? 'bg-primary/10 text-primary' : 'text-foreground'
+                  }`}
+                >
+                  <span>{opt.emoji}</span>
+                  <span>{language === 'th' ? opt.labelTh : opt.label}</span>
+                  {activeFilter === opt.value && <Check className="ml-auto h-3 w-3" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {acceptedSavings > 0 && (
@@ -83,8 +133,16 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
             <Check className="h-7 w-7" />
           </div>
-          <p className="text-base font-black text-foreground">{t.noPendingRecs}</p>
-          <p className="wg-meta mt-1">{t.allRecsReviewed}</p>
+          <p className="text-base font-black text-foreground">
+            {activeFilter === 'all' ? t.noPendingRecs : `No ${activeFilterOption.label} recommendations pending`}
+          </p>
+          <p className="wg-meta mt-1">
+            {activeFilter === 'all' ? t.allRecsReviewed : (
+              <button type="button" onClick={() => setActiveFilter('all')} className="underline">
+                Show all types
+              </button>
+            )}
+          </p>
         </div>
       ) : (
         <div className="space-y-4">

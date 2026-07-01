@@ -1,4 +1,4 @@
-import type { Recommendation } from '@/lib/recommendations'
+import type { Recommendation, WasteType } from '@/lib/recommendations'
 
 // ── Flask API response types ──────────────────────────────────────────────────
 
@@ -108,12 +108,18 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
       co2Impact: isReducing ? absDiff * CO2_PER_UNIT : -(absDiff * CO2_PER_UNIT),
       confidence: Math.max(60, 100 - item.safety_buffer_percent),
       status: 'pending',
+      wasteType: 'food',
       suggestedQuantity: qty,
     })
   })
 
   // 2. Sustainability recommendations
   data.sustainability_recommendations.forEach((rec, i) => {
+    const titleLower = rec.recommendation.toLowerCase()
+    const sustainType: WasteType = titleLower.includes('water') ? 'water'
+      : titleLower.includes('electric') || titleLower.includes('light') || titleLower.includes('energy') ? 'energy'
+      : titleLower.includes('packag') || titleLower.includes('plastic') ? 'packaging'
+      : 'energy'
     recs.push({
       id: `ai-sustain-${i}`,
       title: rec.recommendation,
@@ -124,6 +130,7 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
       co2Impact: parseCo2(rec.carbon_reduction),
       confidence: parsePct(rec.confidence),
       status: 'pending',
+      wasteType: sustainType,
     })
   })
 
@@ -139,6 +146,7 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
       co2Impact: 0,
       confidence: parsePct(rec.confidence),
       status: 'pending',
+      wasteType: 'food' as WasteType,
     })
   })
 
