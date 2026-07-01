@@ -82,7 +82,7 @@ export function MorningBriefing({
           <div className="mt-4 space-y-2.5">
             <Button
               onClick={onReviewRecs}
-              className="wg-action w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              className="h-[3.25rem] w-full rounded-[0.5rem] bg-primary text-sm font-black text-primary-foreground hover:bg-primary/90"
             >
               {t.reviewRecs}
             </Button>
