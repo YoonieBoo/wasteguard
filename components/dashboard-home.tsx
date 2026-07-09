@@ -391,7 +391,6 @@ export function DashboardHome({
         <RecommendationsPreviewModal
           language={language}
           recommendations={pendingRecommendations}
-          totalPendingCount={pendingRecommendationsCount}
           onAccept={(id) => onUpdateRecommendation?.(id, 'accepted')}
           onIgnore={(id) => onUpdateRecommendation?.(id, 'ignored')}
           onModify={() => {

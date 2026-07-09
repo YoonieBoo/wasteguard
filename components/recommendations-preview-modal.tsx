@@ -8,7 +8,6 @@ import type { Recommendation } from '@/lib/recommendations'
 interface RecommendationsPreviewModalProps {
   language: Language
   recommendations: Recommendation[]
-  totalPendingCount: number
   onAccept: (id: string) => void
   onIgnore: (id: string) => void
   onModify: (id: string) => void
@@ -25,7 +24,6 @@ function getPriority(confidence: number) {
 export function RecommendationsPreviewModal({
   language,
   recommendations,
-  totalPendingCount,
   onAccept,
   onIgnore,
   onModify,
@@ -40,13 +38,8 @@ export function RecommendationsPreviewModal({
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
       <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-[780px] flex-col overflow-hidden rounded-[1rem] bg-white shadow-[0_32px_80px_rgba(35,88,62,0.25)] animate-in fade-in-0 zoom-in-95 duration-200">
-        <div className="flex shrink-0 items-start justify-between gap-4 px-6 pt-6 sm:px-8 sm:pt-8">
-          <div>
-            <p className="wg-eyebrow mb-1.5">{t.todaysRecommendations}</p>
-            <h2 className="text-2xl font-black leading-tight text-foreground sm:text-3xl">
-              {t.itemsNeedReview.replace('{count}', String(totalPendingCount))}
-            </h2>
-          </div>
+        <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-6 sm:px-8 sm:pt-8">
+          <p className="wg-eyebrow mb-0">{t.todaysRecommendations}</p>
           <button
             type="button"
             onClick={onClose}
@@ -63,24 +56,13 @@ export function RecommendationsPreviewModal({
               const priority = getPriority(rec.confidence)
               const title = language === 'th' ? rec.titleTh : rec.title
               const accentBar = priority === 'high' ? 'bg-red-500' : priority === 'medium' ? 'bg-amber-400' : 'bg-secondary'
-              const badgeTone =
-                priority === 'high'
-                  ? 'bg-red-50 text-red-600'
-                  : priority === 'medium'
-                    ? 'bg-amber-50 text-amber-700'
-                    : 'bg-secondary text-muted-foreground'
-              const priorityLabel =
-                priority === 'high' ? t.priorityHigh : priority === 'medium' ? t.priorityMedium : t.priorityLow
 
               return (
                 <div key={rec.id} className="flex gap-4 bg-white p-5 sm:p-6">
                   <span className={`w-1 shrink-0 self-stretch rounded-full ${accentBar}`} />
 
                   <div className="min-w-0 flex-1">
-                    <span className={`inline-block rounded-full px-3 py-1 text-xs font-black ${badgeTone}`}>
-                      {priorityLabel}
-                    </span>
-                    <h3 className="mt-3 text-base font-black leading-snug text-foreground sm:text-lg">{title}</h3>
+                    <h3 className="text-base font-black leading-snug text-foreground sm:text-lg">{title}</h3>
                   </div>
 
                   <div className="hidden shrink-0 flex-col justify-center gap-3 text-right sm:flex">

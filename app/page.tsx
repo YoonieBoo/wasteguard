@@ -704,7 +704,6 @@ export default function Home() {
         <RecommendationsPreviewModal
           language={language}
           recommendations={pendingRecommendations}
-          totalPendingCount={pendingCount}
           onAccept={(id) => handleUpdateRecommendation(id, 'accepted')}
           onIgnore={(id) => handleUpdateRecommendation(id, 'ignored')}
           onModify={handleDismissBriefingAndGoToRecs}
