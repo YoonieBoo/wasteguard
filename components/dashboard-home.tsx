@@ -540,6 +540,30 @@ function PreparationDetailsPanel({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [item, onClose])
 
+  useEffect(() => {
+    if (!item) {
+      return
+    }
+
+    // Lock background page scroll so touch/wheel scrolling over the panel
+    // never bleeds through to the page behind it (notably iOS rubber-banding).
+    const { overflow, position, top, width } = document.body.style
+    const scrollY = window.scrollY
+
+    document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.width = '100%'
+
+    return () => {
+      document.body.style.overflow = overflow
+      document.body.style.position = position
+      document.body.style.top = top
+      document.body.style.width = width
+      window.scrollTo(0, scrollY)
+    }
+  }, [item])
+
   if (!item) {
     return null
   }
