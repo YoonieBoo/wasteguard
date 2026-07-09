@@ -39,7 +39,7 @@ export function RecommendationsPreviewModal({
 
       <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-[780px] flex-col overflow-hidden rounded-[1rem] bg-white shadow-[0_32px_80px_rgba(35,88,62,0.25)] animate-in fade-in-0 zoom-in-95 duration-200">
         <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-6 sm:px-8 sm:pt-8">
-          <p className="wg-eyebrow mb-0">{t.todaysRecommendations}</p>
+          <p className="wg-eyebrow mb-0 font-black">{t.todaysRecommendations}</p>
           <button
             type="button"
             onClick={onClose}
@@ -58,7 +58,7 @@ export function RecommendationsPreviewModal({
               const accentBar = priority === 'high' ? 'bg-red-500' : priority === 'medium' ? 'bg-amber-400' : 'bg-secondary'
 
               return (
-                <div key={rec.id} className="flex gap-4 bg-white p-5 sm:p-6">
+                <div key={rec.id} className="flex items-center gap-4 bg-white p-5 sm:p-6">
                   <span className={`w-1 shrink-0 self-stretch rounded-full ${accentBar}`} />
 
                   <div className="min-w-0 flex-1">
