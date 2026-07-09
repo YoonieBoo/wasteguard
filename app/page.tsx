@@ -6,12 +6,12 @@ import { QuickInput } from '@/components/quick-input'
 import { CarbonImpact } from '@/components/carbon-impact'
 import { Navigation } from '@/components/navigation'
 import { CreateAccountScreen, SignInScreen, WelcomeScreen } from '@/components/welcome-screen'
-import { MorningBriefing } from '@/components/morning-briefing'
+import { RecommendationsPreviewModal } from '@/components/recommendations-preview-modal'
 import { RecommendationCenter } from '@/components/recommendation-center'
 import { SavingsReport } from '@/components/savings-report'
 import { EsgDashboard } from '@/components/esg-dashboard'
 import { getText, type Language } from '@/lib/i18n'
-import { getBusinessInsightData, type FoodRow, type WasteGuardRole } from '@/lib/mock-data'
+import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
 import { defaultRecommendations, type Recommendation, type RecommendationStatus } from '@/lib/recommendations'
 import { transformFlaskToRecommendations, type FlaskFoodPrepItem, type FlaskRecommendationsResponse } from '@/lib/ai-api'
 import { supabase } from '@/lib/supabase'
@@ -550,9 +550,6 @@ export default function Home() {
       return acc
     }, {}),
   }
-  const totalRecommendedSavings = recommendations.reduce((sum, r) => sum + r.estimatedSavings, 0)
-  const insights = getBusinessInsightData(dailyInputs)
-
   if (!isInitialized) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-white">
@@ -703,15 +700,16 @@ export default function Home() {
         />
       )}
 
-      {showMorningBriefing && role === 'owner' && (
-        <MorningBriefing
+      {showMorningBriefing && role === 'owner' && pendingCount > 0 && (
+        <RecommendationsPreviewModal
           language={language}
-          bakeryName={authProfile?.bakeryName}
-          pendingRecommendations={pendingRecommendations}
-          estimatedSavingsTotal={totalRecommendedSavings}
-          wasteDelta={insights.wasteDelta}
-          onReviewRecs={handleDismissBriefingAndGoToRecs}
-          onDismiss={handleDismissBriefing}
+          recommendations={pendingRecommendations}
+          totalPendingCount={pendingCount}
+          onAccept={(id) => handleUpdateRecommendation(id, 'accepted')}
+          onIgnore={(id) => handleUpdateRecommendation(id, 'ignored')}
+          onModify={handleDismissBriefingAndGoToRecs}
+          onViewAll={handleDismissBriefingAndGoToRecs}
+          onClose={handleDismissBriefing}
         />
       )}
     </div>
