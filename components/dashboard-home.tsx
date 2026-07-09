@@ -545,8 +545,16 @@ function PreparationDetailsPanel({
       return
     }
 
-    // Lock background page scroll so touch/wheel scrolling over the panel
-    // never bleeds through to the page behind it (notably iOS rubber-banding).
+    // Below xl the panel is a full-screen overlay, so lock the page behind it
+    // (otherwise touch/wheel scrolling bleeds through, e.g. iOS rubber-banding).
+    // At xl+ it's a docked sidebar with the dashboard still visible alongside
+    // it, so leave the page scrollable.
+    const isFullScreenOverlay = !window.matchMedia('(min-width: 1280px)').matches
+
+    if (!isFullScreenOverlay) {
+      return
+    }
+
     const { overflow, position, top, width } = document.body.style
     const scrollY = window.scrollY
 
