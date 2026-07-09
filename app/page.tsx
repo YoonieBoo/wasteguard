@@ -28,6 +28,7 @@ const recommendationsVersionKey = 'wasteGuardRecommendationsVersion'
 const recommendationsVersion = 'v2'
 const briefingDateKey = 'wasteGuardBriefingDate'
 const approvedItemsKey = 'wasteGuardApprovedItems'
+const isProPlanKey = 'wasteGuardIsPro'
 
 type AuthScreen = 'welcome' | 'sign-in' | 'create-account'
 type AppScreen = 'home' | 'input' | 'impact' | 'recommendations' | 'report'
@@ -107,6 +108,7 @@ export default function Home() {
   const [storedApprovedItems, setStoredApprovedItems] = useState<Record<string, number>>({})
   const [showMorningBriefing, setShowMorningBriefing] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [isProPlan, setIsProPlan] = useState(false)
   const showNavigation =
     currentScreen === 'home' ||
     currentScreen === 'input' ||
@@ -127,6 +129,8 @@ export default function Home() {
     if (savedApproved) {
       try { setStoredApprovedItems(JSON.parse(savedApproved) as Record<string, number>) } catch { /* ignore */ }
     }
+
+    setIsProPlan(window.localStorage.getItem(isProPlanKey) === 'true')
 
     // Restore from localStorage immediately — no network wait
     const savedState = window.localStorage.getItem(authStateKey)
@@ -322,6 +326,14 @@ export default function Home() {
   function handleDismissBriefingAndGoToRecs() {
     handleDismissBriefing()
     setCurrentScreen('recommendations')
+  }
+
+  function handleToggleProPlan() {
+    setIsProPlan((current) => {
+      const next = !current
+      window.localStorage.setItem(isProPlanKey, String(next))
+      return next
+    })
   }
 
   function handleUpdateRecommendation(id: string, status: RecommendationStatus, modifiedQuantity?: number) {
@@ -676,6 +688,8 @@ export default function Home() {
               language={language}
               recsTotal={recommendations.length}
               recsActed={recommendations.filter((r) => r.status === 'accepted' || r.status === 'modified').length}
+              isProPlan={isProPlan}
+              onUpgrade={handleToggleProPlan}
             />
           )}
           {currentScreen === 'impact' && role === 'staff' && (
@@ -695,8 +709,10 @@ export default function Home() {
           language={language}
           role={role}
           pendingRecommendationsCount={role === 'owner' ? pendingCount : 0}
+          isProPlan={isProPlan}
           onLogout={handleLogout}
           onScreenChange={handleScreenChange}
+          onToggleProPlan={handleToggleProPlan}
         />
       )}
 

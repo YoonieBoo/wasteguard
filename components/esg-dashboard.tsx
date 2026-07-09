@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Leaf, Users, Shield, Award } from 'lucide-react'
+import { Award, CheckCircle2, Leaf, Lock, ShieldCheck, Users, Shield } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { getText, type Language } from '@/lib/i18n'
 import { getEsgData, type FoodRow, type TimeRange } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
@@ -11,6 +12,8 @@ interface EsgDashboardProps {
   language: Language
   recsTotal: number
   recsActed: number
+  isProPlan?: boolean
+  onUpgrade?: () => void
 }
 
 function getRatingLabel(rating: string, t: ReturnType<typeof getText>) {
@@ -44,42 +47,36 @@ function computeMonthlyWaste(inputs: FoodRow[]) {
   })
 }
 
-function polarToCartesian(cx: number, cy: number, r: number, deg: number) {
-  const rad = (deg - 90) * (Math.PI / 180)
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
-}
-
-function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: number) {
-  if (endDeg - startDeg <= 0) return ''
-  if (endDeg - startDeg >= 360) endDeg = startDeg + 359.99
-  const s = polarToCartesian(cx, cy, r, startDeg)
-  const e = polarToCartesian(cx, cy, r, endDeg)
-  const large = endDeg - startDeg > 180 ? 1 : 0
-  return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`
-}
-
-export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: EsgDashboardProps) {
+export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isProPlan = false, onUpgrade }: EsgDashboardProps) {
   const t = getText(language)
   const [range, setRange] = useState<TimeRange>('month')
   const esg = getEsgData(range, dailyInputs, recsTotal, recsActed)
   const monthly = computeMonthlyWaste(dailyInputs)
 
-  // Donut chart dimensions
-  const cx = 84, cy = 84, r = 62, sw = 24
-
-  // Weighted score angle per pillar (E=50%, S=25%, G=25% of 360°)
-  const eAngle = esg.hasData ? (esg.envScore * 0.5 / 100) * 360 : 0
-  const sAngle = esg.hasData ? (esg.socialScore * 0.25 / 100) * 360 : 0
-  const gAngle = esg.hasData ? (esg.govScore * 0.25 / 100) * 360 : 0
-
-  // Bar chart
+  // Bar chart / line chart shared geometry
   const barH = 96
   const barW = 28
   const barGap = 10
   const barMax = Math.max(...monthly.map(m => m.avg), 50) // must be ≥50 so 50% grid line stays at y≥0
   const barChartW = monthly.length * (barW + barGap) - barGap
 
-  const barColor = (v: number) => v < 20 ? '#15803d' : v < 35 ? '#4ade80' : '#86efac'
+  const pointX = (i: number) => i * (barW + barGap) + barW / 2
+  const pointY = (avg: number) => barH - (avg / barMax) * barH
+
+  const lineSegments: Array<Array<{ x: number; y: number }>> = []
+  let currentSegment: Array<{ x: number; y: number }> = []
+  monthly.forEach((m, i) => {
+    if (m.hasData) {
+      currentSegment.push({ x: pointX(i), y: pointY(m.avg) })
+    } else if (currentSegment.length > 0) {
+      lineSegments.push(currentSegment)
+      currentSegment = []
+    }
+  })
+  if (currentSegment.length > 0) lineSegments.push(currentSegment)
+
+  const lastDataPoint = [...monthly].reverse().find(m => m.hasData)
+  const lastDataIndex = lastDataPoint ? monthly.lastIndexOf(lastDataPoint) : -1
 
   const kpiCards = [
     {
@@ -112,37 +109,24 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
     },
   ]
 
-  const pillars = [
-    {
-      letter: 'E', label: t.environmental, note: t.envPillarNote,
-      score: esg.envScore, color: '#16a34a', badgeBg: '#dcfce7', cardBg: '#f0fdf4',
-      metrics: [
-        { label: t.avgFoodWaste,  value: esg.hasData ? `${esg.avgWaste}%` : '--' },
-        { label: t.co2SavedTotal, value: esg.hasData ? `${esg.totalCo2Saved} kg` : '--' },
-        { label: t.portionsSaved, value: esg.hasData ? esg.totalPortionsSaved.toLocaleString() : '--' },
-      ],
-    },
-    {
-      letter: 'S', label: t.social, note: t.socialPillarNote,
-      score: esg.socialScore, color: '#4ade80', badgeBg: '#dcfce7', cardBg: '#f0fdf4',
-      metrics: [
-        { label: t.teamReporting,     value: `${esg.daysLogged} / ${esg.totalDays}` },
-        { label: t.donationPotential, value: esg.hasData ? esg.totalLeftover.toLocaleString() : '--' },
-      ],
-    },
-    {
-      letter: 'G', label: t.governance, note: t.govPillarNote,
-      score: esg.govScore, color: '#86efac', badgeBg: '#dcfce7', cardBg: '#f0fdf4',
-      metrics: [
-        { label: t.daysLoggedOf,   value: `${esg.daysLogged} / ${esg.totalDays}` },
-        { label: t.aiRecAdherence, value: esg.recsTotal > 0 ? `${esg.recsActed} / ${esg.recsTotal}` : '--' },
-      ],
-    },
+  const scoreBreakdownRows = [
+    { label: t.environmental, score: esg.envScore, color: '#16a34a' },
+    { label: t.social, score: esg.socialScore, color: '#4ade80' },
+    { label: t.governance, score: esg.govScore, color: '#86efac' },
+  ]
+
+  const insightTiles = [
+    { label: t.avgFoodWaste, value: esg.hasData ? `${esg.avgWaste}%` : '--' },
+    { label: t.co2SavedTotal, value: esg.hasData ? `${esg.totalCo2Saved} kg` : '--' },
+    { label: t.portionsSaved, value: esg.hasData ? esg.totalPortionsSaved.toLocaleString() : '--' },
+    { label: t.donationPotential, value: esg.hasData ? esg.totalLeftover.toLocaleString() : '--' },
+    { label: t.teamReporting, value: `${esg.daysLogged} / ${esg.totalDays}` },
+    { label: t.aiRecAdherence, value: esg.recsTotal > 0 ? `${esg.recsActed} / ${esg.recsTotal}` : '--' },
   ]
 
   return (
-    <main className="min-h-dvh w-full bg-[#eef2ef] px-4 pb-28 pt-8 sm:px-5 md:px-6 lg:px-8 lg:pb-8 lg:pt-7">
-      <div className="mx-auto w-full max-w-[960px]">
+    <main className="relative min-h-dvh w-full bg-[#eef2ef] px-4 pb-28 pt-8 sm:px-5 md:px-6 lg:px-8 lg:pb-8 lg:pt-7">
+      <div className={`mx-auto w-full max-w-[960px] ${!isProPlan ? 'pointer-events-none select-none blur-sm' : ''}`}>
 
         {/* Header */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -190,81 +174,18 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
         {/* Charts row */}
         <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
 
-          {/* Donut chart */}
+          {/* Waste Trend — line chart */}
           <div className="rounded-[0.75rem] bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)]">
-            <p className="mb-4 text-sm font-black text-gray-900">
-              {language === 'th' ? 'การกระจายคะแนน ESG' : 'ESG Score Breakdown'}
-            </p>
-            <div className="flex items-center gap-6">
-              <svg width={cx * 2} height={cy * 2} viewBox={`0 0 ${cx * 2} ${cy * 2}`} className="shrink-0">
-                {/* Track */}
-                <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f3f4f6" strokeWidth={sw} />
-                {esg.hasData ? (
-                  <>
-                    <path d={arcPath(cx, cy, r, 0, eAngle)}
-                      fill="none" stroke="#15803d" strokeWidth={sw} strokeLinecap="butt" />
-                    <path d={arcPath(cx, cy, r, eAngle, eAngle + sAngle)}
-                      fill="none" stroke="#4ade80" strokeWidth={sw} strokeLinecap="butt" />
-                    <path d={arcPath(cx, cy, r, eAngle + sAngle, eAngle + sAngle + gAngle)}
-                      fill="none" stroke="#86efac" strokeWidth={sw} strokeLinecap="butt" />
-                  </>
-                ) : (
-                  <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth={sw} />
-                )}
-                {/* Center */}
-                <text x={cx} y={cy - 9} textAnchor="middle" fontSize={24} fontWeight={900}
-                  fill={esg.hasData ? scoreColor(esg.overallScore) : '#d1d5db'} fontFamily="inherit">
-                  {esg.hasData ? esg.overallScore : '--'}
-                </text>
-                <text x={cx} y={cy + 8} textAnchor="middle" fontSize={10} fontWeight={700}
-                  fill="#9ca3af" fontFamily="inherit">
-                  {language === 'th' ? 'คะแนนรวม' : 'Overall'}
-                </text>
-                <text x={cx} y={cy + 24} textAnchor="middle" fontSize={15} fontWeight={900}
-                  fill={esg.hasData ? scoreColor(esg.overallScore) : '#d1d5db'} fontFamily="inherit">
-                  {esg.rating}
-                </text>
-              </svg>
+            <p className="text-sm font-black text-gray-900">{t.wasteTrend}</p>
+            <p className="mb-5 text-[11px] font-medium text-gray-400">{t.wasteTrendNote}</p>
 
-              <div className="flex-1 space-y-3">
-                {[
-                  { letter: 'E', label: t.environmental, color: '#15803d', score: esg.envScore },
-                  { letter: 'S', label: t.social,         color: '#4ade80', score: esg.socialScore },
-                  { letter: 'G', label: t.governance,     color: '#86efac', score: esg.govScore },
-                ].map(p => (
-                  <div key={p.letter}>
-                    <div className="mb-1 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                        <span className="text-xs font-bold text-gray-600">{p.label}</span>
-                      </div>
-                      <span className="text-sm font-black" style={{ color: esg.hasData ? scoreColor(p.score) : '#d1d5db' }}>
-                        {esg.hasData ? p.score : '--'}
-                      </span>
-                    </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{ width: `${esg.hasData ? p.score : 0}%`, backgroundColor: p.color }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Bar chart — monthly waste % */}
-          <div className="rounded-[0.75rem] bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)]">
-            <p className="text-sm font-black text-gray-900">
-              {language === 'th' ? 'ของเสียเฉลี่ยรายเดือน' : 'Monthly Avg Waste %'}
-            </p>
-            <p className="mb-5 text-[11px] font-medium text-gray-400">
-              {language === 'th' ? '6 เดือนล่าสุด' : 'Last 6 months'}
-            </p>
-
-            {/* viewBox left margin=28 for y-axis labels, top margin=14 for value labels above bars */}
-            <svg viewBox={`-28 -14 ${barChartW + 28} ${barH + 42}`} className="w-full">
+            <svg viewBox={`-28 -24 ${barChartW + 28} ${barH + 42}`} className="w-full">
+              <defs>
+                <linearGradient id="wasteTrendFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#16a34a" stopOpacity={0.18} />
+                  <stop offset="100%" stopColor="#16a34a" stopOpacity={0} />
+                </linearGradient>
+              </defs>
               {[0, 25, 50].map(pct => {
                 const y = barH - (pct / barMax) * barH
                 return (
@@ -274,45 +195,152 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed }: Es
                   </g>
                 )
               })}
-              {monthly.map((m, i) => {
-                const h = m.hasData ? Math.max(4, (m.avg / barMax) * barH) : 3
-                const x = i * (barW + barGap)
+
+              {lineSegments.map((segment, i) => {
+                const linePath = segment.map((p, j) => `${j === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+                const areaPath = `${linePath} L ${segment[segment.length - 1].x} ${barH} L ${segment[0].x} ${barH} Z`
+
                 return (
-                  <g key={m.label}>
-                    <rect x={x} y={barH - h} width={barW} height={h}
-                      fill={m.hasData ? barColor(m.avg) : '#e5e7eb'} rx={3} />
-                    {m.hasData && (
-                      <text x={x + barW / 2} y={barH - h - 5} textAnchor="middle"
-                        fontSize={8} fontWeight={700} fill={barColor(m.avg)} fontFamily="inherit">
-                        {m.avg}%
-                      </text>
-                    )}
-                    <text x={x + barW / 2} y={barH + 14} textAnchor="middle"
-                      fontSize={9} fill="#9ca3af" fontFamily="inherit">
-                      {m.label}
-                    </text>
+                  <g key={i}>
+                    <path d={areaPath} fill="url(#wasteTrendFill)" />
+                    <path d={linePath} fill="none" stroke="#16a34a" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
                   </g>
                 )
               })}
-            </svg>
 
-            <div className="mt-3 flex flex-wrap gap-3">
-              {[
-                { color: '#15803d', label: language === 'th' ? 'ดี <20%' : 'Good <20%' },
-                { color: '#4ade80', label: language === 'th' ? 'ปานกลาง' : 'Fair 20–35%' },
-                { color: '#86efac', label: language === 'th' ? 'สูง >35%' : 'High >35%' },
-              ].map(l => (
-                <div key={l.label} className="flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
-                  <span className="text-[10px] font-medium text-gray-400">{l.label}</span>
+              {monthly.map((m, i) =>
+                m.hasData ? (
+                  <circle
+                    key={m.label}
+                    cx={pointX(i)}
+                    cy={pointY(m.avg)}
+                    r={i === lastDataIndex ? 4 : 3}
+                    fill="#ffffff"
+                    stroke="#16a34a"
+                    strokeWidth={2}
+                  />
+                ) : null,
+              )}
+
+              {lastDataPoint && lastDataIndex >= 0 && (
+                <g>
+                  <rect
+                    x={pointX(lastDataIndex) - 16}
+                    y={pointY(lastDataPoint.avg) - 26}
+                    width={32}
+                    height={16}
+                    rx={5}
+                    fill="#16a34a"
+                  />
+                  <text
+                    x={pointX(lastDataIndex)}
+                    y={pointY(lastDataPoint.avg) - 15}
+                    textAnchor="middle"
+                    fontSize={9}
+                    fontWeight={800}
+                    fill="#ffffff"
+                    fontFamily="inherit"
+                  >
+                    {lastDataPoint.avg}%
+                  </text>
+                </g>
+              )}
+
+              {monthly.map((m, i) => (
+                <text key={`label-${m.label}`} x={pointX(i)} y={barH + 14} textAnchor="middle" fontSize={9} fill="#9ca3af" fontFamily="inherit">
+                  {m.label}
+                </text>
+              ))}
+            </svg>
+          </div>
+
+          {/* Score Breakdown */}
+          <div className="rounded-[0.75rem] bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)]">
+            <p className="text-sm font-black text-gray-900">{t.scoreBreakdown}</p>
+            <p className="mb-5 text-[11px] font-medium text-gray-400">{t.scoreBreakdownNote}</p>
+
+            <div className="space-y-5">
+              {scoreBreakdownRows.map((row) => (
+                <div key={row.label} className="flex items-center gap-4">
+                  <p className="w-24 shrink-0 text-xs font-bold text-gray-600 sm:text-sm">{row.label}</p>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${esg.hasData ? row.score : 0}%`, backgroundColor: row.color }}
+                    />
+                  </div>
+                  <p className="w-14 shrink-0 text-right text-sm font-black" style={{ color: esg.hasData ? scoreColor(row.score) : '#d1d5db' }}>
+                    {esg.hasData ? row.score : '--'}
+                    <span className="text-xs font-medium text-gray-400">/100</span>
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
+        {/* Insights & Impact */}
+        <div className="rounded-[0.75rem] bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)]">
+          <p className="text-sm font-black text-gray-900">{t.insightsImpact}</p>
+          <p className="mb-5 text-[11px] font-medium text-gray-400">{t.insightsImpactNote}</p>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {insightTiles.map((tile) => (
+              <div key={tile.label} className="rounded-[0.5rem] bg-[#f7faf8] p-3">
+                <p className="text-lg font-black text-gray-900 sm:text-xl">{tile.value}</p>
+                <p className="mt-1 text-[10px] font-bold leading-snug text-gray-500">{tile.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
 
       </div>
+
+      {/* Pro-plan paywall */}
+      {!isProPlan && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-white/30" />
+          <div className="relative w-full max-w-[420px] rounded-[1rem] bg-white p-8 text-center shadow-[0_32px_80px_rgba(35,88,62,0.25)] animate-in fade-in-0 zoom-in-95 duration-200">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/12">
+              <Lock className="h-6 w-6 text-primary" />
+            </div>
+
+            <h2 className="mt-5 text-xl font-black leading-snug text-gray-900">
+              {t.lockedSectionPrefix} <span className="text-primary">{t.proPlanLabel}</span>
+            </h2>
+
+            <div className="mt-5 space-y-3 border-t border-gray-100 pt-5 text-left">
+              {[t.proFeatureFullPerformance, t.proFeatureInsights, t.proFeatureExport].map((feature) => (
+                <div key={feature} className="flex items-center gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                  <p className="text-sm font-medium text-gray-700">{feature}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 space-y-2.5">
+              <Button
+                onClick={onUpgrade}
+                className="h-[3.25rem] w-full rounded-[0.5rem] bg-primary text-sm font-black text-primary-foreground hover:bg-primary/90"
+              >
+                {t.upgradeToProButton}
+              </Button>
+              <Button
+                onClick={onUpgrade}
+                variant="outline"
+                className="h-[3.25rem] w-full rounded-[0.5rem] border-primary/40 text-sm font-black text-primary hover:bg-primary/5"
+              >
+                {t.viewPlansButton}
+              </Button>
+            </div>
+
+            <p className="mt-4 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-400">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              {t.cancelAnytimeNote}
+            </p>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
