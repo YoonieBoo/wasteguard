@@ -640,10 +640,12 @@ export default function Home() {
               completedBakeryItems={completedBakeryItems}
               approvedOverrides={approvedOverrides}
               pendingRecommendationsCount={pendingCount}
+              pendingRecommendations={pendingRecommendations}
               onCompleteBakeryItem={(fileName) =>
                 setCompletedBakeryItems((current) => ({ ...current, [fileName]: true }))
               }
               onGoToRecommendations={() => setCurrentScreen('recommendations')}
+              onUpdateRecommendation={handleUpdateRecommendation}
             />
           )}
           {currentScreen === 'recommendations' && (

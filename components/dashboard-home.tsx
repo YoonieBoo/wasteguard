@@ -5,7 +5,9 @@ import { createPortal } from 'react-dom'
 import { ChevronLeft, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
+import { RecommendationsPreviewModal } from '@/components/recommendations-preview-modal'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
+import type { Recommendation, RecommendationStatus } from '@/lib/recommendations'
 import {
   bakeryCategories,
   getBakeryItems,
@@ -36,8 +38,10 @@ interface DashboardHomeProps {
   completedBakeryItems?: Record<string, boolean>
   approvedOverrides?: Record<string, number>
   pendingRecommendationsCount?: number
+  pendingRecommendations?: Recommendation[]
   onCompleteBakeryItem?: (fileName: string) => void
   onGoToRecommendations?: () => void
+  onUpdateRecommendation?: (id: string, status: RecommendationStatus) => void
 }
 
 type DemandSegmentKey = 'morning' | 'afternoon' | 'evening'
@@ -51,8 +55,10 @@ export function DashboardHome({
   completedBakeryItems = {},
   approvedOverrides = {},
   pendingRecommendationsCount = 0,
+  pendingRecommendations = [],
   onCompleteBakeryItem,
   onGoToRecommendations,
+  onUpdateRecommendation,
 }: DashboardHomeProps) {
   const t = getText(language)
   const [range, setRange] = useState<TimeRange>('week')
@@ -60,6 +66,7 @@ export function DashboardHome({
   const [activeRevenueIndex, setActiveRevenueIndex] = useState<number | null>(null)
   const [selectedBakeryItem, setSelectedBakeryItem] = useState<BakeryItem | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<BakeryCategory>('All')
+  const [showRecsPreview, setShowRecsPreview] = useState(false)
   const demandChartRef = useRef<HTMLDivElement>(null)
   const prepList = getPrepList(dailyInputs).slice(0, 4)
   const bakeryItems = getBakeryItems(
@@ -119,11 +126,12 @@ export function DashboardHome({
       activeRevenueIndex === null ? null : business.revenueBars[activeRevenueIndex] ?? null
 
     return (
+      <>
       <main className="wg-page w-full min-w-0 md:py-5 xl:py-7">
         {pendingRecommendationsCount > 0 && (
           <button
             type="button"
-            onClick={onGoToRecommendations}
+            onClick={() => setShowRecsPreview(true)}
             className="mb-5 flex w-full items-center gap-3 rounded-[0.75rem] bg-primary/10 px-5 py-4 text-left transition hover:bg-primary/15"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-white">
@@ -378,6 +386,26 @@ export function DashboardHome({
           ))}
         </section>
       </main>
+
+      {showRecsPreview && pendingRecommendations.length > 0 && (
+        <RecommendationsPreviewModal
+          language={language}
+          recommendations={pendingRecommendations}
+          totalPendingCount={pendingRecommendationsCount}
+          onAccept={(id) => onUpdateRecommendation?.(id, 'accepted')}
+          onIgnore={(id) => onUpdateRecommendation?.(id, 'ignored')}
+          onModify={() => {
+            setShowRecsPreview(false)
+            onGoToRecommendations?.()
+          }}
+          onViewAll={() => {
+            setShowRecsPreview(false)
+            onGoToRecommendations?.()
+          }}
+          onClose={() => setShowRecsPreview(false)}
+        />
+      )}
+      </>
     )
   }
 
