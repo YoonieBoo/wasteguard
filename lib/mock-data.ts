@@ -65,7 +65,7 @@ function dateValue(date: string) {
   return new Date(date).getTime()
 }
 
-function getSortedRows(inputRows: FoodRow[] = []) {
+export function getSortedRows(inputRows: FoodRow[] = []) {
   void inputRows
 
   return [...rows].sort((a, b) => dateValue(b.date) - dateValue(a.date))

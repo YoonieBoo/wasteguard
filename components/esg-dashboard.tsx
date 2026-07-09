@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Award, CheckCircle2, Leaf, Lock, ShieldCheck, Users, Shield } from 'lucide-react'
+import { CheckCircle2, Lock, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getText, type Language } from '@/lib/i18n'
-import { getBusinessInsightData, getEsgData, type FoodRow, type TimeRange } from '@/lib/mock-data'
+import { getBusinessInsightData, getEsgData, getSortedRows, type FoodRow, type TimeRange } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
 
 interface EsgDashboardProps {
@@ -33,15 +33,27 @@ function scoreBadgeText(_s: number) {
   return '#166534'
 }
 
-function computeMonthlyWaste(inputs: FoodRow[]) {
-  const now = new Date()
-  return Array.from({ length: 6 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const label = d.toLocaleDateString('en', { month: 'short' })
-    const rows = inputs.filter(r => r.date.startsWith(key))
-    const avg = rows.length > 0 ? rows.reduce((s, r) => s + r.waste_percent, 0) / rows.length : 0
-    return { label, avg: parseFloat(avg.toFixed(1)), hasData: rows.length > 0 }
+// Buckets the most recent logged days into 6 even segments, rather than
+// strict calendar months — the seed dataset spans a single month, so
+// calendar-month buckets left 5 of 6 points empty.
+function computeWasteTrend(inputs: FoodRow[]) {
+  const buckets = 6
+  const recent = [...inputs].sort((a, b) => a.date.localeCompare(b.date)).slice(-60)
+
+  if (recent.length === 0) {
+    return Array.from({ length: buckets }, () => ({ label: '', avg: 0, hasData: false }))
+  }
+
+  const chunkSize = Math.max(1, Math.ceil(recent.length / buckets))
+
+  return Array.from({ length: buckets }, (_, i) => {
+    const chunk = recent.slice(i * chunkSize, (i + 1) * chunkSize)
+    if (chunk.length === 0) {
+      return { label: '', avg: 0, hasData: false }
+    }
+    const avg = chunk.reduce((s, r) => s + r.waste_percent, 0) / chunk.length
+    const label = new Date(chunk[chunk.length - 1].date).toLocaleDateString('en', { month: 'short', day: 'numeric' })
+    return { label, avg: parseFloat(avg.toFixed(1)), hasData: true }
   })
 }
 
@@ -49,22 +61,22 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
   const t = getText(language)
   const [range, setRange] = useState<TimeRange>('month')
   const esg = getEsgData(range, dailyInputs, recsTotal, recsActed)
-  const monthly = computeMonthlyWaste(dailyInputs)
+  const wasteTrend = computeWasteTrend(getSortedRows(dailyInputs))
   const insights = getBusinessInsightData(dailyInputs)
 
   // Bar chart / line chart shared geometry
   const barH = 96
   const barW = 28
   const barGap = 10
-  const barMax = Math.max(...monthly.map(m => m.avg), 50) // must be ≥50 so 50% grid line stays at y≥0
-  const barChartW = monthly.length * (barW + barGap) - barGap
+  const barMax = Math.max(...wasteTrend.map(m => m.avg), 50) // must be ≥50 so 50% grid line stays at y≥0
+  const barChartW = wasteTrend.length * (barW + barGap) - barGap
 
   const pointX = (i: number) => i * (barW + barGap) + barW / 2
   const pointY = (avg: number) => barH - (avg / barMax) * barH
 
   const lineSegments: Array<Array<{ x: number; y: number }>> = []
   let currentSegment: Array<{ x: number; y: number }> = []
-  monthly.forEach((m, i) => {
+  wasteTrend.forEach((m, i) => {
     if (m.hasData) {
       currentSegment.push({ x: pointX(i), y: pointY(m.avg) })
     } else if (currentSegment.length > 0) {
@@ -74,8 +86,8 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
   })
   if (currentSegment.length > 0) lineSegments.push(currentSegment)
 
-  const lastDataPoint = [...monthly].reverse().find(m => m.hasData)
-  const lastDataIndex = lastDataPoint ? monthly.lastIndexOf(lastDataPoint) : -1
+  const lastDataPoint = [...wasteTrend].reverse().find(m => m.hasData)
+  const lastDataIndex = lastDataPoint ? wasteTrend.lastIndexOf(lastDataPoint) : -1
 
   const kpiCards = [
     {
@@ -84,7 +96,6 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
       showOutOf100: true,
       badge: esg.hasData ? getScoreStatusLabel(esg.overallScore, t) : '--',
       badgeLabel: '',
-      Icon: Award,
     },
     {
       label: t.environmental,
@@ -92,7 +103,6 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
       showOutOf100: false,
       badge: esg.hasData ? `${esg.avgWaste}%` : '--',
       badgeLabel: t.avgFoodWaste,
-      Icon: Leaf,
     },
     {
       label: t.social,
@@ -100,7 +110,6 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
       showOutOf100: false,
       badge: `${esg.daysLogged}/${esg.totalDays}d`,
       badgeLabel: t.teamReporting,
-      Icon: Users,
     },
     {
       label: t.governance,
@@ -108,7 +117,6 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
       showOutOf100: false,
       badge: esg.recsTotal > 0 ? `${esg.recsActed}/${esg.recsTotal}` : '--',
       badgeLabel: t.aiRecAdherence,
-      Icon: Shield,
     },
   ]
 
@@ -130,10 +138,10 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
       aiSummaryBullets.push(t.aiSummarySavings.replace('{amount}', insights.estimatedSavings.toLocaleString()))
     }
 
-    const recentMonths = monthly.filter(m => m.hasData).slice(-2)
-    if (recentMonths.length === 2) {
+    const recentPoints = wasteTrend.filter(m => m.hasData).slice(-2)
+    if (recentPoints.length === 2) {
       const scoreFromWaste = (avg: number) => Math.round(Math.min(100, Math.max(0, 100 - avg * 2.5)))
-      const scoreDelta = scoreFromWaste(recentMonths[1].avg) - scoreFromWaste(recentMonths[0].avg)
+      const scoreDelta = scoreFromWaste(recentPoints[1].avg) - scoreFromWaste(recentPoints[0].avg)
       if (scoreDelta !== 0) {
         aiSummaryBullets.push(
           (scoreDelta > 0 ? t.aiSummaryScoreImproved : t.aiSummaryScoreDeclined)
@@ -170,15 +178,9 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
         {/* KPI cards — 4 across */}
         <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {kpiCards.map((card) => {
-            const Icon = card.Icon
             return (
               <div key={card.label} className="rounded-[0.75rem] bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)] sm:p-5">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-[11px] font-bold leading-snug text-gray-500 sm:text-xs">{card.label}</p>
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1a3328]">
-                    <Icon className="h-4 w-4 text-emerald-400" />
-                  </div>
-                </div>
+                <p className="text-[11px] font-bold leading-snug text-gray-500 sm:text-xs">{card.label}</p>
                 <p className="mt-3 text-4xl font-black leading-none" style={{ color: esg.hasData ? scoreColor(card.score) : '#d1d5db' }}>
                   {esg.hasData ? card.score : '--'}
                   {card.showOutOf100 && <span className="text-base font-bold text-gray-400"> /100</span>}
@@ -239,7 +241,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
                 )
               })}
 
-              {monthly.map((m, i) =>
+              {wasteTrend.map((m, i) =>
                 m.hasData ? (
                   <circle
                     key={m.label}
@@ -277,7 +279,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
                 </g>
               )}
 
-              {monthly.map((m, i) => (
+              {wasteTrend.map((m, i) => (
                 <text key={`label-${m.label}`} x={pointX(i)} y={barH + 14} textAnchor="middle" fontSize={9} fill="#9ca3af" fontFamily="inherit">
                   {m.label}
                 </text>
