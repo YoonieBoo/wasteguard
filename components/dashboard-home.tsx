@@ -596,7 +596,7 @@ function PreparationDetailsPanel({
   return createPortal(
     <aside className="fixed inset-0 z-[70] flex flex-col overflow-hidden overscroll-contain bg-white animate-in slide-in-from-right-4 duration-300 xl:inset-x-auto xl:right-0 xl:w-[420px] xl:border-l xl:border-secondary/80 xl:shadow-[-24px_0_70px_rgba(35,88,62,0.14)]">
       {/* Header */}
-      <div className="shrink-0 flex items-center justify-between gap-3 border-b border-secondary/70 bg-white/94 px-4 py-3 backdrop-blur sm:px-6 xl:border-b-0 xl:px-6 xl:py-4">
+      <div className="shrink-0 flex items-center justify-between gap-3 border-b border-secondary/70 bg-white px-4 py-3 sm:px-6 xl:border-b-0 xl:px-6 xl:py-4">
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
@@ -667,7 +667,7 @@ function PreparationDetailsPanel({
       </div>
 
       {/* Done button — pinned to bottom as natural flex footer, works on iOS */}
-      <div className="shrink-0 bg-white/95 px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-14px_30px_rgba(41,91,67,0.08)] backdrop-blur sm:px-6 xl:px-6 xl:pb-5 xl:shadow-none">
+      <div className="shrink-0 bg-white px-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-14px_30px_rgba(41,91,67,0.08)] sm:px-6 xl:px-6 xl:pb-5 xl:shadow-none">
         <Button
           type="button"
           onClick={() => onComplete(item)}
