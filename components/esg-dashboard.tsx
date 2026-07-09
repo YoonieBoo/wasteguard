@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Award, CheckCircle2, Leaf, Lock, ShieldCheck, Users, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getText, type Language } from '@/lib/i18n'
-import { getEsgData, type FoodRow, type TimeRange } from '@/lib/mock-data'
+import { getBusinessInsightData, getEsgData, type FoodRow, type TimeRange } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
 
 interface EsgDashboardProps {
@@ -16,13 +16,11 @@ interface EsgDashboardProps {
   onUpgrade?: () => void
 }
 
-function getRatingLabel(rating: string, t: ReturnType<typeof getText>) {
-  if (rating === 'A+' || rating === 'A') return t.ratingExcellent
-  if (rating === 'B+') return t.ratingVeryGood
-  if (rating === 'B') return t.ratingGood
-  if (rating === 'C') return t.ratingFair
-  if (rating === 'D') return t.ratingPoor
-  return '--'
+function getScoreStatusLabel(score: number, t: ReturnType<typeof getText>) {
+  if (score >= 85) return t.scoreStatusExcellent
+  if (score >= 70) return t.scoreStatusDoingWell
+  if (score >= 50) return t.scoreStatusNeedsAttention
+  return t.scoreStatusNeedsImprovement
 }
 
 function scoreColor(_s: number) {
@@ -52,6 +50,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
   const [range, setRange] = useState<TimeRange>('month')
   const esg = getEsgData(range, dailyInputs, recsTotal, recsActed)
   const monthly = computeMonthlyWaste(dailyInputs)
+  const insights = getBusinessInsightData(dailyInputs)
 
   // Bar chart / line chart shared geometry
   const barH = 96
@@ -82,13 +81,15 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
     {
       label: t.overallEsgScore,
       score: esg.overallScore,
-      badge: esg.rating,
-      badgeLabel: esg.hasData ? getRatingLabel(esg.rating, t) : '--',
+      showOutOf100: true,
+      badge: esg.hasData ? getScoreStatusLabel(esg.overallScore, t) : '--',
+      badgeLabel: '',
       Icon: Award,
     },
     {
       label: t.environmental,
       score: esg.envScore,
+      showOutOf100: false,
       badge: esg.hasData ? `${esg.avgWaste}%` : '--',
       badgeLabel: t.avgFoodWaste,
       Icon: Leaf,
@@ -96,6 +97,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
     {
       label: t.social,
       score: esg.socialScore,
+      showOutOf100: false,
       badge: `${esg.daysLogged}/${esg.totalDays}d`,
       badgeLabel: t.teamReporting,
       Icon: Users,
@@ -103,6 +105,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
     {
       label: t.governance,
       score: esg.govScore,
+      showOutOf100: false,
       badge: esg.recsTotal > 0 ? `${esg.recsActed}/${esg.recsTotal}` : '--',
       badgeLabel: t.aiRecAdherence,
       Icon: Shield,
@@ -115,14 +118,39 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
     { label: t.governance, score: esg.govScore, color: '#86efac' },
   ]
 
-  const insightTiles = [
-    { label: t.avgFoodWaste, value: esg.hasData ? `${esg.avgWaste}%` : '--' },
-    { label: t.co2SavedTotal, value: esg.hasData ? `${esg.totalCo2Saved} kg` : '--' },
-    { label: t.portionsSaved, value: esg.hasData ? esg.totalPortionsSaved.toLocaleString() : '--' },
-    { label: t.donationPotential, value: esg.hasData ? esg.totalLeftover.toLocaleString() : '--' },
-    { label: t.teamReporting, value: `${esg.daysLogged} / ${esg.totalDays}` },
-    { label: t.aiRecAdherence, value: esg.recsTotal > 0 ? `${esg.recsActed} / ${esg.recsTotal}` : '--' },
-  ]
+  const aiSummaryBullets: string[] = []
+  if (esg.hasData) {
+    aiSummaryBullets.push(
+      insights.wasteDelta > 0
+        ? t.aiSummaryWasteDecreased.replace('{percent}', String(insights.wasteDelta))
+        : t.aiSummaryWasteSteady,
+    )
+
+    if (insights.estimatedSavings > 0) {
+      aiSummaryBullets.push(t.aiSummarySavings.replace('{amount}', insights.estimatedSavings.toLocaleString()))
+    }
+
+    const recentMonths = monthly.filter(m => m.hasData).slice(-2)
+    if (recentMonths.length === 2) {
+      const scoreFromWaste = (avg: number) => Math.round(Math.min(100, Math.max(0, 100 - avg * 2.5)))
+      const scoreDelta = scoreFromWaste(recentMonths[1].avg) - scoreFromWaste(recentMonths[0].avg)
+      if (scoreDelta !== 0) {
+        aiSummaryBullets.push(
+          (scoreDelta > 0 ? t.aiSummaryScoreImproved : t.aiSummaryScoreDeclined)
+            .replace('{pillar}', t.environmental)
+            .replace('{points}', String(Math.abs(scoreDelta))),
+        )
+      }
+    }
+
+    if (esg.recsTotal > 0) {
+      aiSummaryBullets.push(
+        t.aiSummaryRecAdherence.replace('{acted}', String(esg.recsActed)).replace('{total}', String(esg.recsTotal)),
+      )
+    }
+  } else {
+    aiSummaryBullets.push(t.aiSummaryNoData)
+  }
 
   return (
     <main className="relative min-h-dvh w-full bg-[#eef2ef] px-4 pb-28 pt-8 sm:px-5 md:px-6 lg:px-8 lg:pb-8 lg:pt-7">
@@ -153,6 +181,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
                 </div>
                 <p className="mt-3 text-4xl font-black leading-none" style={{ color: esg.hasData ? scoreColor(card.score) : '#d1d5db' }}>
                   {esg.hasData ? card.score : '--'}
+                  {card.showOutOf100 && <span className="text-base font-bold text-gray-400"> /100</span>}
                 </p>
                 <div className="mt-2.5 flex items-center gap-1.5">
                   <span
@@ -164,7 +193,9 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
                   >
                     {card.badge}
                   </span>
-                  <span className="truncate text-[10px] font-medium text-gray-400">{card.badgeLabel}</span>
+                  {card.badgeLabel && (
+                    <span className="truncate text-[10px] font-medium text-gray-400">{card.badgeLabel}</span>
+                  )}
                 </div>
               </div>
             )
@@ -279,17 +310,16 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
           </div>
         </div>
 
-        {/* Insights & Impact */}
-        <div className="rounded-[0.75rem] bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)]">
-          <p className="text-sm font-black text-gray-900">{t.insightsImpact}</p>
-          <p className="mb-5 text-[11px] font-medium text-gray-400">{t.insightsImpactNote}</p>
+        {/* AI Summary */}
+        <div className="rounded-[0.75rem] bg-white p-5 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_4px_12px_rgba(0,0,0,0.04)] sm:p-6">
+          <p className="text-sm font-black text-gray-900">{t.aiSummary}</p>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {insightTiles.map((tile) => (
-              <div key={tile.label} className="rounded-[0.5rem] bg-[#f7faf8] p-3">
-                <p className="text-lg font-black text-gray-900 sm:text-xl">{tile.value}</p>
-                <p className="mt-1 text-[10px] font-bold leading-snug text-gray-500">{tile.label}</p>
-              </div>
+          <div className="mt-5 space-y-4">
+            {aiSummaryBullets.map((bullet) => (
+              <p key={bullet} className="flex gap-3 text-sm font-medium leading-6 text-gray-700 sm:text-base">
+                <span className="text-gray-400">•</span>
+                <span>{bullet}</span>
+              </p>
             ))}
           </div>
         </div>
