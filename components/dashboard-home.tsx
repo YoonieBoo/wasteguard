@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronLeft, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
@@ -524,6 +525,12 @@ function PreparationDetailsPanel({
   onComplete: (item: BakeryItem) => void
   onClose: () => void
 }) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   useEffect(() => {
     if (!item) {
       return
@@ -572,7 +579,7 @@ function PreparationDetailsPanel({
     }
   }, [item])
 
-  if (!item) {
+  if (!item || !mounted) {
     return null
   }
 
@@ -580,7 +587,13 @@ function PreparationDetailsPanel({
   const demandTone = item.demandLevel === 'High Demand' ? 'bg-primary text-primary-foreground' : item.demandLevel === 'Medium Demand' ? 'bg-amber-100 text-amber-900' : 'bg-secondary text-foreground'
   const riskTone = item.wasteRisk === 'Low waste risk' ? 'text-primary' : item.wasteRisk === 'Medium waste risk' ? 'text-amber-700' : 'text-destructive'
 
-  return (
+  // Portal straight to <body> — an ancestor further up the tree carries Tailwind's
+  // `animate-in` utility, which leaves a permanent (if identity) `transform` on itself.
+  // Any ancestor `transform` creates a new containing block for `position: fixed`
+  // descendants, so without the portal this panel would be "fixed" relative to that
+  // scrolling ancestor instead of the viewport — which is exactly why it used to
+  // visually scroll along with the page behind it.
+  return createPortal(
     <aside className="fixed inset-0 z-[70] flex flex-col overflow-hidden overscroll-contain bg-white animate-in slide-in-from-right-4 duration-300 xl:inset-x-auto xl:right-0 xl:w-[420px] xl:border-l xl:border-secondary/80 xl:shadow-[-24px_0_70px_rgba(35,88,62,0.14)]">
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between gap-3 border-b border-secondary/70 bg-white/94 px-4 py-3 backdrop-blur sm:px-6 xl:border-b-0 xl:px-6 xl:py-4">
@@ -668,7 +681,8 @@ function PreparationDetailsPanel({
           {isCompleted ? t.completed : t.done}
         </Button>
       </div>
-    </aside>
+    </aside>,
+    document.body,
   )
 }
 
