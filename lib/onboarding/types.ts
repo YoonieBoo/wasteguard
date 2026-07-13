@@ -13,7 +13,7 @@ export const WASTE_GUARD_FIELDS = [
 
 export type WasteGuardField = (typeof WASTE_GUARD_FIELDS)[number]
 
-export const REQUIRED_FIELDS: WasteGuardField[] = ['date', 'menu_item', 'prepared_quantity']
+export const REQUIRED_FIELDS: WasteGuardField[] = ['date', 'menu_item']
 
 /** One raw row straight out of the CSV/Excel file, keyed by its original column header. */
 export type RawImportRow = Record<string, string>

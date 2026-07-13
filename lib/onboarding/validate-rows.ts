@@ -60,9 +60,10 @@ export function validateNormalizedRow(row: NormalizedRow, rawDateValue: string |
     errors.push(rawDateValue && rawDateValue.trim() ? 'Invalid date' : 'Missing date')
   }
   if (!row.menu_item) errors.push('Missing menu item')
-  if (row.prepared_quantity == null) errors.push('Missing prepared quantity')
-  if (row.sold_quantity == null && row.leftover_quantity == null) {
-    errors.push('Missing sold quantity or leftover quantity')
+  // POS exports usually only have sold_quantity; manual kitchen logs usually only
+  // have prepared/leftover. Any one of the three is enough for the row to be useful.
+  if (row.prepared_quantity == null && row.sold_quantity == null && row.leftover_quantity == null) {
+    errors.push('Missing prepared, sold, or leftover quantity')
   }
 
   const quantityChecks: Array<[string, number | null]> = [

@@ -87,9 +87,11 @@ export async function importValidatedRows({
         business_id: businessId,
         menu_item_id: menuItemId,
         date: row.normalized.date!,
-        prepared_quantity: row.normalized.prepared_quantity!,
-        sold_quantity: row.normalized.sold_quantity ?? 0,
-        leftover_quantity: row.normalized.leftover_quantity ?? 0,
+        // Any of these three can be null now — a POS export usually only has
+        // sold_quantity, a manual kitchen log usually only has prepared/leftover.
+        prepared_quantity: row.normalized.prepared_quantity,
+        sold_quantity: row.normalized.sold_quantity,
+        leftover_quantity: row.normalized.leftover_quantity,
         waste_quantity: row.normalized.waste_quantity,
       }
     })
