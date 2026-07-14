@@ -132,6 +132,9 @@ export default function DashboardPage() {
       } finally {
         if (!cancelled) setIsInitialized(true)
       }
+    }).catch((error) => {
+      console.error('Unable to load auth user', error)
+      if (!cancelled) setIsInitialized(true)
     })
 
     return () => {

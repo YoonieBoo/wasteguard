@@ -26,6 +26,8 @@ const EMPTY_DETAILS: BusinessDetailsFormValues = {
 export default function OnboardingPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [retryCount, setRetryCount] = useState(0)
   const [businessId, setBusinessId] = useState<string | null>(null)
   const [step, setStep] = useState<OnboardingStepNumber>(1)
 
@@ -43,13 +45,17 @@ export default function OnboardingPage() {
     let cancelled = false
 
     async function init() {
-      const { data } = await supabase.auth.getUser()
-      if (!data.user) {
-        router.replace('/login')
-        return
-      }
+      setIsLoading(true)
+      setLoadError('')
 
       try {
+        const { data } = await supabase.auth.getUser()
+        if (cancelled) return
+        if (!data.user) {
+          router.replace('/login')
+          return
+        }
+
         // Defensive: guarantees a bakery row exists even if this is the very
         // first request after signup, before any other page has provisioned it.
         const profile = await ensureOwnerOrStaffProfile(data.user)
@@ -80,6 +86,7 @@ export default function OnboardingPage() {
         }
       } catch (error) {
         console.error('Unable to load onboarding profile', error)
+        if (!cancelled) setLoadError('Unable to load your account. Please check your connection and try again.')
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -89,7 +96,7 @@ export default function OnboardingPage() {
     return () => {
       cancelled = true
     }
-  }, [router])
+  }, [router, retryCount])
 
   async function handleDetailsContinue(values: BusinessDetailsFormValues) {
     if (!businessId) return
@@ -161,6 +168,21 @@ export default function OnboardingPage() {
   function backToImportChoice() {
     setParsedFile(null)
     setStep(2)
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-white px-6 text-center">
+        <p className="text-sm font-bold text-destructive">{loadError}</p>
+        <button
+          type="button"
+          onClick={() => setRetryCount((count) => count + 1)}
+          className="h-[3.25rem] rounded-[0.5rem] bg-primary px-6 text-sm font-black text-primary-foreground shadow-sm sm:text-base"
+        >
+          Try again
+        </button>
+      </div>
+    )
   }
 
   if (isLoading || !businessId) {
