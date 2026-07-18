@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { getText, type Language } from '@/lib/i18n'
 import { getBusinessInsightData, getEsgData, getSortedRows, type FoodRow, type TimeRange } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
+import type { FlaskAnalyticsResponse } from '@/lib/ai-api'
 
 interface EsgDashboardProps {
   dailyInputs: FoodRow[]
@@ -14,6 +15,7 @@ interface EsgDashboardProps {
   recsActed: number
   isProPlan?: boolean
   onUpgrade?: () => void
+  analyticsData?: FlaskAnalyticsResponse | null
 }
 
 function getScoreStatusLabel(score: number, t: ReturnType<typeof getText>) {
@@ -57,7 +59,7 @@ function computeWasteTrend(inputs: FoodRow[]) {
   })
 }
 
-export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isProPlan = false, onUpgrade }: EsgDashboardProps) {
+export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isProPlan = false, onUpgrade, analyticsData }: EsgDashboardProps) {
   const t = getText(language)
   const [range, setRange] = useState<TimeRange>('month')
   const esg = getEsgData(range, dailyInputs, recsTotal, recsActed)
@@ -155,6 +157,21 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
       aiSummaryBullets.push(
         t.aiSummaryRecAdherence.replace('{acted}', String(esg.recsActed)).replace('{total}', String(esg.recsTotal)),
       )
+    }
+
+    if (analyticsData) {
+      aiSummaryBullets.push(
+        t.aiSummaryTotalCo2.replace('{amount}', analyticsData.carbon_emissions.total_co2_kg.toLocaleString()),
+      )
+      aiSummaryBullets.push(
+        t.aiSummaryOperatingCost.replace('{amount}', analyticsData.costs.total_operating_cost.toLocaleString()),
+      )
+      const flaggedCount = Object.values(analyticsData.benchmark_comparison).filter(
+        (status) => status === 'Above benchmark' || status === 'High',
+      ).length
+      if (flaggedCount > 0) {
+        aiSummaryBullets.push(t.aiSummaryBenchmarkFlag.replace('{count}', String(flaggedCount)))
+      }
     }
   } else {
     aiSummaryBullets.push(t.aiSummaryNoData)

@@ -13,7 +13,7 @@ import { EsgDashboard } from '@/components/esg-dashboard'
 import { getText, type Language } from '@/lib/i18n'
 import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
 import { defaultRecommendations, type Recommendation, type RecommendationStatus } from '@/lib/recommendations'
-import { transformFlaskToRecommendations, type FlaskFoodPrepItem, type FlaskRecommendationsResponse } from '@/lib/ai-api'
+import { transformFlaskToRecommendations, type FlaskAnalyticsResponse, type FlaskFoodPrepItem, type FlaskRecommendationsResponse } from '@/lib/ai-api'
 import { supabase } from '@/lib/supabase'
 import { ensureOwnerOrStaffProfile } from '@/lib/profile'
 
@@ -80,6 +80,8 @@ export default function DashboardPage() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [rawFoodPrepItems, setRawFoodPrepItems] = useState<FlaskFoodPrepItem[]>([])
   const [aiRecsLoaded, setAiRecsLoaded] = useState(false)
+  const [analyticsData, setAnalyticsData] = useState<FlaskAnalyticsResponse | null>(null)
+  const [analyticsLoaded, setAnalyticsLoaded] = useState(false)
   const [storedApprovedItems, setStoredApprovedItems] = useState<Record<string, number>>({})
   const [showMorningBriefing, setShowMorningBriefing] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -214,6 +216,26 @@ export default function DashboardPage() {
       .catch(() => undefined)
       .finally(() => setAiRecsLoaded(true))
   }, [isInitialized, role, aiRecsLoaded, dailyInputs])
+
+  // Fetch the real analytics report (utility totals, costs, carbon, ESG score) from the
+  // Python engine (owner only). Falls back silently to the local mock-based ESG dashboard
+  // if the engine is offline.
+  useEffect(() => {
+    if (!isInitialized || role !== 'owner' || analyticsLoaded) return
+
+    fetch('/api/analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ daily_inputs: dailyInputs }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: FlaskAnalyticsResponse | { error: string } | null) => {
+        if (!data || 'error' in data) return
+        setAnalyticsData(data)
+      })
+      .catch(() => undefined)
+      .finally(() => setAnalyticsLoaded(true))
+  }, [isInitialized, role, analyticsLoaded, dailyInputs])
 
   function handleDailyInputSave(newInput: FoodRow) {
     const nextInputs = [...dailyInputs.filter((input) => input.date !== newInput.date), newInput]
@@ -438,6 +460,7 @@ export default function DashboardPage() {
               recsActed={recommendations.filter((r) => r.status === 'accepted' || r.status === 'modified').length}
               isProPlan={isProPlan}
               onUpgrade={handleToggleProPlan}
+              analyticsData={analyticsData}
             />
           )}
           {currentScreen === 'impact' && role === 'staff' && (

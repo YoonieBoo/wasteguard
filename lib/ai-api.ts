@@ -40,6 +40,47 @@ export interface FlaskRecommendationsResponse {
   anomaly_recommendations: FlaskAnomalyRec[]
 }
 
+export interface FlaskAnalyticsResponse {
+  totals: {
+    total_customers: number
+    total_food_waste_kg: number
+    total_electricity_kwh: number
+    total_water_m3: number
+    total_gas_m3: number
+    total_revenue: number
+  }
+  costs: {
+    electricity_cost: number
+    water_cost: number
+    gas_cost: number
+    food_waste_disposal_cost: number
+    total_operating_cost: number
+  }
+  carbon_emissions: {
+    electricity_co2_kg: number
+    water_co2_kg: number
+    gas_co2_kg: number
+    food_waste_co2_kg: number
+    total_co2_kg: number
+  }
+  trends: {
+    food_waste_trend_percent: number
+    electricity_trend_percent: number
+    water_trend_percent: number
+    revenue_trend_percent: number
+  }
+  benchmark_comparison: {
+    electricity_status: string
+    water_status: string
+    gas_status: string
+    food_waste_status: string
+  }
+  esg: {
+    esg_score: number
+    rating: string
+  }
+}
+
 // ── Parse helpers ─────────────────────────────────────────────────────────────
 
 function parseThb(s: string): number {
