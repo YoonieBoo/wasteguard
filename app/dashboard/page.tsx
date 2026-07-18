@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardHome } from '@/components/dashboard-home'
+import { MenuManagement } from '@/components/menu-management'
 import { QuickInput } from '@/components/quick-input'
 import { CarbonImpact } from '@/components/carbon-impact'
 import { Navigation } from '@/components/navigation'
@@ -14,6 +15,7 @@ import { getText, type Language } from '@/lib/i18n'
 import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
 import { defaultRecommendations, type Recommendation, type RecommendationStatus } from '@/lib/recommendations'
 import { transformFlaskToRecommendations, type FlaskAnalyticsResponse, type FlaskFoodPrepItem, type FlaskRecommendationsResponse } from '@/lib/ai-api'
+import { fetchBusinessMenuData, type BusinessMenuItem } from '@/lib/menu-data'
 import { supabase } from '@/lib/supabase'
 import { ensureOwnerOrStaffProfile } from '@/lib/profile'
 
@@ -26,7 +28,7 @@ const briefingDateKey = 'wasteGuardBriefingDate'
 const approvedItemsKey = 'wasteGuardApprovedItems'
 const isProPlanKey = 'wasteGuardIsPro'
 
-type AppScreen = 'home' | 'input' | 'impact' | 'recommendations' | 'report'
+type AppScreen = 'home' | 'input' | 'impact' | 'recommendations' | 'report' | 'menu'
 
 type AuthProfile = {
   fullName: string
@@ -80,6 +82,7 @@ export default function DashboardPage() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [rawFoodPrepItems, setRawFoodPrepItems] = useState<FlaskFoodPrepItem[]>([])
   const [aiRecsLoaded, setAiRecsLoaded] = useState(false)
+  const [businessMenuItems, setBusinessMenuItems] = useState<BusinessMenuItem[]>([])
   const [analyticsData, setAnalyticsData] = useState<FlaskAnalyticsResponse | null>(null)
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false)
   const [storedApprovedItems, setStoredApprovedItems] = useState<Record<string, number>>({})
@@ -165,6 +168,18 @@ export default function DashboardPage() {
         setDailyInputs(reports)
         window.localStorage.setItem(dailyInputsKey, JSON.stringify(reports))
       })
+  }, [authProfile?.bakeryId])
+
+  // Real per-business menu (from CSV import / Menu tab) — used to show the
+  // owner's actual dishes instead of the 4 demo dishes wherever they've been added.
+  useEffect(() => {
+    if (!authProfile?.bakeryId) {
+      return
+    }
+
+    fetchBusinessMenuData(authProfile.bakeryId)
+      .then(({ menuItems }) => setBusinessMenuItems(menuItems))
+      .catch((error) => console.error('Unable to load menu items', error))
   }, [authProfile?.bakeryId])
 
   useEffect(() => {
@@ -404,7 +419,7 @@ export default function DashboardPage() {
           className={`animate-in fade-in-0 duration-200 ${
             currentScreen === 'impact'
               ? 'w-full'
-              : isOwnerDashboard || currentScreen === 'recommendations' || currentScreen === 'report'
+              : isOwnerDashboard || currentScreen === 'recommendations' || currentScreen === 'report' || currentScreen === 'menu'
                 ? 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[920px] md:px-5 md:pt-5 xl:max-w-[1180px] xl:px-10 xl:pt-7'
                 : 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[620px] md:px-6 lg:max-w-[1180px] lg:px-10 lg:pt-7'
           }`}
@@ -416,6 +431,8 @@ export default function DashboardPage() {
               role={role}
               bakeryName={authProfile?.bakeryName}
               inviteCode={authProfile?.inviteCode}
+              menuItems={businessMenuItems}
+              foodPrepItems={rawFoodPrepItems}
               completedBakeryItems={completedBakeryItems}
               approvedOverrides={approvedOverrides}
               pendingRecommendationsCount={pendingCount}
@@ -432,6 +449,8 @@ export default function DashboardPage() {
               recommendations={recommendations}
               language={language}
               onUpdate={handleUpdateRecommendation}
+              rawFoodPrepItems={rawFoodPrepItems}
+              menuItems={businessMenuItems}
             />
           )}
           {currentScreen === 'input' && (
@@ -450,6 +469,18 @@ export default function DashboardPage() {
               language={language}
               bakeryName={authProfile?.bakeryName}
               onGoToRecommendations={() => setCurrentScreen('recommendations')}
+            />
+          )}
+          {currentScreen === 'menu' && role === 'owner' && authProfile?.bakeryId && (
+            <MenuManagement
+              businessId={authProfile.bakeryId}
+              language={language}
+              onMenuItemSaved={(item) =>
+                setBusinessMenuItems((current) => {
+                  const exists = current.some((existing) => existing.id === item.id)
+                  return exists ? current.map((existing) => (existing.id === item.id ? item : existing)) : [...current, item]
+                })
+              }
             />
           )}
           {currentScreen === 'impact' && role === 'owner' && (

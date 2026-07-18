@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
 import { cleanBakeryTitle } from '@/lib/bakery-catalog'
 import type { Recommendation, RecommendationStatus, WasteType } from '@/lib/recommendations'
+import type { FlaskFoodPrepItem } from '@/lib/ai-api'
+import type { BusinessMenuItem } from '@/lib/menu-data'
 
 type FilterType = 'all' | WasteType
 
@@ -22,9 +24,49 @@ interface RecommendationCenterProps {
   recommendations: Recommendation[]
   language: Language
   onUpdate: (id: string, status: RecommendationStatus, modifiedQuantity?: number) => void
+  rawFoodPrepItems?: FlaskFoodPrepItem[]
+  menuItems?: BusinessMenuItem[]
 }
 
-export function RecommendationCenter({ recommendations, language, onUpdate }: RecommendationCenterProps) {
+// Recommendation ids for food-prep items are assigned as `ai-prep-${index}`
+// (see transformFlaskToRecommendations) — this recovers that index so we can
+// look up the raw Flask item's real menu_item name, independent of
+// affectedItemFileName (which only covers the 4 demo dishes).
+function getFoodPrepIndex(recId: string): number | null {
+  if (!recId.startsWith('ai-prep-')) return null
+  const index = Number(recId.slice('ai-prep-'.length))
+  return Number.isInteger(index) ? index : null
+}
+
+function getIngredientNeeds(
+  rec: Recommendation,
+  rawFoodPrepItems: FlaskFoodPrepItem[],
+  menuItems: BusinessMenuItem[],
+): { name: string; amount: string }[] {
+  const index = getFoodPrepIndex(rec.id)
+  if (index === null) return []
+
+  const foodPrepItem = rawFoodPrepItems[index]
+  if (!foodPrepItem) return []
+
+  const menuItem = menuItems.find((item) => item.name.trim().toLowerCase() === foodPrepItem.menu_item.trim().toLowerCase())
+  if (!menuItem || menuItem.ingredients.length === 0) return []
+
+  const quantity = rec.suggestedQuantity ?? foodPrepItem.final_prep_recommendation
+
+  return menuItem.ingredients.map((ingredient) => ({
+    name: ingredient.name,
+    amount: `${parseFloat((ingredient.quantityPerPortion * quantity).toFixed(2))} ${ingredient.unit}`,
+  }))
+}
+
+export function RecommendationCenter({
+  recommendations,
+  language,
+  onUpdate,
+  rawFoodPrepItems = [],
+  menuItems = [],
+}: RecommendationCenterProps) {
   const t = getText(language)
   const [modifyingId, setModifyingId] = useState<string | null>(null)
   const [modifyQuantity, setModifyQuantity] = useState('')
@@ -159,6 +201,7 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
                 : rec.confidence >= 60
                   ? t.confidenceMedium
                   : t.confidenceLow
+            const ingredientNeeds = getIngredientNeeds(rec, rawFoodPrepItems, menuItems)
 
             return (
               <div
@@ -197,6 +240,20 @@ export function RecommendationCenter({ recommendations, language, onUpdate }: Re
                   >
                     {reason}
                   </p>
+
+                  {expandedId === rec.id && ingredientNeeds.length > 0 && (
+                    <div className="mt-4 rounded-[0.5rem] bg-secondary/50 px-4 py-3">
+                      <p className="wg-label mb-2">{t.ingredientsNeeded}</p>
+                      <div className="space-y-1.5">
+                        {ingredientNeeds.map((ingredient) => (
+                          <div key={ingredient.name} className="flex items-center justify-between gap-3 text-xs font-bold">
+                            <span className="text-muted-foreground">{ingredient.name}</span>
+                            <span className="text-foreground">{ingredient.amount}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <p className="mt-4 text-sm font-black">
                     {rec.estimatedSavings > 0 && (

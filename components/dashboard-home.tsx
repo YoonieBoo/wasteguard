@@ -2,14 +2,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronLeft, Sparkles, X } from 'lucide-react'
+import { ChevronLeft, Sparkles, UtensilsCrossed, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
 import { RecommendationsPreviewModal } from '@/components/recommendations-preview-modal'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
 import type { Recommendation, RecommendationStatus } from '@/lib/recommendations'
+import type { FlaskFoodPrepItem } from '@/lib/ai-api'
+import type { BusinessMenuItem } from '@/lib/menu-data'
 import {
   bakeryCategories,
+  buildRealBakeryItems,
   getBakeryItems,
   translateCategory,
   translateDemandLevel,
@@ -35,6 +38,8 @@ interface DashboardHomeProps {
   role?: WasteGuardRole
   bakeryName?: string
   inviteCode?: string
+  menuItems?: BusinessMenuItem[]
+  foodPrepItems?: FlaskFoodPrepItem[]
   completedBakeryItems?: Record<string, boolean>
   approvedOverrides?: Record<string, number>
   pendingRecommendationsCount?: number
@@ -52,6 +57,8 @@ export function DashboardHome({
   role = 'staff',
   bakeryName,
   inviteCode,
+  menuItems = [],
+  foodPrepItems = [],
   completedBakeryItems = {},
   approvedOverrides = {},
   pendingRecommendationsCount = 0,
@@ -69,10 +76,27 @@ export function DashboardHome({
   const [showRecsPreview, setShowRecsPreview] = useState(false)
   const demandChartRef = useRef<HTMLDivElement>(null)
   const prepList = getPrepList(dailyInputs).slice(0, 4)
-  const bakeryItems = getBakeryItems(
-    dailyInputs,
-    prepList.reduce((total, item) => total + item.quantity, 0),
-  )
+  // Real per-business dishes once the owner has imported/added any; falls back to
+  // the 4 demo dishes for brand-new accounts with nothing entered yet.
+  const bakeryItems =
+    menuItems.length > 0
+      ? buildRealBakeryItems(
+          menuItems.map((item) => ({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            unit: item.unit,
+            imageUrl: item.imageUrl,
+            ingredients: item.ingredients,
+          })),
+          foodPrepItems,
+        )
+      : getBakeryItems(
+          dailyInputs,
+          prepList.reduce((total, item) => total + item.quantity, 0),
+        )
+  const categoryFilters: BakeryCategory[] =
+    menuItems.length > 0 ? ['All', ...new Set(bakeryItems.map((item) => item.category))] : bakeryCategories
   const effectiveBakeryItems = bakeryItems
     .map((item) => ({
       ...item,
@@ -337,11 +361,17 @@ export function DashboardHome({
                   return (
                   <div key={`${item.bakeryItem.fileName}-${idx}`} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
                     <div className="flex min-w-0 items-center gap-3">
-                      <img
-                        src={item.bakeryItem.imageSrc}
-                        alt={item.bakeryItem.title}
-                        className="h-10 w-10 shrink-0 rounded-full object-cover shadow-[0_8px_16px_rgba(41,91,67,0.12)]"
-                      />
+                      {item.bakeryItem.imageSrc ? (
+                        <img
+                          src={item.bakeryItem.imageSrc}
+                          alt={item.bakeryItem.title}
+                          className="h-10 w-10 shrink-0 rounded-full object-cover shadow-[0_8px_16px_rgba(41,91,67,0.12)]"
+                        />
+                      ) : (
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground">
+                          <UtensilsCrossed className="h-4 w-4" />
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <p className="truncate text-sm font-black text-foreground">{translateItemName(item.bakeryItem.title, language)}</p>
                         {isApproved && (
@@ -426,11 +456,17 @@ export function DashboardHome({
       >
         <div className="grid gap-0 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="relative min-h-[20rem] overflow-hidden bg-[#302927] sm:min-h-[23rem] lg:min-h-[26rem]">
-            <img
-              src={featuredBakeryItem.imageSrc}
-              alt={featuredBakeryItem.title}
-              className="h-full min-h-[20rem] w-full object-cover transition duration-700 hover:scale-[1.035] sm:min-h-[23rem] lg:min-h-[26rem]"
-            />
+            {featuredBakeryItem.imageSrc ? (
+              <img
+                src={featuredBakeryItem.imageSrc}
+                alt={featuredBakeryItem.title}
+                className="h-full min-h-[20rem] w-full object-cover transition duration-700 hover:scale-[1.035] sm:min-h-[23rem] lg:min-h-[26rem]"
+              />
+            ) : (
+              <div className="grid h-full min-h-[20rem] w-full place-items-center bg-[#302927] text-white/40 sm:min-h-[23rem] lg:min-h-[26rem]">
+                <UtensilsCrossed className="h-16 w-16" />
+              </div>
+            )}
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/15 to-transparent p-4 text-white md:p-5">
               <p className="text-base font-black uppercase tracking-normal text-white/90 sm:text-lg">{t.mostRequestedToday}</p>
             </div>
@@ -458,7 +494,7 @@ export function DashboardHome({
             <p className="mt-1 text-xs font-black text-primary">{t.today}</p>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1 md:justify-end md:overflow-visible md:pb-0">
-            {bakeryCategories.map((category) => {
+            {categoryFilters.map((category) => {
               const isActive = selectedCategory === category
 
               return (
@@ -494,11 +530,17 @@ export function DashboardHome({
                 } ${isManagerApproved && !isCompleted ? 'ring-2 ring-primary/40' : ''}`}
               >
                 <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
-                  <img
-                    src={item.imageSrc}
-                    alt={item.title}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
+                  {item.imageSrc ? (
+                    <img
+                      src={item.imageSrc}
+                      alt={item.title}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center bg-secondary text-muted-foreground">
+                      <UtensilsCrossed className="h-8 w-8" />
+                    </div>
+                  )}
                   {/* Status badge on image corner — no overlap with text */}
                   {isCompleted ? (
                     <span className="absolute right-2 top-2 rounded-full bg-primary/90 px-2 py-0.5 text-[9px] font-black text-white backdrop-blur-sm">
@@ -652,7 +694,13 @@ function PreparationDetailsPanel({
       <div className="flex-1 overflow-y-auto overscroll-contain">
         <div className="mx-auto w-full max-w-3xl px-4 pb-6 pt-5 sm:px-6 md:pt-6 xl:max-w-none xl:px-6 xl:pt-0">
           <div className="overflow-hidden rounded-[0.75rem] bg-secondary shadow-[0_16px_36px_rgba(41,91,67,0.08)] xl:shadow-none">
-            <img src={item.imageSrc} alt={translateItemName(item.title, language)} className="aspect-[4/3] w-full object-cover md:aspect-[16/9] xl:aspect-[4/3]" />
+            {item.imageSrc ? (
+              <img src={item.imageSrc} alt={translateItemName(item.title, language)} className="aspect-[4/3] w-full object-cover md:aspect-[16/9] xl:aspect-[4/3]" />
+            ) : (
+              <div className="grid aspect-[4/3] w-full place-items-center bg-secondary text-muted-foreground md:aspect-[16/9] xl:aspect-[4/3]">
+                <UtensilsCrossed className="h-12 w-12" />
+              </div>
+            )}
           </div>
 
           <div className="mt-6 xl:mt-5">
@@ -676,20 +724,26 @@ function PreparationDetailsPanel({
 
           <section className="mt-7 xl:mt-6">
             <p className="wg-label">{t.estimatedIngredientUsage}</p>
-            <div className="mt-3 divide-y divide-secondary">
-              {item.ingredientUsage.map((ingredient) => (
-                <div key={`${ingredient.name}-${ingredient.amount}`} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0 xl:py-3">
-                  <p className="text-sm font-bold text-foreground sm:text-base xl:text-sm">{translateIngredientName(ingredient.name, language)}</p>
-                  <p className="text-sm font-black text-primary sm:text-base xl:text-sm">{ingredient.amount}</p>
-                </div>
-              ))}
-            </div>
+            {item.ingredientUsage.length > 0 ? (
+              <div className="mt-3 divide-y divide-secondary">
+                {item.ingredientUsage.map((ingredient) => (
+                  <div key={`${ingredient.name}-${ingredient.amount}`} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0 xl:py-3">
+                    <p className="text-sm font-bold text-foreground sm:text-base xl:text-sm">{translateIngredientName(ingredient.name, language)}</p>
+                    <p className="text-sm font-black text-primary sm:text-base xl:text-sm">{ingredient.amount}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="wg-meta mt-3">{t.noIngredientsLogged}</p>
+            )}
           </section>
 
+          {item.preparationNote && (
           <section className="mt-7 xl:mt-6">
             <p className="wg-label">{t.preparationNote}</p>
             <p className="mt-2 text-base font-black leading-7 text-foreground">{translatePreparationNote(item.preparationNote, language)}</p>
           </section>
+          )}
         </div>
       </div>
 
