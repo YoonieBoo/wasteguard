@@ -81,6 +81,52 @@ export interface FlaskAnalyticsResponse {
   }
 }
 
+export interface FlaskEsgScoreResponse {
+  scores: {
+    overall_sustainability_score: number
+    environmental_score: number
+    social_score: number
+    governance_score: number
+  }
+  dashboard_cards: {
+    overall: { score: number; status: string }
+    environmental: { score: number; metric_value: number; metric_unit: string; status: string }
+    social: { score: number; metric_value: string; status: string }
+    governance: { score: number; metric_value: string; status: string }
+  }
+}
+
+export interface FlaskWastePredictionItem {
+  menu_item: string
+  category: string
+  predicted_waste_kg: number
+  predicted_waste_percent: number
+  waste_risk_status: string
+  estimated_total_loss_thb: number
+  recommendation: string
+}
+
+export interface FlaskWastePredictionsResponse {
+  summary: {
+    total_predicted_waste_kg: number
+    overall_waste_percent: number
+    overall_waste_risk: string
+    total_estimated_loss_thb: number
+    total_carbon_impact_kg_co2e: number
+  }
+  waste_predictions: FlaskWastePredictionItem[]
+}
+
+export interface FlaskSavingsReportResponse {
+  period: string
+  summary: {
+    estimated_total_cost_saving_thb: number
+    estimated_waste_reduction_kg: number
+    estimated_carbon_reduction_kg_co2e: number
+    overall_esg_score: number
+  }
+}
+
 // ── Parse helpers ─────────────────────────────────────────────────────────────
 
 function parseThb(s: string): number {

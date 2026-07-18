@@ -1,11 +1,13 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
 import { cleanBakeryTitle } from '@/lib/bakery-catalog'
 import type { Recommendation } from '@/lib/recommendations'
 import type { FoodRow } from '@/lib/mock-data'
+import type { FlaskSavingsReportResponse } from '@/lib/ai-api'
 
 interface SavingsReportProps {
   recommendations: Recommendation[]
@@ -61,6 +63,34 @@ export function SavingsReport({
   const totalSavings = acceptedRecs.reduce((sum, r) => sum + r.estimatedSavings, 0)
   const totalCo2 = acceptedRecs.reduce((sum, r) => sum + Math.max(0, r.co2Impact), 0)
   const monthlyData = computeMonthlyData(dailyInputs)
+
+  // Engine-computed projection for the current period — kept as a separate,
+  // clearly-labeled card rather than merged into totalSavings/totalCo2 above,
+  // since those are sourced from the owner's actually-accepted recommendations
+  // while this is the engine's own waste-prediction-based estimate.
+  const [engineReport, setEngineReport] = useState<FlaskSavingsReportResponse | null>(null)
+  useEffect(() => {
+    const acceptedMenuItems = acceptedRecs
+      .filter((r) => r.affectedItemFileName)
+      .map((r) => cleanBakeryTitle(r.affectedItemFileName!))
+
+    fetch('/api/savings-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        period: 'month',
+        accepted_menu_items: acceptedMenuItems,
+        total_recommendations: recommendations.length,
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: FlaskSavingsReportResponse | { error: string } | null) => {
+        if (!data || 'error' in data) return
+        setEngineReport(data)
+      })
+      .catch(() => undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recommendations])
 
   const statCards = [
     {
@@ -186,6 +216,34 @@ export function SavingsReport({
           </div>
         )}
       </section>
+
+      {/* Engine sustainability projection */}
+      {engineReport && (
+        <section className="mt-8">
+          <h2 className="wg-section-title mb-4">{t.engineProjectionTitle}</h2>
+          <p className="wg-meta mb-4 -mt-2">{t.engineProjectionNote}</p>
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+            <div className="rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] sm:p-5">
+              <p className="wg-label mb-3">{t.engineProjectedSavingsLabel}</p>
+              <p className="text-lg font-black leading-tight text-primary sm:text-xl">
+                THB {engineReport.summary.estimated_total_cost_saving_thb.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] sm:p-5">
+              <p className="wg-label mb-3">{t.engineProjectedCo2Label}</p>
+              <p className="text-lg font-black leading-tight text-primary sm:text-xl">
+                {engineReport.summary.estimated_carbon_reduction_kg_co2e.toLocaleString()} {t.kgCo2}
+              </p>
+            </div>
+            <div className="rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] sm:p-5">
+              <p className="wg-label mb-3">{t.engineProjectedEsgLabel}</p>
+              <p className="text-lg font-black leading-tight text-primary sm:text-xl">
+                {engineReport.summary.overall_esg_score}/100
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Monthly performance history */}
       <section className="mt-8">

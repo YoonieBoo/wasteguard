@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CheckCircle2, Lock, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getText, type Language } from '@/lib/i18n'
 import { getBusinessInsightData, getEsgData, getSortedRows, type FoodRow, type TimeRange } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
-import type { FlaskAnalyticsResponse } from '@/lib/ai-api'
+import type { FlaskAnalyticsResponse, FlaskEsgScoreResponse, FlaskWastePredictionsResponse } from '@/lib/ai-api'
 
 interface EsgDashboardProps {
   dailyInputs: FoodRow[]
@@ -66,6 +66,55 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
   const wasteTrend = computeWasteTrend(getSortedRows(dailyInputs))
   const insights = getBusinessInsightData(dailyInputs)
 
+  // Fetch the engine-computed ESG score using the exact same inputs the local
+  // getEsgData() formula already uses (same weights/formula on both sides), so this
+  // is a safe swap-in once it loads — falls back to the local score until then.
+  const [engineEsg, setEngineEsg] = useState<FlaskEsgScoreResponse | null>(null)
+  useEffect(() => {
+    if (!esg.hasData) {
+      setEngineEsg(null)
+      return
+    }
+    const reportingRate = esg.totalDays > 0 ? Math.min(1, esg.daysLogged / esg.totalDays) : 0
+    fetch('/api/esg-score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        average_waste_percent: esg.avgWaste,
+        days_logged: esg.daysLogged,
+        total_days_in_period: esg.totalDays,
+        reporting_rate: reportingRate,
+        recommendations_acted_on: esg.recsActed,
+        total_recommendations: esg.recsTotal,
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: FlaskEsgScoreResponse | { error: string } | null) => {
+        if (!data || 'error' in data) return
+        setEngineEsg(data)
+      })
+      .catch(() => undefined)
+  }, [esg.hasData, esg.avgWaste, esg.daysLogged, esg.totalDays, esg.recsActed, esg.recsTotal])
+
+  // Fetch grounded waste-risk predictions to strengthen the AI Summary (additive only).
+  // Menu-item-level prediction still runs on the engine's own menu/forecast data — it
+  // doesn't yet take this business's real menu_items (see the menu-scoping plan in memory).
+  const [wastePredictions, setWastePredictions] = useState<FlaskWastePredictionsResponse | null>(null)
+  useEffect(() => {
+    fetch('/api/waste-predictions')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: FlaskWastePredictionsResponse | { error: string } | null) => {
+        if (!data || 'error' in data) return
+        setWastePredictions(data)
+      })
+      .catch(() => undefined)
+  }, [])
+
+  const overallScore = engineEsg?.dashboard_cards.overall.score ?? esg.overallScore
+  const envScore = engineEsg?.dashboard_cards.environmental.score ?? esg.envScore
+  const socialScore = engineEsg?.dashboard_cards.social.score ?? esg.socialScore
+  const govScore = engineEsg?.dashboard_cards.governance.score ?? esg.govScore
+
   // Bar chart / line chart shared geometry
   const barH = 96
   const barW = 28
@@ -94,28 +143,28 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
   const kpiCards = [
     {
       label: t.overallEsgScore,
-      score: esg.overallScore,
+      score: overallScore,
       showOutOf100: true,
-      badge: esg.hasData ? getScoreStatusLabel(esg.overallScore, t) : '--',
+      badge: esg.hasData ? getScoreStatusLabel(overallScore, t) : '--',
       badgeLabel: '',
     },
     {
       label: t.environmental,
-      score: esg.envScore,
+      score: envScore,
       showOutOf100: false,
       badge: esg.hasData ? `${esg.avgWaste}%` : '--',
       badgeLabel: t.avgFoodWaste,
     },
     {
       label: t.social,
-      score: esg.socialScore,
+      score: socialScore,
       showOutOf100: false,
       badge: `${esg.daysLogged}/${esg.totalDays}d`,
       badgeLabel: t.teamReporting,
     },
     {
       label: t.governance,
-      score: esg.govScore,
+      score: govScore,
       showOutOf100: false,
       badge: esg.recsTotal > 0 ? `${esg.recsActed}/${esg.recsTotal}` : '--',
       badgeLabel: t.aiRecAdherence,
@@ -123,9 +172,9 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
   ]
 
   const scoreBreakdownRows = [
-    { label: t.environmental, score: esg.envScore, color: '#16a34a' },
-    { label: t.social, score: esg.socialScore, color: '#4ade80' },
-    { label: t.governance, score: esg.govScore, color: '#86efac' },
+    { label: t.environmental, score: envScore, color: '#16a34a' },
+    { label: t.social, score: socialScore, color: '#4ade80' },
+    { label: t.governance, score: govScore, color: '#86efac' },
   ]
 
   const aiSummaryBullets: string[] = []
@@ -172,6 +221,14 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
       if (flaggedCount > 0) {
         aiSummaryBullets.push(t.aiSummaryBenchmarkFlag.replace('{count}', String(flaggedCount)))
       }
+    }
+
+    if (wastePredictions && wastePredictions.summary.overall_waste_risk !== 'Low Waste Risk') {
+      aiSummaryBullets.push(
+        t.aiSummaryWasteRisk
+          .replace('{risk}', wastePredictions.summary.overall_waste_risk)
+          .replace('{amount}', wastePredictions.summary.total_predicted_waste_kg.toLocaleString()),
+      )
     }
   } else {
     aiSummaryBullets.push(t.aiSummaryNoData)

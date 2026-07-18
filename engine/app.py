@@ -7,6 +7,9 @@ from mock_datas import set_pipeline_data
 from analytics_engine import AnalyticsEngine
 from ai_insight_engine import generate_ai_insights
 from recommendation_engine import generate_final_recommendations
+from waste_prediction_engine import generate_waste_predictions, predict_waste_from_input
+from esg_score_calculation import calculate_esg_score
+from savings_report import generate_savings_report
 
 app = Flask(__name__)
 CORS(app)
@@ -24,6 +27,15 @@ def home():
             "GET  /api/ai-insights",
             "GET  /api/recommendations",
             "POST /api/recommendations    — body: { daily_inputs: FoodRow[] }",
+            "GET  /api/waste-predictions",
+            "POST /api/waste-predictions  — body: { items: MenuItemInput[] }",
+            "GET  /api/esg-score",
+            "POST /api/esg-score          — body: { average_waste_percent, days_logged, total_days_in_period, "
+            "reporting_rate, recommendations_acted_on, total_recommendations, previous_overall_score? }",
+            "GET  /api/savings-report",
+            "POST /api/savings-report     — body: { period, reference_date?, avoidable_waste_rate?, "
+            "accepted_menu_items?, total_recommendations?, days_logged?, total_days_in_period?, reporting_rate?, "
+            "previous_overall_esg_score? }",
             "POST /api/confirm-preparation",
             "GET  /api/staff-preparation",
         ]
@@ -90,6 +102,108 @@ def get_recommendations():
 
     recommendations = generate_final_recommendations()
     return jsonify(recommendations)
+
+
+# ── Waste predictions ─────────────────────────────────────────────────────────
+
+@app.route("/api/waste-predictions", methods=["GET", "POST"])
+def get_waste_predictions():
+    """
+    GET  → predictions from the current menu forecast (mock/demo)
+    POST → predictions for specific menu items
+           body: { "items": [{ menu_item, prepared_quantity, ai_forecast, ... }] }
+    """
+    if request.method == "POST":
+        body = request.get_json() or {}
+        items = body.get("items")
+        if items:
+            return jsonify(predict_waste_from_input(items))
+
+    return jsonify(generate_waste_predictions())
+
+
+# ── ESG score ─────────────────────────────────────────────────────────────────
+
+def _default_esg_inputs():
+    """Mock-data defaults, mirroring generate_savings_report()'s own defaults."""
+    waste_summary = generate_waste_predictions().get("summary", {})
+    recommendations = generate_final_recommendations()
+    total_recommendations = sum(
+        len(recommendations.get(key, []))
+        for key in (
+            "food_preparation_recommendations",
+            "sustainability_recommendations",
+            "anomaly_recommendations",
+        )
+    )
+    return {
+        "average_waste_percent": waste_summary.get("overall_waste_percent", 0),
+        "days_logged": 1,
+        "total_days_in_period": 1,
+        "reporting_rate": 1.0,
+        "recommendations_acted_on": 0,
+        "total_recommendations": total_recommendations,
+        "previous_overall_score": None,
+    }
+
+
+@app.route("/api/esg-score", methods=["GET", "POST"])
+def get_esg_score():
+    """
+    GET  → ESG score from mock data
+    POST → ESG score from real inputs (usually computed client-side from the
+           owner's actual logged days / accepted recommendations)
+           body: { average_waste_percent, days_logged, total_days_in_period,
+                    reporting_rate, recommendations_acted_on, total_recommendations,
+                    previous_overall_score? }
+    """
+    inputs = _default_esg_inputs()
+
+    if request.method == "POST":
+        body = request.get_json() or {}
+        inputs.update({k: v for k, v in body.items() if v is not None})
+
+    result = calculate_esg_score(
+        average_waste_percent=inputs["average_waste_percent"],
+        days_logged=inputs["days_logged"],
+        total_days_in_period=inputs["total_days_in_period"],
+        reporting_rate=inputs["reporting_rate"],
+        recommendations_acted_on=inputs["recommendations_acted_on"],
+        total_recommendations=inputs["total_recommendations"],
+        previous_overall_score=inputs.get("previous_overall_score"),
+    )
+    return jsonify(result)
+
+
+# ── Savings report ────────────────────────────────────────────────────────────
+
+@app.route("/api/savings-report", methods=["GET", "POST"])
+def get_savings_report():
+    """
+    GET  → full savings/sustainability report on mock data (period=month)
+    POST → full report with real inputs
+           body: { period?, reference_date?, avoidable_waste_rate?, accepted_menu_items?,
+                    total_recommendations?, days_logged?, total_days_in_period?,
+                    reporting_rate?, previous_overall_esg_score? }
+    """
+    body = request.get_json(silent=True) or {} if request.method == "POST" else {}
+
+    try:
+        report = generate_savings_report(
+            period=body.get("period", "month"),
+            reference_date=body.get("reference_date"),
+            avoidable_waste_rate=body.get("avoidable_waste_rate", 0.80),
+            accepted_menu_items=body.get("accepted_menu_items"),
+            total_recommendations=body.get("total_recommendations"),
+            days_logged=body.get("days_logged", 1),
+            total_days_in_period=body.get("total_days_in_period", 1),
+            reporting_rate=body.get("reporting_rate", 1.0),
+            previous_overall_esg_score=body.get("previous_overall_esg_score"),
+        )
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+    return jsonify(report)
 
 
 # ── Staff preparation confirmation ────────────────────────────────────────────
