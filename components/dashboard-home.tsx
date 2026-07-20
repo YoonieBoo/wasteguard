@@ -137,6 +137,13 @@ export function DashboardHome({
   if (role === 'owner') {
     const business = getBusinessDashboardData(range, dailyInputs)
     const insights = getBusinessInsightData(dailyInputs)
+    const forecastNote = !insights.forecastAvailable
+      ? t.demandForecastNoData
+      : insights.forecastChange > 5
+        ? t.demandForecastUp
+        : insights.forecastChange < -5
+          ? t.demandForecastDown
+          : t.demandForecastSteady
     const quality = getQualityScoreForRange(range, business.quality)
     const requestedItems = getRequestedItemsForRange(bakeryItems, range, business.revenue)
     const maxRevenueBar = Math.max(1, ...business.revenueBars.flatMap((item) => [item.current, item.previous]))
@@ -404,8 +411,8 @@ export function DashboardHome({
             ],
             [
               t.tomorrowForecast,
-              t.pastryDemandForecast.replace('{percent}', formatPercentChange(insights.forecastChange)),
-              t.morningTrafficExpected,
+              insights.forecastAvailable ? t.pastryDemandForecast.replace('{percent}', formatPercentChange(insights.forecastChange)) : '--',
+              forecastNote,
             ],
           ] as Array<[string, string, string]>).map(([label, value, note]) => (
             <div key={label} className="border-t border-secondary/80 p-4 text-center first:border-t-0 sm:border-l sm:border-t-0 first:sm:border-l-0">

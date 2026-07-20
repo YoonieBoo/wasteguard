@@ -375,9 +375,20 @@ export function getBusinessInsightData(inputRows: FoodRow[] = []) {
   const wasteDelta = todayRow ? Math.max(0, Math.round(previousAverageWaste - todayRow.waste_percent)) : 0
   const highRiskItems = todayRow ? Math.max(0, Math.round(todayRow.leftover / 3)) : 0
   const riskStatus = highRiskItems <= 6 ? 'low' : highRiskItems <= 12 ? 'medium' : 'high'
-  const latestPrepared = todayRow?.food_prepared ?? 0
-  const previousPrepared = previousRows[0]?.food_prepared ?? latestPrepared
-  const forecastChange = Math.round(percentChange(Math.round(latestPrepared * 1.08), previousPrepared || latestPrepared || 1))
+
+  // Prefer prepared-quantity trend; a sales-only import (no prepared_quantity
+  // column) leaves food_prepared at 0 for every row, so fall back to the
+  // sold-quantity trend instead of comparing against a meaningless zero.
+  const previousRow = previousRows[0]
+  const latestActivity = todayRow ? (todayRow.food_prepared > 0 ? todayRow.food_prepared : todayRow.food_sold) : 0
+  const previousActivity = previousRow ? (previousRow.food_prepared > 0 ? previousRow.food_prepared : previousRow.food_sold) : 0
+  // Only compute a real percentage when there's an actual non-zero baseline to
+  // compare against — otherwise it's not a forecast, just a divide-by-a-
+  // placeholder artifact (e.g. always exactly -100%).
+  const forecastAvailable = previousActivity > 0
+  const forecastChange = forecastAvailable
+    ? Math.round(percentChange(Math.round(latestActivity * 1.08), previousActivity))
+    : 0
 
   return {
     estimatedSavings: Math.round(todayRow?.money_saved ?? Math.max(0, wasteDelta * savedPerPortion)),
@@ -385,6 +396,7 @@ export function getBusinessInsightData(inputRows: FoodRow[] = []) {
     highRiskItems,
     riskStatus,
     forecastChange,
+    forecastAvailable,
   }
 }
 
