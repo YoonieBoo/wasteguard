@@ -19,6 +19,12 @@ import { fetchBusinessMenuData, type BusinessMenuItem } from '@/lib/menu-data'
 import { supabase } from '@/lib/supabase'
 import { ensureOwnerOrStaffProfile } from '@/lib/profile'
 
+// These keys cache per-business data in the browser for fast reloads. They must be
+// scoped by bakeryId (via scopedKey below) — an unscoped key is a single shared slot
+// for the whole device, so a second account signing in on the same browser/tablet
+// (e.g. a shared staff counter) would see the first account's leftover cached data
+// until every one of these happened to get overwritten. `languageKey` is the one
+// exception — it's a device preference, not business data, so it stays global.
 const dailyInputsKey = 'wasteGuardDailyInputs'
 const languageKey = 'wasteGuardLanguage'
 const recommendationsKey = 'wasteGuardRecommendations'
@@ -27,6 +33,10 @@ const recommendationsVersion = 'v2'
 const briefingDateKey = 'wasteGuardBriefingDate'
 const approvedItemsKey = 'wasteGuardApprovedItems'
 const isProPlanKey = 'wasteGuardIsPro'
+
+function scopedKey(base: string, bakeryId: string) {
+  return `${base}:${bakeryId}`
+}
 
 type AppScreen = 'home' | 'input' | 'impact' | 'recommendations' | 'report' | 'menu'
 
@@ -94,18 +104,6 @@ export default function DashboardPage() {
     const savedLanguage = window.localStorage.getItem(languageKey)
     if (savedLanguage === 'en' || savedLanguage === 'th') setLanguage(savedLanguage)
 
-    const savedInputs = window.localStorage.getItem(dailyInputsKey)
-    if (savedInputs) {
-      try { setDailyInputs(JSON.parse(savedInputs) as FoodRow[]) } catch { /* ignore */ }
-    }
-
-    const savedApproved = window.localStorage.getItem(approvedItemsKey)
-    if (savedApproved) {
-      try { setStoredApprovedItems(JSON.parse(savedApproved) as Record<string, number>) } catch { /* ignore */ }
-    }
-
-    setIsProPlan(window.localStorage.getItem(isProPlanKey) === 'true')
-
     let cancelled = false
 
     // Supabase is the only source of truth for who's signed in — middleware
@@ -147,6 +145,40 @@ export default function DashboardPage() {
     }
   }, [router])
 
+  // Load this business's cached data (instant paint) as soon as we know which
+  // bakery is signed in — never before, so a different account's leftover cache
+  // on a shared device can't bleed into this session.
+  useEffect(() => {
+    const bakeryId = authProfile?.bakeryId
+    if (!bakeryId) return
+
+    const savedInputs = window.localStorage.getItem(scopedKey(dailyInputsKey, bakeryId))
+    if (savedInputs) {
+      try { setDailyInputs(JSON.parse(savedInputs) as FoodRow[]) } catch { /* ignore */ }
+    }
+
+    const savedApproved = window.localStorage.getItem(scopedKey(approvedItemsKey, bakeryId))
+    if (savedApproved) {
+      try { setStoredApprovedItems(JSON.parse(savedApproved) as Record<string, number>) } catch { /* ignore */ }
+    }
+
+    setIsProPlan(window.localStorage.getItem(scopedKey(isProPlanKey, bakeryId)) === 'true')
+
+    const savedVersion = window.localStorage.getItem(scopedKey(recommendationsVersionKey, bakeryId))
+    const savedRecs = window.localStorage.getItem(scopedKey(recommendationsKey, bakeryId))
+    if (savedVersion === recommendationsVersion && savedRecs) {
+      try {
+        setRecommendations(JSON.parse(savedRecs) as Recommendation[])
+        return
+      } catch {
+        // fall through to reset
+      }
+    }
+    setRecommendations(defaultRecommendations)
+    window.localStorage.setItem(scopedKey(recommendationsKey, bakeryId), JSON.stringify(defaultRecommendations))
+    window.localStorage.setItem(scopedKey(recommendationsVersionKey, bakeryId), recommendationsVersion)
+  }, [authProfile?.bakeryId])
+
   useEffect(() => {
     if (!authProfile?.bakeryId) {
       return
@@ -166,7 +198,7 @@ export default function DashboardPage() {
 
         const reports = (data ?? []).map((report) => reportToFoodRow(report as DailyReportRow))
         setDailyInputs(reports)
-        window.localStorage.setItem(dailyInputsKey, JSON.stringify(reports))
+        window.localStorage.setItem(scopedKey(dailyInputsKey, authProfile.bakeryId!), JSON.stringify(reports))
       })
   }, [authProfile?.bakeryId])
 
@@ -188,27 +220,12 @@ export default function DashboardPage() {
     }
   }, [currentScreen, role])
 
-  useEffect(() => {
-    const savedVersion = window.localStorage.getItem(recommendationsVersionKey)
-    const saved = window.localStorage.getItem(recommendationsKey)
-    if (savedVersion === recommendationsVersion && saved) {
-      try {
-        setRecommendations(JSON.parse(saved) as Recommendation[])
-        return
-      } catch {
-        // fall through to reset
-      }
-    }
-    setRecommendations(defaultRecommendations)
-    window.localStorage.setItem(recommendationsKey, JSON.stringify(defaultRecommendations))
-    window.localStorage.setItem(recommendationsVersionKey, recommendationsVersion)
-  }, [])
-
   // Fetch AI recommendations from the Python engine (owner only).
   // POSTs real dailyInputs so the full pipeline runs on actual bakery data.
   // Falls back to mock recommendations silently if the engine is offline.
   useEffect(() => {
-    if (!isInitialized || role !== 'owner' || aiRecsLoaded) return
+    if (!isInitialized || role !== 'owner' || aiRecsLoaded || !authProfile?.bakeryId) return
+    const bakeryId = authProfile.bakeryId
 
     fetch('/api/recommendations', {
       method: 'POST',
@@ -224,13 +241,13 @@ export default function DashboardPage() {
           const nonFoodDefaults = defaultRecommendations.filter((r) => !r.affectedItemFileName)
           const merged = [...aiRecs, ...nonFoodDefaults]
           setRecommendations(merged)
-          window.localStorage.setItem(recommendationsKey, JSON.stringify(merged))
-          window.localStorage.setItem(recommendationsVersionKey, recommendationsVersion)
+          window.localStorage.setItem(scopedKey(recommendationsKey, bakeryId), JSON.stringify(merged))
+          window.localStorage.setItem(scopedKey(recommendationsVersionKey, bakeryId), recommendationsVersion)
         }
       })
       .catch(() => undefined)
       .finally(() => setAiRecsLoaded(true))
-  }, [isInitialized, role, aiRecsLoaded, dailyInputs])
+  }, [isInitialized, role, aiRecsLoaded, dailyInputs, authProfile?.bakeryId])
 
   // Fetch the real analytics report (utility totals, costs, carbon, ESG score) from the
   // Python engine (owner only). Falls back silently to the local mock-based ESG dashboard
@@ -255,7 +272,9 @@ export default function DashboardPage() {
   function handleDailyInputSave(newInput: FoodRow) {
     const nextInputs = [...dailyInputs.filter((input) => input.date !== newInput.date), newInput]
     setDailyInputs(nextInputs)
-    window.localStorage.setItem(dailyInputsKey, JSON.stringify(nextInputs))
+    if (authProfile?.bakeryId) {
+      window.localStorage.setItem(scopedKey(dailyInputsKey, authProfile.bakeryId), JSON.stringify(nextInputs))
+    }
 
     if (!authProfile?.bakeryId) {
       return
@@ -303,7 +322,9 @@ export default function DashboardPage() {
 
   function handleDismissBriefing() {
     const today = new Date().toISOString().slice(0, 10)
-    window.localStorage.setItem(briefingDateKey, today)
+    if (authProfile?.bakeryId) {
+      window.localStorage.setItem(scopedKey(briefingDateKey, authProfile.bakeryId), today)
+    }
     setShowMorningBriefing(false)
   }
 
@@ -315,7 +336,9 @@ export default function DashboardPage() {
   function handleToggleProPlan() {
     setIsProPlan((current) => {
       const next = !current
-      window.localStorage.setItem(isProPlanKey, String(next))
+      if (authProfile?.bakeryId) {
+        window.localStorage.setItem(scopedKey(isProPlanKey, authProfile.bakeryId), String(next))
+      }
       return next
     })
   }
@@ -325,7 +348,9 @@ export default function DashboardPage() {
       const next = current.map((rec) =>
         rec.id === id ? { ...rec, status, ...(modifiedQuantity != null ? { modifiedQuantity } : {}) } : rec,
       )
-      window.localStorage.setItem(recommendationsKey, JSON.stringify(next))
+      if (authProfile?.bakeryId) {
+        window.localStorage.setItem(scopedKey(recommendationsKey, authProfile.bakeryId), JSON.stringify(next))
+      }
 
       // Persist approved food-prep items separately so staff can see the badge on any device
       const approved: Record<string, number> = {}
@@ -337,7 +362,9 @@ export default function DashboardPage() {
         }
       })
       setStoredApprovedItems(approved)
-      window.localStorage.setItem(approvedItemsKey, JSON.stringify(approved))
+      if (authProfile?.bakeryId) {
+        window.localStorage.setItem(scopedKey(approvedItemsKey, authProfile.bakeryId), JSON.stringify(approved))
+      }
 
       return next
     })
@@ -361,11 +388,17 @@ export default function DashboardPage() {
   async function handleLogout() {
     await supabase.auth.signOut().catch(() => undefined)
 
-    window.localStorage.removeItem(dailyInputsKey)
-    window.localStorage.removeItem(recommendationsKey)
-    window.localStorage.removeItem(recommendationsVersionKey)
-    window.localStorage.removeItem(approvedItemsKey)
-    window.localStorage.removeItem(isProPlanKey)
+    // Belt-and-suspenders: these are already scoped per-bakeryId so a different
+    // account signing in afterward can't see them regardless, but clear this
+    // account's own cache too so a return visit doesn't show stale data.
+    if (authProfile?.bakeryId) {
+      window.localStorage.removeItem(scopedKey(dailyInputsKey, authProfile.bakeryId))
+      window.localStorage.removeItem(scopedKey(recommendationsKey, authProfile.bakeryId))
+      window.localStorage.removeItem(scopedKey(recommendationsVersionKey, authProfile.bakeryId))
+      window.localStorage.removeItem(scopedKey(approvedItemsKey, authProfile.bakeryId))
+      window.localStorage.removeItem(scopedKey(isProPlanKey, authProfile.bakeryId))
+      window.localStorage.removeItem(scopedKey(briefingDateKey, authProfile.bakeryId))
+    }
 
     router.push('/')
   }

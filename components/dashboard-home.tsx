@@ -788,17 +788,16 @@ function getRequestedItemsForRange(bakeryItems: BakeryItem[], range: TimeRange, 
   const fallbackRevenue = range === 'day' ? 4200 : range === 'week' ? 28000 : 108000
   const periodRevenue = Math.min(Math.max(revenue * 0.42, fallbackRevenue), fallbackRevenue * 1.35)
   const shares = range === 'day' ? [0.28, 0.2, 0.14, 0.09] : range === 'week' ? [0.26, 0.19, 0.14, 0.1] : [0.24, 0.18, 0.14, 0.1]
-  const orderByRange = range === 'day' ? [0, 1, 2, 3] : range === 'week' ? [2, 0, 4, 1] : [4, 2, 5, 0]
 
-  return orderByRange.map((itemIndex, index) => {
-    const bakeryItem = bakeryItems[itemIndex % bakeryItems.length] ?? bakeryItems[index]
-    const amount = Math.round((periodRevenue * shares[index]) / 25) * 25
+  // bakeryItems is already sorted by demand/prepQuantity descending — just take
+  // the top N that actually exist, instead of the old fixed-index rotation that
+  // wrapped around (and duplicated items) for anything other than exactly 4+ items.
+  const topItems = bakeryItems.slice(0, shares.length)
 
-    return {
-      bakeryItem,
-      amount,
-    }
-  })
+  return topItems.map((bakeryItem, index) => ({
+    bakeryItem,
+    amount: Math.round((periodRevenue * shares[index]) / 25) * 25,
+  }))
 }
 
 function getQualityScoreForRange(

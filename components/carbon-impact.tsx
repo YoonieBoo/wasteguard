@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { getText, type Language } from '@/lib/i18n'
 import { getImpactData, type FoodRow, type TimeRange, type WasteGuardRole } from '@/lib/mock-data'
@@ -13,8 +13,6 @@ interface CarbonImpactProps {
   onAddToday?: () => void
 }
 
-const dailyInputsKey = 'wasteGuardDailyInputs'
-
 function todayDate() {
   return new Date().toISOString().slice(0, 10)
 }
@@ -26,10 +24,9 @@ function hasTodayInput(inputRows: FoodRow[]) {
 export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAddToday }: CarbonImpactProps) {
   const t = getText(language)
   const [range, setRange] = useState<TimeRange>('month')
-  const [todaySavedFromStorage, setTodaySavedFromStorage] = useState(false)
   const [showGoalDetail, setShowGoalDetail] = useState(false)
   const impact = getImpactData(range, dailyInputs)
-  const isTodaySaved = hasTodayInput(dailyInputs) || todaySavedFromStorage
+  const isTodaySaved = hasTodayInput(dailyInputs)
   const impactTons = (impact.co2Reduced / 1000).toFixed(2)
   const goalTons = (impact.goal / 1000).toFixed(2)
   const goalPercent = Math.min(Math.round(impact.percentComplete), 100)
@@ -40,20 +37,6 @@ export function CarbonImpact({ dailyInputs = [], language, role = 'staff', onAdd
   const radius = (circleSize - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
   const progressOffset = circumference - (Math.min(impact.percentComplete, 100) / 100) * circumference
-
-  useEffect(() => {
-    const savedInputs = window.localStorage.getItem(dailyInputsKey)
-
-    if (!savedInputs) {
-      return
-    }
-
-    try {
-      setTodaySavedFromStorage(hasTodayInput(JSON.parse(savedInputs) as FoodRow[]))
-    } catch {
-      setTodaySavedFromStorage(false)
-    }
-  }, [dailyInputs])
 
   return (
     <main className="min-h-dvh w-full bg-[radial-gradient(circle_at_18%_10%,rgba(91,211,151,0.28),transparent_18rem),radial-gradient(circle_at_88%_20%,rgba(99,226,172,0.16),transparent_20rem),linear-gradient(180deg,#073f3f_0%,#0b322f_100%)] px-4 pb-28 pt-8 text-white sm:px-5 md:px-6 lg:px-8 lg:pb-8 lg:pt-7">

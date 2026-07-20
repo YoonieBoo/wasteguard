@@ -47,8 +47,6 @@ const wasteLevelMap: Record<string, string> = {
   '30+': 'High',
 }
 
-const checkResultKey = 'wasteGuardCheckResult'
-
 export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave, onViewResults }: QuickInputProps) {
   const t = getText(language)
   const [demand, setDemand] = useState<string | null>(null)
@@ -141,7 +139,6 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
     }
 
     onSave?.(newInput)
-    window.localStorage.setItem(checkResultKey, JSON.stringify(nextResult))
     setResult(nextResult)
     setSubmissionState('success')
   }
@@ -172,7 +169,6 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
       is_weekend: today.getDay() === 0 || today.getDay() === 6 ? 1 : 0,
       promotion: 0,
     })
-    window.localStorage.setItem(checkResultKey, JSON.stringify(nextResult))
     setResult(nextResult)
     setSubmissionState('saving')
   }
