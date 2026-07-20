@@ -144,7 +144,7 @@ export function DashboardHome({
         : insights.forecastChange < -5
           ? t.demandForecastDown
           : t.demandForecastSteady
-    const quality = getQualityScoreForRange(range, business.quality)
+    const quality = business.quality
     const requestedItems = getRequestedItemsForRange(bakeryItems, range, business.revenue)
     const maxRevenueBar = Math.max(1, ...business.revenueBars.flatMap((item) => [item.current, item.previous]))
     const periodTitle = range === 'day' ? t.todayPeriod : range === 'week' ? t.thisWeek : t.thisMonth
@@ -345,18 +345,21 @@ export function DashboardHome({
               <p className="wg-meta mt-2">{t.qualityScoreNote}</p>
               <div className="relative mx-auto mt-8 h-60 max-w-[24rem]">
                 <div className="quality-float-packaging absolute left-[12%] top-[7.8rem] z-20 grid h-28 w-28 place-items-center rounded-full bg-[#2f9b6f] text-center text-white shadow-[0_14px_28px_rgba(68,179,126,0.18)]">
-                  <p className="text-2xl font-black">{quality.packaging}%</p>
+                  <p className="text-2xl font-black">{quality.packaging != null ? `${quality.packaging}%` : '--'}</p>
                   <p className="text-xs font-bold">{t.packaging}</p>
                 </div>
                 <div className="quality-float-freshness absolute left-[4%] top-2 z-20 grid h-28 w-28 place-items-center rounded-full bg-[#72d2aa] text-center text-white shadow-[0_14px_28px_rgba(68,179,126,0.16)]">
-                  <p className="text-2xl font-black">{quality.freshness}%</p>
+                  <p className="text-2xl font-black">{quality.freshness != null ? `${quality.freshness}%` : '--'}</p>
                   <p className="text-xs font-bold">{t.freshness}</p>
                 </div>
                 <div className="quality-float-taste absolute right-[4%] top-10 z-30 grid h-40 w-40 place-items-center rounded-full bg-[#145c43] text-center text-white shadow-[0_18px_32px_rgba(68,179,126,0.2)]">
-                  <p className="text-4xl font-black">{quality.taste}%</p>
+                  <p className="text-4xl font-black">{quality.taste != null ? `${quality.taste}%` : '--'}</p>
                   <p className="text-sm font-bold">{t.taste}</p>
                 </div>
               </div>
+              {(quality.freshness == null || quality.taste == null || quality.packaging == null) && (
+                <p className="wg-meta mt-4">{t.qualityScoreNoDataNote}</p>
+              )}
             </section>
 
             <section className="border-t border-secondary/80 p-5 md:p-6 xl:border-t-0">
@@ -807,22 +810,6 @@ function getRequestedItemsForRange(bakeryItems: BakeryItem[], range: TimeRange, 
   }))
 }
 
-function getQualityScoreForRange(
-  range: TimeRange,
-  quality: { freshness: number; taste: number; packaging: number },
-) {
-  const adjustment = range === 'day' ? { freshness: -2, taste: 1, packaging: -1 } : range === 'week' ? { freshness: 0, taste: 0, packaging: 0 } : { freshness: 2, taste: -1, packaging: 1 }
-
-  return {
-    freshness: clampQuality(quality.freshness + adjustment.freshness),
-    taste: clampQuality(quality.taste + adjustment.taste),
-    packaging: clampQuality(quality.packaging + adjustment.packaging),
-  }
-}
-
-function clampQuality(value: number) {
-  return Math.min(98, Math.max(78, value))
-}
 
 function getDemandSegments(demand: {
   morning: number

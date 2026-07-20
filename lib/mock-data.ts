@@ -52,10 +52,13 @@ export type BusinessDashboardData = {
     dominant: 'morning' | 'afternoon' | 'evening'
     dominantOrders: number
   }
+  // null means there isn't enough of the right kind of data to compute this
+  // metric honestly (e.g. a sales-only import with no prepared-quantity
+  // column) — the UI should show "not enough data" rather than a number.
   quality: {
-    freshness: number
-    taste: number
-    packaging: number
+    freshness: number | null
+    taste: number | null
+    packaging: number | null
   }
 }
 
@@ -342,6 +345,13 @@ export function getBusinessDashboardData(range: TimeRange, inputRows: FoodRow[] 
   const averageWaste = safeAverage(currentRows.map((row) => row.waste_percent))
   const averageLeftover = safeAverage(currentRows.map((row) => row.leftover))
 
+  // A sales-only import (no prepared_quantity column) leaves food_prepared/
+  // waste_percent at 0 for every row — that's not "0% waste", it's "unknown".
+  // Only compute each metric when the data it actually depends on exists.
+  const hasPreparedSignal = currentRows.some((row) => row.food_prepared > 0)
+  const hasSoldSignal = currentRows.some((row) => row.food_sold > 0)
+  const hasLeftoverSignal = currentRows.some((row) => row.leftover > 0)
+
   return {
     revenue,
     previousRevenue,
@@ -360,9 +370,9 @@ export function getBusinessDashboardData(range: TimeRange, inputRows: FoodRow[] 
       dominantOrders: demandEntries[0]?.orders ?? 0,
     },
     quality: {
-      freshness: clamp(Math.round(96 - averageWaste * 0.65), 72, 98),
-      taste: clamp(Math.round(78 + soldRate * 20), 72, 98),
-      packaging: clamp(Math.round(97 - averageLeftover * 0.45), 72, 98),
+      freshness: hasPreparedSignal ? clamp(Math.round(96 - averageWaste * 0.65), 72, 98) : null,
+      taste: hasPreparedSignal && hasSoldSignal ? clamp(Math.round(78 + soldRate * 20), 72, 98) : null,
+      packaging: hasPreparedSignal || hasLeftoverSignal ? clamp(Math.round(97 - averageLeftover * 0.45), 72, 98) : null,
     },
   }
 }
