@@ -65,10 +65,14 @@ function dateValue(date: string) {
   return new Date(date).getTime()
 }
 
+// Falls back to the bundled demo dataset only when there's no real data yet
+// (e.g. a brand-new account) — every function below this one previously
+// ignored inputRows unconditionally and always showed the mock dataset,
+// regardless of what real data existed.
 export function getSortedRows(inputRows: FoodRow[] = []) {
-  void inputRows
+  const source = inputRows.length > 0 ? inputRows : rows
 
-  return [...rows].sort((a, b) => dateValue(b.date) - dateValue(a.date))
+  return [...source].sort((a, b) => dateValue(b.date) - dateValue(a.date))
 }
 
 function getDemoRows(inputRows: FoodRow[] = []) {
