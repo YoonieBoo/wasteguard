@@ -2,28 +2,31 @@
 
 import { Button } from '@/components/ui/button'
 import type { ImportSummary } from '@/lib/onboarding/types'
+import { getText, type Language } from '@/lib/i18n'
 
 interface SetupCompleteStepProps {
+  language: Language
   summary: ImportSummary
   onContinue: () => void
   onAddMoreData: () => void
 }
 
-export function SetupCompleteStep({ summary, onContinue, onAddMoreData }: SetupCompleteStepProps) {
+export function SetupCompleteStep({ language, summary, onContinue, onAddMoreData }: SetupCompleteStepProps) {
+  const t = getText(language)
   const readiness =
     summary.distinctDayCount >= 30
-      ? 'Forecasting and recommendations available.'
+      ? t.readinessForecast
       : summary.distinctDayCount >= 7
-        ? 'Early insights available.'
-        : 'Basic tracking available.'
+        ? t.readinessEarly
+        : t.readinessBasic
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Stat label="Rows imported" value={summary.importedRows} />
-        <Stat label="Menu items found" value={summary.menuItemCount} />
-        <Stat label="Days found" value={summary.distinctDayCount} />
-        <Stat label="Rows skipped" value={summary.skippedRows} />
+        <Stat label={t.statRowsImported} value={summary.importedRows} />
+        <Stat label={t.statMenuItemsFound} value={summary.menuItemCount} />
+        <Stat label={t.statDaysFound} value={summary.distinctDayCount} />
+        <Stat label={t.statRowsSkipped} value={summary.skippedRows} />
       </div>
 
       <div className="rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
@@ -35,14 +38,14 @@ export function SetupCompleteStep({ summary, onContinue, onAddMoreData }: SetupC
         onClick={onContinue}
         className="wg-action w-full bg-primary text-primary-foreground hover:bg-primary/90"
       >
-        Continue to Dashboard
+        {t.continueToDashboard}
       </Button>
       <button
         type="button"
         onClick={onAddMoreData}
         className="h-[3.25rem] w-full rounded-[0.5rem] bg-secondary/70 text-sm font-black text-foreground shadow-sm hover:bg-secondary sm:text-base"
       >
-        Add more data
+        {t.addMoreData}
       </button>
     </div>
   )

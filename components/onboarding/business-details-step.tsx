@@ -4,8 +4,20 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { getText, type Language } from '@/lib/i18n'
 
-const BUSINESS_TYPES = ['Restaurant', 'Hotel', 'Café', 'Bakery', 'Food Stall', 'Other']
+// Values stay in English (stored as-is in bakeries.business_type) — only the
+// displayed label is translated, via BUSINESS_TYPE_LABEL_KEYS below.
+const BUSINESS_TYPES = ['Restaurant', 'Hotel', 'Café', 'Bakery', 'Food Stall', 'Other'] as const
+
+const BUSINESS_TYPE_LABEL_KEYS: Record<(typeof BUSINESS_TYPES)[number], 'businessTypeRestaurant' | 'businessTypeHotel' | 'businessTypeCafe' | 'businessTypeBakeryType' | 'businessTypeFoodStall' | 'businessTypeOther'> = {
+  Restaurant: 'businessTypeRestaurant',
+  Hotel: 'businessTypeHotel',
+  Café: 'businessTypeCafe',
+  Bakery: 'businessTypeBakeryType',
+  'Food Stall': 'businessTypeFoodStall',
+  Other: 'businessTypeOther',
+}
 
 export type BusinessDetailsFormValues = {
   businessName: string
@@ -17,13 +29,15 @@ export type BusinessDetailsFormValues = {
 }
 
 interface BusinessDetailsStepProps {
+  language: Language
   initialValues: BusinessDetailsFormValues
   isSaving: boolean
   error: string
   onContinue: (values: BusinessDetailsFormValues) => void
 }
 
-export function BusinessDetailsStep({ initialValues, isSaving, error, onContinue }: BusinessDetailsStepProps) {
+export function BusinessDetailsStep({ language, initialValues, isSaving, error, onContinue }: BusinessDetailsStepProps) {
+  const t = getText(language)
   const [values, setValues] = useState(initialValues)
 
   function update<K extends keyof BusinessDetailsFormValues>(key: K, value: string) {
@@ -49,29 +63,29 @@ export function BusinessDetailsStep({ initialValues, isSaving, error, onContinue
       <div className="space-y-3">
         <div>
           <label className="wg-label mb-1.5 block" htmlFor="business-name">
-            Business name
+            {t.businessNameLabel}
           </label>
           <Input
             id="business-name"
             value={values.businessName}
             onChange={(event) => update('businessName', event.target.value)}
-            placeholder="e.g. Green Leaf Restaurant"
+            placeholder={t.businessNamePlaceholder}
             className="wg-control border-secondary bg-white"
           />
         </div>
 
         <div>
           <label className="wg-label mb-1.5 block" htmlFor="business-type">
-            Business type
+            {t.businessTypeLabel}
           </label>
           <Select value={values.businessType} onValueChange={(value) => update('businessType', value)}>
             <SelectTrigger id="business-type" className="wg-control w-full border-secondary bg-white">
-              <SelectValue placeholder="Select a type" />
+              <SelectValue placeholder={t.businessTypePlaceholder} />
             </SelectTrigger>
             <SelectContent>
               {BUSINESS_TYPES.map((type) => (
                 <SelectItem key={type} value={type}>
-                  {type}
+                  {t[BUSINESS_TYPE_LABEL_KEYS[type]]}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -81,7 +95,7 @@ export function BusinessDetailsStep({ initialValues, isSaving, error, onContinue
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="wg-label mb-1.5 block" htmlFor="branches">
-              Number of branches
+              {t.numberOfBranchesLabel}
             </label>
             <Input
               id="branches"
@@ -96,7 +110,7 @@ export function BusinessDetailsStep({ initialValues, isSaving, error, onContinue
           </div>
           <div>
             <label className="wg-label mb-1.5 block" htmlFor="staff">
-              Number of staff
+              {t.numberOfStaffLabel}
             </label>
             <Input
               id="staff"
@@ -113,20 +127,20 @@ export function BusinessDetailsStep({ initialValues, isSaving, error, onContinue
 
         <div>
           <label className="wg-label mb-1.5 block" htmlFor="hours">
-            Operating hours
+            {t.operatingHoursLabel}
           </label>
           <Input
             id="hours"
             value={values.operatingHours}
             onChange={(event) => update('operatingHours', event.target.value)}
-            placeholder="e.g. 9:00 AM - 10:00 PM"
+            placeholder={t.operatingHoursPlaceholder}
             className="wg-control border-secondary bg-white"
           />
         </div>
 
         <div>
           <label className="wg-label mb-1.5 block" htmlFor="seating">
-            Seating capacity (optional)
+            {t.seatingCapacityLabel}
           </label>
           <Input
             id="seating"
@@ -135,7 +149,7 @@ export function BusinessDetailsStep({ initialValues, isSaving, error, onContinue
             inputMode="numeric"
             value={values.seatingCapacity}
             onChange={(event) => update('seatingCapacity', event.target.value)}
-            placeholder="e.g. 40"
+            placeholder={t.seatingCapacityPlaceholder}
             className="wg-control border-secondary bg-white"
           />
         </div>
@@ -148,7 +162,7 @@ export function BusinessDetailsStep({ initialValues, isSaving, error, onContinue
         disabled={!canContinue || isSaving}
         className="wg-action mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-45"
       >
-        {isSaving ? 'Saving...' : 'Continue'}
+        {isSaving ? t.savingEllipsis : t.continueButton}
       </Button>
     </form>
   )

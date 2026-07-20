@@ -4,14 +4,17 @@ import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ACCEPTED_EXTENSIONS, validateFileBeforeParse } from '@/lib/onboarding/parse-file'
 import { downloadSampleTemplate } from '@/lib/onboarding/sample-template'
+import { getText, type Language } from '@/lib/i18n'
 
 interface ImportChoiceStepProps {
+  language: Language
   onFileSelected: (file: File) => void
   onStartManually: () => void
   isProcessing: boolean
 }
 
-export function ImportChoiceStep({ onFileSelected, onStartManually, isProcessing }: ImportChoiceStepProps) {
+export function ImportChoiceStep({ language, onFileSelected, onStartManually, isProcessing }: ImportChoiceStepProps) {
+  const t = getText(language)
   const [error, setError] = useState('')
   const [isDragging, setIsDragging] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -44,8 +47,8 @@ export function ImportChoiceStep({ onFileSelected, onStartManually, isProcessing
           isDragging ? 'border-primary bg-secondary/40' : 'border-secondary bg-secondary/20'
         }`}
       >
-        <p className="wg-card-title">Import existing data</p>
-        <p className="wg-body mt-1">Drag and drop a file here, or choose one from your computer.</p>
+        <p className="wg-card-title">{t.importExistingData}</p>
+        <p className="wg-body mt-1">{t.importDragDrop}</p>
 
         <input
           ref={inputRef}
@@ -60,16 +63,16 @@ export function ImportChoiceStep({ onFileSelected, onStartManually, isProcessing
           disabled={isProcessing}
           className="wg-action mt-4 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-45 sm:w-auto sm:px-8"
         >
-          {isProcessing ? 'Reading file...' : 'Choose file'}
+          {isProcessing ? t.readingFile : t.chooseFile}
         </Button>
 
-        <p className="wg-meta mt-3">Supported formats: .csv, .xlsx, .xls (up to 5 MB)</p>
+        <p className="wg-meta mt-3">{t.supportedFormats}</p>
         <button
           type="button"
           onClick={downloadSampleTemplate}
           className="mt-2 text-xs font-black text-primary underline underline-offset-2"
         >
-          Download sample template
+          {t.downloadSampleTemplateLabel}
         </button>
 
         {error && <p className="mt-3 text-sm font-bold text-destructive">{error}</p>}
@@ -77,7 +80,7 @@ export function ImportChoiceStep({ onFileSelected, onStartManually, isProcessing
 
       <div className="flex items-center gap-3">
         <div className="h-px flex-1 bg-secondary" />
-        <span className="wg-meta">or</span>
+        <span className="wg-meta">{t.orDivider}</span>
         <div className="h-px flex-1 bg-secondary" />
       </div>
 
@@ -87,8 +90,8 @@ export function ImportChoiceStep({ onFileSelected, onStartManually, isProcessing
         disabled={isProcessing}
         className="w-full rounded-[0.75rem] bg-secondary/70 p-4 text-left shadow-sm transition hover:bg-secondary disabled:opacity-45"
       >
-        <p className="wg-card-title">Start manually</p>
-        <p className="wg-body mt-1">Skip the upload — enter daily data in Waste Guard whenever you&apos;re ready.</p>
+        <p className="wg-card-title">{t.startManuallyTitle}</p>
+        <p className="wg-body mt-1">{t.startManuallyNote}</p>
       </button>
     </div>
   )

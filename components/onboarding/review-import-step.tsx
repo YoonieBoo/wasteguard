@@ -3,12 +3,14 @@
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { WASTE_GUARD_FIELDS, REQUIRED_FIELDS, type ColumnMapping, type ImportSummary, type ParsedFile } from '@/lib/onboarding/types'
-import { FIELD_LABELS, autoDetectColumnMapping } from '@/lib/onboarding/field-mapping'
+import { WASTE_GUARD_FIELDS, REQUIRED_FIELDS, type ColumnMapping, type ImportSummary, type ParsedFile, type WasteGuardField } from '@/lib/onboarding/types'
+import { autoDetectColumnMapping } from '@/lib/onboarding/field-mapping'
 import { buildValidatedRows, summarizeValidation, getImportableRows } from '@/lib/onboarding/validate-rows'
 import { importValidatedRows, type ImportProgress } from '@/lib/onboarding/import-data'
+import { getText, type Language } from '@/lib/i18n'
 
 interface ReviewImportStepProps {
+  language: Language
   parsedFile: ParsedFile
   businessId: string
   onCancel: () => void
@@ -16,7 +18,20 @@ interface ReviewImportStepProps {
   onImported: (summary: ImportSummary) => void
 }
 
-export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFile, onImported }: ReviewImportStepProps) {
+export function ReviewImportStep({ language, parsedFile, businessId, onCancel, onChangeFile, onImported }: ReviewImportStepProps) {
+  const t = getText(language)
+  const FIELD_LABELS: Record<WasteGuardField, string> = {
+    date: t.fieldDate,
+    menu_item: t.fieldMenuItem,
+    category: t.fieldCategory,
+    prepared_quantity: t.fieldPreparedQuantity,
+    sold_quantity: t.fieldSoldQuantity,
+    leftover_quantity: t.fieldLeftoverQuantity,
+    waste_quantity: t.fieldWasteQuantity,
+    unit: t.fieldUnit,
+    unit_cost: t.fieldUnitCost,
+    selling_price: t.fieldSellingPrice,
+  }
   const [mapping, setMapping] = useState<ColumnMapping>(() => autoDetectColumnMapping(parsedFile.headers))
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [progress, setProgress] = useState<ImportProgress | null>(null)
@@ -47,7 +62,7 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
       })
       onImported(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed. Please try again.')
+      setError(err instanceof Error ? err.message : t.importFailedError)
       setIsSubmitting(false)
     }
   }
@@ -59,27 +74,28 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
       <div className="rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
         <p className="wg-card-title">
           {skippedCount === 0
-            ? `${summary.validRows} of ${summary.totalRows} rows are ready to import.`
-            : `${summary.validRows} of ${summary.totalRows} rows are ready to import — ${skippedCount} will be skipped.`}
+            ? t.rowsReadyToImport.replace('{valid}', String(summary.validRows)).replace('{total}', String(summary.totalRows))
+            : t.rowsReadyToImportWithSkipped
+                .replace('{valid}', String(summary.validRows))
+                .replace('{total}', String(summary.totalRows))
+                .replace('{skipped}', String(skippedCount))}
         </p>
         <p className="wg-body mt-1">
-          {skippedCount === 0
-            ? "Waste Guard matched your file's columns automatically."
-            : 'Some rows had missing or invalid data and will be skipped automatically.'}
+          {skippedCount === 0 ? t.columnsMatchedAuto : t.someRowsInvalidNote}
         </p>
         <button
           type="button"
           onClick={() => setShowDetails((current) => !current)}
           className="mt-3 text-xs font-black text-primary underline underline-offset-2"
         >
-          {showDetails ? 'Hide column mapping & row details' : 'Show column mapping & row details'}
+          {showDetails ? t.hideColumnMapping : t.showColumnMapping}
         </button>
       </div>
 
       {showDetails && (
         <>
           <div className="rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
-            <p className="wg-card-title mb-3">Match your columns</p>
+            <p className="wg-card-title mb-3">{t.matchYourColumns}</p>
             <div className="space-y-2.5">
               {WASTE_GUARD_FIELDS.map((field) => (
                 <div key={field} className="flex items-center justify-between gap-3">
@@ -89,10 +105,10 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
                   </label>
                   <Select value={mapping[field] ?? '__none__'} onValueChange={(value) => updateMapping(field, value)}>
                     <SelectTrigger className="h-10 w-[55%] border-secondary bg-white text-xs font-bold">
-                      <SelectValue placeholder="Not mapped" />
+                      <SelectValue placeholder={t.notMapped} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__none__">Not mapped</SelectItem>
+                      <SelectItem value="__none__">{t.notMapped}</SelectItem>
                       {parsedFile.headers.map((header) => (
                         <SelectItem key={header} value={header}>
                           {header}
@@ -106,10 +122,10 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <SummaryChip label="Valid rows" value={summary.validRows} tone="good" />
-            <SummaryChip label="Invalid rows" value={summary.invalidRows} tone="bad" />
-            <SummaryChip label="Duplicates" value={summary.duplicateRows} tone="warn" />
-            <SummaryChip label="Total rows" value={summary.totalRows} tone="neutral" />
+            <SummaryChip label={t.validRowsLabel} value={summary.validRows} tone="good" />
+            <SummaryChip label={t.invalidRowsLabel} value={summary.invalidRows} tone="bad" />
+            <SummaryChip label={t.duplicatesLabel} value={summary.duplicateRows} tone="warn" />
+            <SummaryChip label={t.totalRowsLabel} value={summary.totalRows} tone="neutral" />
           </div>
 
           {(summary.missingRequiredCount > 0 ||
@@ -117,11 +133,11 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
             summary.soldExceedsPreparedCount > 0 ||
             summary.invalidDateCount > 0) && (
             <div className="space-y-1 rounded-[0.75rem] bg-white p-4 text-sm font-bold text-muted-foreground shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
-              {summary.missingRequiredCount > 0 && <p>• {summary.missingRequiredCount} row(s) missing a required field</p>}
-              {summary.invalidDateCount > 0 && <p>• {summary.invalidDateCount} row(s) with an invalid date</p>}
-              {summary.negativeQuantityCount > 0 && <p>• {summary.negativeQuantityCount} row(s) with a negative quantity</p>}
+              {summary.missingRequiredCount > 0 && <p>• {summary.missingRequiredCount} {t.missingRequiredFieldNote}</p>}
+              {summary.invalidDateCount > 0 && <p>• {summary.invalidDateCount} {t.invalidDateNote}</p>}
+              {summary.negativeQuantityCount > 0 && <p>• {summary.negativeQuantityCount} {t.negativeQuantityNote}</p>}
               {summary.soldExceedsPreparedCount > 0 && (
-                <p>• {summary.soldExceedsPreparedCount} row(s) where sold is greater than prepared (still imported)</p>
+                <p>• {summary.soldExceedsPreparedCount} {t.soldExceedsPreparedNote}</p>
               )}
             </div>
           )}
@@ -130,12 +146,12 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
             <table className="w-full min-w-[560px] text-left text-xs">
               <thead>
                 <tr className="border-b border-secondary text-muted-foreground">
-                  <th className="px-3 py-2 font-black">Status</th>
-                  <th className="px-3 py-2 font-black">Date</th>
-                  <th className="px-3 py-2 font-black">Menu Item</th>
-                  <th className="px-3 py-2 font-black">Prepared</th>
-                  <th className="px-3 py-2 font-black">Sold</th>
-                  <th className="px-3 py-2 font-black">Leftover</th>
+                  <th className="px-3 py-2 font-black">{t.tableStatus}</th>
+                  <th className="px-3 py-2 font-black">{t.tableDate}</th>
+                  <th className="px-3 py-2 font-black">{t.tableMenuItem}</th>
+                  <th className="px-3 py-2 font-black">{t.tablePrepared}</th>
+                  <th className="px-3 py-2 font-black">{t.tableSold}</th>
+                  <th className="px-3 py-2 font-black">{t.tableLeftover}</th>
                 </tr>
               </thead>
               <tbody>
@@ -151,7 +167,7 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
                               : 'bg-red-100 text-red-700'
                         }`}
                       >
-                        {row.validation.isDuplicate ? 'Duplicate' : row.validation.isValid ? 'Valid' : 'Invalid'}
+                        {row.validation.isDuplicate ? t.rowDuplicate : row.validation.isValid ? t.rowValid : t.rowInvalid}
                       </span>
                     </td>
                     <td className="px-3 py-2">{row.normalized.date ?? '—'}</td>
@@ -165,7 +181,7 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
             </table>
           </div>
           <p className="wg-meta">
-            Showing first {previewRows.length} of {summary.totalRows} rows. Invalid and duplicate rows are skipped automatically.
+            {t.showingFirstRows.replace('{shown}', String(previewRows.length)).replace('{total}', String(summary.totalRows))}
           </p>
         </>
       )}
@@ -173,9 +189,9 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
       {isSubmitting && progress && (
         <div className="rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
           <p className="wg-meta mb-2">
-            {progress.phase === 'menu-items' && 'Saving menu items...'}
-            {progress.phase === 'daily-operations' && 'Saving historical data...'}
-            {progress.phase === 'finalizing' && 'Finishing up...'}
+            {progress.phase === 'menu-items' && t.savingMenuItems}
+            {progress.phase === 'daily-operations' && t.savingHistoricalData}
+            {progress.phase === 'finalizing' && t.finishingUp}
           </p>
           <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
             <div
@@ -196,7 +212,7 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
           disabled={isSubmitting}
           className="h-[3.25rem] flex-1 rounded-[0.5rem] bg-white text-sm font-black text-foreground shadow-sm hover:bg-secondary"
         >
-          Cancel
+          {t.cancelButton}
         </Button>
         <Button
           type="button"
@@ -205,7 +221,7 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
           disabled={isSubmitting}
           className="h-[3.25rem] flex-1 rounded-[0.5rem] bg-white text-sm font-black text-foreground shadow-sm hover:bg-secondary"
         >
-          Change file
+          {t.changeFileButton}
         </Button>
         <Button
           type="button"
@@ -213,7 +229,7 @@ export function ReviewImportStep({ parsedFile, businessId, onCancel, onChangeFil
           disabled={isSubmitting || importableRows.length === 0}
           className="h-[3.25rem] flex-1 rounded-[0.5rem] bg-primary text-sm font-black text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-45"
         >
-          {isSubmitting ? 'Importing...' : `Confirm import (${importableRows.length})`}
+          {isSubmitting ? t.importingEllipsis : t.confirmImportButton.replace('{count}', String(importableRows.length))}
         </Button>
       </div>
     </div>

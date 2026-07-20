@@ -11,8 +11,11 @@ import { ReviewImportStep } from '@/components/onboarding/review-import-step'
 import { SetupCompleteStep } from '@/components/onboarding/setup-complete-step'
 import { parseImportFile } from '@/lib/onboarding/parse-file'
 import type { ImportSummary, ParsedFile } from '@/lib/onboarding/types'
+import { getText, type Language } from '@/lib/i18n'
 
 type OnboardingStepNumber = 1 | 2 | 3 | 4
+
+const languageKey = 'wasteGuardLanguage'
 
 const EMPTY_DETAILS: BusinessDetailsFormValues = {
   businessName: '',
@@ -25,6 +28,8 @@ const EMPTY_DETAILS: BusinessDetailsFormValues = {
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const [language, setLanguage] = useState<Language>('en')
+  const t = getText(language)
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [retryCount, setRetryCount] = useState(0)
@@ -40,6 +45,17 @@ export default function OnboardingPage() {
   const [fileError, setFileError] = useState('')
   const [parsedFile, setParsedFile] = useState<ParsedFile | null>(null)
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null)
+
+  useEffect(() => {
+    const savedLanguage = window.localStorage.getItem(languageKey)
+    if (savedLanguage === 'en' || savedLanguage === 'th') setLanguage(savedLanguage)
+  }, [])
+
+  function toggleLanguage() {
+    const nextLanguage = language === 'en' ? 'th' : 'en'
+    setLanguage(nextLanguage)
+    window.localStorage.setItem(languageKey, nextLanguage)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -86,7 +102,7 @@ export default function OnboardingPage() {
         }
       } catch (error) {
         console.error('Unable to load onboarding profile', error)
-        if (!cancelled) setLoadError('Unable to load your account. Please check your connection and try again.')
+        if (!cancelled) setLoadError(t.onboardingLoadError)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -118,7 +134,7 @@ export default function OnboardingPage() {
     setIsSavingDetails(false)
 
     if (error) {
-      setDetailsError('Unable to save your business details. Please try again.')
+      setDetailsError(t.onboardingDetailsError)
       return
     }
 
@@ -135,7 +151,7 @@ export default function OnboardingPage() {
 
     if (error) {
       setIsStartingManually(false)
-      setFileError('Unable to finish setup. Please try again.')
+      setFileError(t.onboardingStartManuallyError)
       return
     }
 
@@ -148,13 +164,13 @@ export default function OnboardingPage() {
     try {
       const parsed = await parseImportFile(file)
       if (parsed.rows.length === 0) {
-        setFileError('No rows were found in this file.')
+        setFileError(t.onboardingNoRowsFound)
         return
       }
       setParsedFile(parsed)
       setStep(3)
     } catch (error) {
-      setFileError(error instanceof Error ? error.message : 'Unable to read this file. Please try another one.')
+      setFileError(error instanceof Error ? error.message : t.onboardingFileReadError)
     } finally {
       setIsParsingFile(false)
     }
@@ -179,7 +195,7 @@ export default function OnboardingPage() {
           onClick={() => setRetryCount((count) => count + 1)}
           className="h-[3.25rem] rounded-[0.5rem] bg-primary px-6 text-sm font-black text-primary-foreground shadow-sm sm:text-base"
         >
-          Try again
+          {t.onboardingTryAgain}
         </button>
       </div>
     )
@@ -198,10 +214,13 @@ export default function OnboardingPage() {
       <OnboardingShell
         step={1}
         totalSteps={4}
-        title="Tell us about your business"
-        subtitle="This helps Waste Guard tailor insights to how you operate."
+        title={t.onboardingStep1Title}
+        subtitle={t.onboardingStep1Subtitle}
+        language={language}
+        onToggleLanguage={toggleLanguage}
       >
         <BusinessDetailsStep
+          language={language}
           initialValues={detailsValues}
           isSaving={isSavingDetails}
           error={detailsError}
@@ -216,10 +235,13 @@ export default function OnboardingPage() {
       <OnboardingShell
         step={2}
         totalSteps={4}
-        title="Add your historical data"
-        subtitle="Import past records for faster insights, or start fresh — it's up to you."
+        title={t.onboardingStep2Title}
+        subtitle={t.onboardingStep2Subtitle}
+        language={language}
+        onToggleLanguage={toggleLanguage}
       >
         <ImportChoiceStep
+          language={language}
           onFileSelected={handleFileSelected}
           onStartManually={handleStartManually}
           isProcessing={isParsingFile || isStartingManually}
@@ -230,7 +252,7 @@ export default function OnboardingPage() {
           onClick={() => setStep(1)}
           className="mt-4 h-[3.25rem] w-full rounded-[0.5rem] bg-white text-sm font-black text-foreground shadow-sm hover:bg-secondary sm:text-base"
         >
-          Back
+          {t.onboardingBack}
         </button>
       </OnboardingShell>
     )
@@ -241,10 +263,13 @@ export default function OnboardingPage() {
       <OnboardingShell
         step={3}
         totalSteps={4}
-        title="Review your import"
-        subtitle="Match your columns, check for issues, then confirm."
+        title={t.onboardingStep3Title}
+        subtitle={t.onboardingStep3Subtitle}
+        language={language}
+        onToggleLanguage={toggleLanguage}
       >
         <ReviewImportStep
+          language={language}
           parsedFile={parsedFile}
           businessId={businessId}
           onCancel={backToImportChoice}
@@ -260,14 +285,19 @@ export default function OnboardingPage() {
       <OnboardingShell
         step={4}
         totalSteps={4}
-        title="Setup complete"
+        title={t.onboardingStep4Title}
         subtitle={
           importSummary.distinctDayCount > 0
-            ? `${importSummary.distinctDayCount} day${importSummary.distinctDayCount === 1 ? '' : 's'} of data imported. Waste Guard can now generate initial insights.`
-            : 'Your business is set up.'
+            ? t.onboardingStep4SubtitleWithData
+                .replace('{count}', String(importSummary.distinctDayCount))
+                .replace('{plural}', importSummary.distinctDayCount === 1 ? '' : 's')
+            : t.onboardingStep4SubtitleNoData
         }
+        language={language}
+        onToggleLanguage={toggleLanguage}
       >
         <SetupCompleteStep
+          language={language}
           summary={importSummary}
           onContinue={() => router.push('/dashboard')}
           onAddMoreData={backToImportChoice}
