@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardHome } from '@/components/dashboard-home'
 import { MenuManagement } from '@/components/menu-management'
@@ -15,7 +15,7 @@ import { getText, type Language } from '@/lib/i18n'
 import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
 import { defaultRecommendations, type Recommendation, type RecommendationStatus } from '@/lib/recommendations'
 import { transformFlaskToRecommendations, type FlaskAnalyticsResponse, type FlaskFoodPrepItem, type FlaskRecommendationsResponse } from '@/lib/ai-api'
-import { fetchBusinessMenuData, type BusinessMenuItem } from '@/lib/menu-data'
+import { deriveDailyRowsFromSalesHistory, fetchBusinessMenuData, type BusinessMenuItem } from '@/lib/menu-data'
 import { supabase } from '@/lib/supabase'
 import { ensureOwnerOrStaffProfile } from '@/lib/profile'
 
@@ -64,6 +64,17 @@ type DailyReportRow = {
   promotion: number | null
 }
 
+// Manual daily check-ins (real daily_reports rows) are more precise for any date
+// they cover — they win. CSV-derived rows fill in every other date, so the
+// dashboard reflects imported data immediately without requiring a check-in first.
+function mergeDailyRows(derived: FoodRow[], manual: FoodRow[]): FoodRow[] {
+  const byDate = new Map(derived.map((row) => [row.date, row]))
+  for (const row of manual) {
+    byDate.set(row.date, row)
+  }
+  return Array.from(byDate.values()).sort((a, b) => b.date.localeCompare(a.date))
+}
+
 function reportToFoodRow(report: DailyReportRow): FoodRow {
   return {
     date: report.report_date,
@@ -84,7 +95,14 @@ function reportToFoodRow(report: DailyReportRow): FoodRow {
 export default function DashboardPage() {
   const router = useRouter()
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('home')
-  const [dailyInputs, setDailyInputs] = useState<FoodRow[]>([])
+  // dailyInputs (below) merges these two: manual check-ins win per-date, CSV-derived
+  // rows fill in the rest — see mergeDailyRows.
+  const [realDailyReports, setRealDailyReports] = useState<FoodRow[]>([])
+  const [derivedDailyRows, setDerivedDailyRows] = useState<FoodRow[]>([])
+  const dailyInputs = useMemo(
+    () => mergeDailyRows(derivedDailyRows, realDailyReports),
+    [derivedDailyRows, realDailyReports],
+  )
   const [language, setLanguage] = useState<Language>('en')
   const [role, setRole] = useState<WasteGuardRole>('staff')
   const [authProfile, setAuthProfile] = useState<AuthProfile | null>(null)
@@ -154,7 +172,7 @@ export default function DashboardPage() {
 
     const savedInputs = window.localStorage.getItem(scopedKey(dailyInputsKey, bakeryId))
     if (savedInputs) {
-      try { setDailyInputs(JSON.parse(savedInputs) as FoodRow[]) } catch { /* ignore */ }
+      try { setRealDailyReports(JSON.parse(savedInputs) as FoodRow[]) } catch { /* ignore */ }
     }
 
     const savedApproved = window.localStorage.getItem(scopedKey(approvedItemsKey, bakeryId))
@@ -197,7 +215,7 @@ export default function DashboardPage() {
         }
 
         const reports = (data ?? []).map((report) => reportToFoodRow(report as DailyReportRow))
-        setDailyInputs(reports)
+        setRealDailyReports(reports)
         window.localStorage.setItem(scopedKey(dailyInputsKey, authProfile.bakeryId!), JSON.stringify(reports))
       })
   }, [authProfile?.bakeryId])
@@ -210,7 +228,10 @@ export default function DashboardPage() {
     }
 
     fetchBusinessMenuData(authProfile.bakeryId)
-      .then(({ menuItems }) => setBusinessMenuItems(menuItems))
+      .then(({ menuItems, salesHistory }) => {
+        setBusinessMenuItems(menuItems)
+        setDerivedDailyRows(deriveDailyRowsFromSalesHistory(salesHistory))
+      })
       .catch((error) => console.error('Unable to load menu items', error))
   }, [authProfile?.bakeryId])
 
@@ -270,10 +291,10 @@ export default function DashboardPage() {
   }, [isInitialized, role, analyticsLoaded, dailyInputs])
 
   function handleDailyInputSave(newInput: FoodRow) {
-    const nextInputs = [...dailyInputs.filter((input) => input.date !== newInput.date), newInput]
-    setDailyInputs(nextInputs)
+    const nextReports = [...realDailyReports.filter((input) => input.date !== newInput.date), newInput]
+    setRealDailyReports(nextReports)
     if (authProfile?.bakeryId) {
-      window.localStorage.setItem(scopedKey(dailyInputsKey, authProfile.bakeryId), JSON.stringify(nextInputs))
+      window.localStorage.setItem(scopedKey(dailyInputsKey, authProfile.bakeryId), JSON.stringify(nextReports))
     }
 
     if (!authProfile?.bakeryId) {

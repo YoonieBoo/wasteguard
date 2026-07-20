@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import type { FoodRow } from '@/lib/mock-data'
 
 export type MenuItemIngredient = {
   name: string
@@ -24,6 +25,8 @@ export type BusinessSalesHistoryRow = {
   prepared_quantity: number | null
   sold_quantity: number | null
   leftover_quantity: number | null
+  selling_price: number | null
+  unit_cost: number | null
 }
 
 export type BusinessMenuData = {
@@ -83,11 +86,65 @@ export async function fetchBusinessMenuData(businessId: string): Promise<Busines
         prepared_quantity: row.prepared_quantity as number | null,
         sold_quantity: row.sold_quantity as number | null,
         leftover_quantity: row.leftover_quantity as number | null,
+        selling_price: menuItem.sellingPrice,
+        unit_cost: menuItem.unitCost,
       }
     })
     .filter((row): row is BusinessSalesHistoryRow => row !== null)
 
   return { menuItems, salesHistory }
+}
+
+/**
+ * Aggregates per-dish sales history into one row per day, in the same shape
+ * the rest of the dashboard (revenue chart, demand analytics, quality score,
+ * ESG/savings pages) already consumes — so imported CSV data shows up there
+ * immediately, without requiring a separate manual daily check-in.
+ *
+ * Money-saved/CO2-saved use the same rough heuristics as a manual check-in
+ * save (see handleDailyInputSave in app/dashboard/page.tsx) since there's no
+ * more precise per-dish source for those two fields.
+ */
+export function deriveDailyRowsFromSalesHistory(salesHistory: BusinessSalesHistoryRow[]): FoodRow[] {
+  const byDate = new Map<
+    string,
+    { prepared: number; sold: number; leftover: number; revenue: number }
+  >()
+
+  for (const row of salesHistory) {
+    const entry = byDate.get(row.date) ?? { prepared: 0, sold: 0, leftover: 0, revenue: 0 }
+    const prepared = row.prepared_quantity ?? 0
+    const sold = row.sold_quantity ?? 0
+    const leftover = row.leftover_quantity ?? (row.prepared_quantity != null ? Math.max(0, prepared - sold) : 0)
+
+    entry.prepared += prepared
+    entry.sold += sold
+    entry.leftover += leftover
+    entry.revenue += sold * (row.selling_price ?? 0)
+    byDate.set(row.date, entry)
+  }
+
+  return Array.from(byDate.entries())
+    .map(([date, totals]) => {
+      const wastePercent = totals.prepared > 0 ? (totals.leftover / totals.prepared) * 100 : 0
+      const dayOfWeek = new Date(date).getDay()
+
+      return {
+        date,
+        orders: totals.sold,
+        food_prepared: totals.prepared,
+        food_sold: totals.sold,
+        leftover: totals.leftover,
+        waste_percent: Number(wastePercent.toFixed(2)),
+        money_saved: Math.round(Math.max(0, totals.sold - totals.leftover) * 12),
+        co2_saved: Number((totals.sold * (1 - wastePercent / 100) * 0.1).toFixed(2)),
+        revenue: Math.round(totals.revenue),
+        weather: 'sunny',
+        is_weekend: dayOfWeek === 0 || dayOfWeek === 6 ? 1 : 0,
+        promotion: 0,
+      }
+    })
+    .sort((a, b) => b.date.localeCompare(a.date))
 }
 
 /** Owner-facing list for the Menu tab — no daily_operations join needed. */
