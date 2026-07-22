@@ -585,7 +585,7 @@ export default function DashboardPage() {
         />
       )}
 
-      {showMorningBriefing && role === 'owner' && pendingCount > 0 && (
+      {showMorningBriefing && role === 'owner' && pendingCount > 0 && aiRecsLoaded && (
         <RecommendationsPreviewModal
           language={language}
           recommendations={pendingRecommendations}
