@@ -245,11 +245,14 @@ export default function DashboardPage() {
     }
   }, [currentScreen, role])
 
-  // Fetch AI recommendations from the Python engine (owner only).
+  // Fetch AI recommendations from the Python engine — both owner and staff run this
+  // independently against the same real bakery data (menu_items/daily_operations/daily_reports
+  // are all team-readable), so staff's Kitchen Prep quantities aren't stuck at 0 waiting on
+  // an owner's browser-local "accepted" state that never leaves their device.
   // POSTs real dailyInputs so the full pipeline runs on actual bakery data.
   // Falls back to mock recommendations silently if the engine is offline.
   useEffect(() => {
-    if (!isInitialized || role !== 'owner' || aiRecsLoaded || !authProfile?.bakeryId || !menuDataLoaded) return
+    if (!isInitialized || aiRecsLoaded || !authProfile?.bakeryId || !menuDataLoaded) return
     const bakeryId = authProfile.bakeryId
 
     fetch('/api/recommendations', {
@@ -265,6 +268,7 @@ export default function DashboardPage() {
       .then((data: FlaskRecommendationsResponse | null) => {
         if (!data || 'error' in data) return
         setRawFoodPrepItems(data.food_preparation_recommendations ?? [])
+        if (role !== 'owner') return
         const pricingByName = Object.fromEntries(
           businessMenuItems
             .filter((item) => item.unitCost != null && item.sellingPrice != null)
