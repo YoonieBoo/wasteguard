@@ -45,6 +45,10 @@ export type BakeryItem = {
   wasteRisk: WasteRisk
   ingredients: string[]
   ingredientUsage: IngredientEstimate[]
+  // Real dishes only — raw per-portion amounts, kept alongside ingredientUsage
+  // (which is pre-scaled to prepQuantity) so callers can rescale if prepQuantity
+  // changes after a manager approves/modifies a different quantity.
+  ingredientsPerPortion?: { name: string; quantityPerPortion: number; unit: string }[]
   preparationNote: string
 }
 
@@ -314,6 +318,7 @@ export function buildRealBakeryItems(menuItems: RealMenuItemInput[], foodPrepIte
   const items: BakeryItem[] = menuItems.map((menuItem) => {
     const match = foodPrepByName.get(menuItem.name.trim().toLowerCase())
     const ingredients = menuItem.ingredients ?? []
+    const prepQuantity = match?.final_prep_recommendation ?? 0
 
     return {
       fileName: menuItem.id,
@@ -321,12 +326,18 @@ export function buildRealBakeryItems(menuItems: RealMenuItemInput[], foodPrepIte
       imageSrc: menuItem.imageUrl ?? null,
       category: menuItem.category ?? match?.category ?? 'Uncategorized',
       demandRank: 0,
-      prepQuantity: match?.final_prep_recommendation ?? 0,
+      prepQuantity,
       prepUnit: menuItem.unit ?? 'portions',
       demandLevel: match ? normalizeDemandLevel(match.demand_status) : 'Medium Demand',
       wasteRisk: match ? normalizeWasteRisk(match.waste_risk_status) : 'Low waste risk',
       ingredients: ingredients.map((i) => i.name),
-      ingredientUsage: ingredients.map((i) => ({ name: i.name, amount: `${i.quantityPerPortion} ${i.unit}` })),
+      // Scaled to today's prep quantity, not just the per-portion recipe amount —
+      // so "34 bowls of Tom Yum Soup" shows the ingredients needed for all 34, not 1.
+      ingredientUsage: ingredients.map((i) => ({
+        name: i.name,
+        amount: `${parseFloat((i.quantityPerPortion * prepQuantity).toFixed(2))} ${i.unit}`,
+      })),
+      ingredientsPerPortion: ingredients,
       preparationNote: '',
     }
   })

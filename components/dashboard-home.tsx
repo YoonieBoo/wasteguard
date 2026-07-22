@@ -101,10 +101,23 @@ export function DashboardHome({
   // an approved dish only jumps to the front if its (possibly owner-modified)
   // quantity is genuinely the highest, same as any other dish.
   const effectiveBakeryItems = bakeryItems
-    .map((item) => ({
-      ...item,
-      prepQuantity: approvedOverrides[item.fileName] ?? item.prepQuantity,
-    }))
+    .map((item) => {
+      const effectiveQuantity = approvedOverrides[item.fileName] ?? item.prepQuantity
+      const isOverridden = effectiveQuantity !== item.prepQuantity
+      return {
+        ...item,
+        prepQuantity: effectiveQuantity,
+        // Rescale ingredient totals to the overridden quantity so a manager's
+        // modified portion count (not just the AI default) drives what staff prep.
+        ingredientUsage:
+          isOverridden && item.ingredientsPerPortion && item.ingredientsPerPortion.length > 0
+            ? item.ingredientsPerPortion.map((i) => ({
+                name: i.name,
+                amount: `${parseFloat((i.quantityPerPortion * effectiveQuantity).toFixed(2))} ${i.unit}`,
+              }))
+            : item.ingredientUsage,
+      }
+    })
     .sort((a, b) => b.prepQuantity - a.prepQuantity)
   const [featuredBakeryItem, ...supportingBakeryItems] = effectiveBakeryItems
   void supportingBakeryItems
