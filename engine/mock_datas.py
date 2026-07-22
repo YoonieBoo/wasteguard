@@ -155,15 +155,64 @@ import pandas as pd
 _pipeline_override = {}  # holds transformed real data between request calls
 
 
-def set_pipeline_data(daily_inputs_raw=None):
+def set_pipeline_data(daily_inputs_raw=None, menu_items_raw=None, sales_history_raw=None):
     """
-    Inject real bakery data (Next.js FoodRow[]) into the pipeline.
-    Call with None or empty list to reset to mock data.
+    Inject real business data into the pipeline for this request. Call with no
+    args (or all empty) to reset to mock data. Each request resets the whole
+    override, then sets whichever of the three pieces were actually provided.
     """
+    _pipeline_override.clear()
+
     if daily_inputs_raw and len(daily_inputs_raw) > 0:
         _pipeline_override["daily_operations"] = _transform_bakery_inputs(daily_inputs_raw)
-    else:
-        _pipeline_override.clear()
+
+    if menu_items_raw and len(menu_items_raw) > 0:
+        _pipeline_override["menu_items"] = _transform_menu_items(menu_items_raw)
+
+    if sales_history_raw and len(sales_history_raw) > 0:
+        _pipeline_override["sales_history"] = _transform_sales_history(sales_history_raw)
+
+
+def _transform_menu_items(items):
+    """
+    Convert Next.js BusinessMenuItem[] → the menu_sales-shaped records
+    get_menu_items()/get_today_input() expect.
+    """
+    result = []
+    for item in items:
+        result.append({
+            "menu":          item.get("name") or "Unknown",
+            "category":      item.get("category") or "Uncategorized",
+            "food_cost":     float(item.get("unitCost") or 0),
+            "selling_price": float(item.get("sellingPrice") or 0),
+        })
+    return result
+
+
+def _transform_sales_history(rows):
+    """
+    Convert Next.js BusinessSalesHistoryRow[] → the flat per-dish-per-day
+    records get_sales_history() expects. Weather/promotion aren't tracked
+    per dish, so they're estimated the same way _transform_bakery_inputs
+    already does for daily-aggregate data.
+    """
+    result = []
+    for row in rows:
+        date_str = row.get("date", "")
+        try:
+            day_name = datetime.datetime.strptime(date_str, "%Y-%m-%d").strftime("%A")
+        except Exception:
+            day_name = "Monday"
+
+        result.append({
+            "date":          date_str,
+            "menu_item":     row.get("menu_item") or "Unknown",
+            "day_of_week":   day_name,
+            "weather":       "Sunny",
+            "promotion":     0,
+            "sold_quantity": float(row.get("sold_quantity") or 0),
+        })
+    return result
 
 
 def _transform_bakery_inputs(rows):
@@ -239,7 +288,8 @@ def get_daily_operations():
 
 
 def get_menu_items():
-    df = pd.DataFrame(menu_sales)
+    source = _pipeline_override.get("menu_items") or menu_sales
+    df = pd.DataFrame(source)
     df = df.rename(columns={
         "menu":          "menu_item",
         "selling_price": "selling_price_thb",
@@ -249,6 +299,10 @@ def get_menu_items():
 
 
 def get_sales_history():
+    override = _pipeline_override.get("sales_history")
+    if override:
+        return pd.DataFrame(override)
+
     ops = _pipeline_override.get("daily_operations") or daily_operations
     rows = []
     for day in ops:
@@ -265,6 +319,7 @@ def get_sales_history():
 
 
 def get_today_input():
+    source_items = _pipeline_override.get("menu_items") or menu_sales
     ops = _pipeline_override.get("daily_operations") or daily_operations
     # Use the most recent day's context for today's forecast
     if ops:
@@ -276,7 +331,7 @@ def get_today_input():
         today_day, today_wx, today_promo = "Friday", "Sunny", 1
 
     rows = []
-    for item in menu_sales:
+    for item in source_items:
         rows.append({
             "menu_item":   item["menu"],
             "category":    item["category"],

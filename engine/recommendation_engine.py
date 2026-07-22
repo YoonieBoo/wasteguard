@@ -2,6 +2,7 @@ import math
 
 from mock_datas import (
     get_sales_history,
+    get_menu_items,
     industry_benchmarks,
     utility_rates,
     carbon_factors
@@ -54,6 +55,13 @@ def get_waste_risk_status(row):
 
 
 def generate_food_prep_recommendations():
+    # A real business with very little logged history can't train a useful
+    # per-dish forecast — better to show nothing than a low-confidence guess.
+    sales = get_sales_history()
+    menu = get_menu_items()
+    if sales.empty or menu.empty or sales["date"].nunique() < 2:
+        return []
+
     forecast = generate_menu_demand_forecast()
 
     forecast["safety_buffer"] = forecast.apply(calculate_safety_buffer, axis=1)

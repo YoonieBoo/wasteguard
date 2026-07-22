@@ -87,16 +87,22 @@ def get_recommendations():
     """
     GET  → recommendations from mock data (demo / fallback)
     POST → full pipeline: Company data → Analytics → AI Insight → Recommendations
-           body: { "daily_inputs": FoodRow[] }
+           body: { "daily_inputs": FoodRow[], "menu_items"?: BusinessMenuItem[],
+                   "sales_history"?: BusinessSalesHistoryRow[] }
 
     Flow:
       set_pipeline_data() injects real bakery data into mock_datas.py.
       All engines (analytics, insight, recommendation) call get_daily_operations(),
-      get_sales_history(), get_today_input() which now return the real data.
+      get_sales_history(), get_today_input(), get_menu_items() which now return
+      the real data when menu_items/sales_history are provided.
     """
     if request.method == "POST":
         body = request.get_json() or {}
-        set_pipeline_data(body.get("daily_inputs", []))
+        set_pipeline_data(
+            body.get("daily_inputs", []),
+            body.get("menu_items", []),
+            body.get("sales_history", []),
+        )
     else:
         set_pipeline_data(None)
 

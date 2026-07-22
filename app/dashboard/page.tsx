@@ -15,7 +15,7 @@ import { getText, type Language } from '@/lib/i18n'
 import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
 import { defaultRecommendations, type Recommendation, type RecommendationStatus } from '@/lib/recommendations'
 import { transformFlaskToRecommendations, type FlaskAnalyticsResponse, type FlaskFoodPrepItem, type FlaskRecommendationsResponse } from '@/lib/ai-api'
-import { deriveDailyRowsFromSalesHistory, fetchBusinessMenuData, type BusinessMenuItem } from '@/lib/menu-data'
+import { deriveDailyRowsFromSalesHistory, fetchBusinessMenuData, type BusinessMenuItem, type BusinessSalesHistoryRow } from '@/lib/menu-data'
 import { supabase } from '@/lib/supabase'
 import { ensureOwnerOrStaffProfile } from '@/lib/profile'
 
@@ -111,6 +111,8 @@ export default function DashboardPage() {
   const [rawFoodPrepItems, setRawFoodPrepItems] = useState<FlaskFoodPrepItem[]>([])
   const [aiRecsLoaded, setAiRecsLoaded] = useState(false)
   const [businessMenuItems, setBusinessMenuItems] = useState<BusinessMenuItem[]>([])
+  const [businessSalesHistory, setBusinessSalesHistory] = useState<BusinessSalesHistoryRow[]>([])
+  const [menuDataLoaded, setMenuDataLoaded] = useState(false)
   const [analyticsData, setAnalyticsData] = useState<FlaskAnalyticsResponse | null>(null)
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false)
   const [storedApprovedItems, setStoredApprovedItems] = useState<Record<string, number>>({})
@@ -230,9 +232,11 @@ export default function DashboardPage() {
     fetchBusinessMenuData(authProfile.bakeryId)
       .then(({ menuItems, salesHistory }) => {
         setBusinessMenuItems(menuItems)
+        setBusinessSalesHistory(salesHistory)
         setDerivedDailyRows(deriveDailyRowsFromSalesHistory(salesHistory))
       })
       .catch((error) => console.error('Unable to load menu items', error))
+      .finally(() => setMenuDataLoaded(true))
   }, [authProfile?.bakeryId])
 
   useEffect(() => {
@@ -245,19 +249,28 @@ export default function DashboardPage() {
   // POSTs real dailyInputs so the full pipeline runs on actual bakery data.
   // Falls back to mock recommendations silently if the engine is offline.
   useEffect(() => {
-    if (!isInitialized || role !== 'owner' || aiRecsLoaded || !authProfile?.bakeryId) return
+    if (!isInitialized || role !== 'owner' || aiRecsLoaded || !authProfile?.bakeryId || !menuDataLoaded) return
     const bakeryId = authProfile.bakeryId
 
     fetch('/api/recommendations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ daily_inputs: dailyInputs }),
+      body: JSON.stringify({
+        daily_inputs: dailyInputs,
+        menu_items: businessMenuItems,
+        sales_history: businessSalesHistory,
+      }),
     })
       .then((res) => (res.ok ? res.json() : null))
       .then((data: FlaskRecommendationsResponse | null) => {
         if (!data || 'error' in data) return
         setRawFoodPrepItems(data.food_preparation_recommendations ?? [])
-        const aiRecs = transformFlaskToRecommendations(data)
+        const pricingByName = Object.fromEntries(
+          businessMenuItems
+            .filter((item) => item.unitCost != null && item.sellingPrice != null)
+            .map((item) => [item.name, { foodCost: item.unitCost!, sellingPrice: item.sellingPrice! }]),
+        )
+        const aiRecs = transformFlaskToRecommendations(data, pricingByName)
         if (aiRecs.length > 0) {
           const nonFoodDefaults = defaultRecommendations.filter((r) => !r.affectedItemFileName)
           const merged = [...aiRecs, ...nonFoodDefaults]
@@ -268,7 +281,7 @@ export default function DashboardPage() {
       })
       .catch(() => undefined)
       .finally(() => setAiRecsLoaded(true))
-  }, [isInitialized, role, aiRecsLoaded, dailyInputs, authProfile?.bakeryId])
+  }, [isInitialized, role, aiRecsLoaded, dailyInputs, authProfile?.bakeryId, menuDataLoaded, businessMenuItems, businessSalesHistory])
 
   // Fetch the real analytics report (utility totals, costs, carbon, ESG score) from the
   // Python engine (owner only). Falls back silently to the local mock-based ESG dashboard

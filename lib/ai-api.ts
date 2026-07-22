@@ -30,7 +30,8 @@ export interface FlaskAnomalyRec {
   priority: string
   recommendation: string
   date: string
-  reason: string
+  // The engine's possible_reasons is always a Python list, even for one reason.
+  reason: string | string[]
   confidence: string
 }
 
@@ -163,7 +164,15 @@ const MENU_FILE_MAP: Record<string, BakeryImageFile> = {
 const DEFAULT_PRICING = { foodCost: 10, sellingPrice: 30 }
 const CO2_PER_UNIT = 0.75  // kg CO₂ per portion (2.5 kg CO₂/kg × ~0.3 kg/portion)
 
-export function transformFlaskToRecommendations(data: FlaskRecommendationsResponse): Recommendation[] {
+// Real per-business pricing (name → cost/price), built from the owner's
+// actual menu_items. Falls back to the 4-dish demo table only for names it
+// doesn't recognize (e.g. still on the mock dataset).
+export type PricingByName = Record<string, { foodCost: number; sellingPrice: number }>
+
+export function transformFlaskToRecommendations(
+  data: FlaskRecommendationsResponse,
+  pricingByName: PricingByName = {},
+): Recommendation[] {
   const recs: Recommendation[] = []
 
   // 1. Food preparation recommendations
@@ -173,7 +182,7 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
     const diff = qty - avg
     const isReducing = diff < 0
     const absDiff = Math.abs(diff)
-    const pricing = MENU_PRICING[item.menu_item] ?? DEFAULT_PRICING
+    const pricing = pricingByName[item.menu_item] ?? MENU_PRICING[item.menu_item] ?? DEFAULT_PRICING
 
     const action = isReducing ? 'Reduce' : diff > 0 ? 'Increase' : 'Maintain'
 
@@ -236,12 +245,13 @@ export function transformFlaskToRecommendations(data: FlaskRecommendationsRespon
     const cleanText = (s: string) =>
       s.replace(/\bAI[- ]powered\b/gi, 'pattern-based')
        .replace(/\bAI\b/g, 'system')
+    const reasonText = Array.isArray(rec.reason) ? rec.reason.join(', ') : rec.reason
     recs.push({
       id: `ai-anomaly-${i}`,
       title: cleanText(rec.recommendation),
       titleTh: cleanText(rec.recommendation),
-      reason: cleanText(rec.reason),
-      reasonTh: cleanText(rec.reason),
+      reason: cleanText(reasonText),
+      reasonTh: cleanText(reasonText),
       estimatedSavings: parseThb(rec.date ?? '') || 200,
       co2Impact: 0.5,
       confidence: parsePct(rec.confidence),
