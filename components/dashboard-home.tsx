@@ -97,18 +97,15 @@ export function DashboardHome({
         )
   const categoryFilters: BakeryCategory[] =
     menuItems.length > 0 ? ['All', ...new Set(bakeryItems.map((item) => item.category))] : bakeryCategories
+  // "Most Requested" reflects actual demand (prepQuantity), not approval status —
+  // an approved dish only jumps to the front if its (possibly owner-modified)
+  // quantity is genuinely the highest, same as any other dish.
   const effectiveBakeryItems = bakeryItems
     .map((item) => ({
       ...item,
       prepQuantity: approvedOverrides[item.fileName] ?? item.prepQuantity,
     }))
-    .sort((a, b) => {
-      const aApproved = a.fileName in approvedOverrides
-      const bApproved = b.fileName in approvedOverrides
-      if (aApproved && !bApproved) return -1
-      if (!aApproved && bApproved) return 1
-      return 0
-    })
+    .sort((a, b) => b.prepQuantity - a.prepQuantity)
   const [featuredBakeryItem, ...supportingBakeryItems] = effectiveBakeryItems
   void supportingBakeryItems
   const filteredBakeryItems =
