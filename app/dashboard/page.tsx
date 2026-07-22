@@ -199,6 +199,32 @@ export default function DashboardPage() {
     window.localStorage.setItem(scopedKey(recommendationsVersionKey, bakeryId), recommendationsVersion)
   }, [authProfile?.bakeryId])
 
+  // Authoritative "approved by manager" state — read from Supabase (not just
+  // localStorage) so it reaches staff regardless of which device they're on.
+  // The localStorage load above already painted something instantly on the
+  // owner's own browser; this overwrites it with the real cross-device state.
+  useEffect(() => {
+    const bakeryId = authProfile?.bakeryId
+    if (!bakeryId) return
+
+    supabase
+      .from('approved_recommendations')
+      .select('item_key, prep_quantity')
+      .eq('business_id', bakeryId)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Unable to load approved recommendations', error)
+          return
+        }
+        const approved: Record<string, number> = {}
+        for (const row of data ?? []) {
+          approved[row.item_key] = Number(row.prep_quantity)
+        }
+        setStoredApprovedItems(approved)
+        window.localStorage.setItem(scopedKey(approvedItemsKey, bakeryId), JSON.stringify(approved))
+      })
+  }, [authProfile?.bakeryId])
+
   useEffect(() => {
     if (!authProfile?.bakeryId) {
       return
@@ -274,7 +300,8 @@ export default function DashboardPage() {
             .filter((item) => item.unitCost != null && item.sellingPrice != null)
             .map((item) => [item.name, { foodCost: item.unitCost!, sellingPrice: item.sellingPrice! }]),
         )
-        const aiRecs = transformFlaskToRecommendations(data, pricingByName)
+        const menuItemIdByName = Object.fromEntries(businessMenuItems.map((item) => [item.name, item.id]))
+        const aiRecs = transformFlaskToRecommendations(data, pricingByName, menuItemIdByName)
         if (aiRecs.length > 0) {
           const nonFoodDefaults = defaultRecommendations.filter((r) => !r.affectedItemFileName)
           const merged = [...aiRecs, ...nonFoodDefaults]
@@ -402,6 +429,38 @@ export default function DashboardPage() {
       setStoredApprovedItems(approved)
       if (authProfile?.bakeryId) {
         window.localStorage.setItem(scopedKey(approvedItemsKey, authProfile.bakeryId), JSON.stringify(approved))
+      }
+
+      // Sync to Supabase so the approval reaches staff on any device, not just this browser.
+      const changedRec = next.find((rec) => rec.id === id)
+      if (authProfile?.bakeryId && changedRec?.affectedItemFileName) {
+        const itemKey = changedRec.affectedItemFileName
+        if (status === 'accepted' || status === 'modified') {
+          supabase
+            .from('approved_recommendations')
+            .upsert(
+              {
+                business_id: authProfile.bakeryId,
+                item_key: itemKey,
+                prep_quantity: approved[itemKey] ?? 0,
+                status,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'business_id,item_key' },
+            )
+            .then(({ error }) => {
+              if (error) console.error('Unable to save approved recommendation', error)
+            })
+        } else {
+          supabase
+            .from('approved_recommendations')
+            .delete()
+            .eq('business_id', authProfile.bakeryId)
+            .eq('item_key', itemKey)
+            .then(({ error }) => {
+              if (error) console.error('Unable to clear approved recommendation', error)
+            })
+        }
       }
 
       return next
@@ -539,6 +598,7 @@ export default function DashboardPage() {
               dailyInputs={dailyInputs}
               language={language}
               bakeryName={authProfile?.bakeryName}
+              menuItems={businessMenuItems}
               onGoToRecommendations={() => setCurrentScreen('recommendations')}
             />
           )}

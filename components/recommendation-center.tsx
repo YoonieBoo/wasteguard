@@ -5,7 +5,7 @@ import { Check, ChevronDown, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
-import { cleanBakeryTitle } from '@/lib/bakery-catalog'
+import { bakeryImageFiles, cleanBakeryTitle, type BakeryImageFile } from '@/lib/bakery-catalog'
 import type { Recommendation, RecommendationStatus, WasteType } from '@/lib/recommendations'
 import type { FlaskFoodPrepItem } from '@/lib/ai-api'
 import type { BusinessMenuItem } from '@/lib/menu-data'
@@ -36,6 +36,24 @@ function getFoodPrepIndex(recId: string): number | null {
   if (!recId.startsWith('ai-prep-')) return null
   const index = Number(recId.slice('ai-prep-'.length))
   return Number.isInteger(index) ? index : null
+}
+
+// affectedItemFileName is either a real menu_items.id (arbitrary string) or
+// one of the 4 mock BakeryImageFile keys — resolve real dishes via the raw
+// Flask item's name (same index recovery as getIngredientNeeds) and only
+// fall back to cleanBakeryTitle for the mock dataset.
+function getAffectedItemLabel(rec: Recommendation, rawFoodPrepItems: FlaskFoodPrepItem[]): string | null {
+  if (!rec.affectedItemFileName) return null
+
+  const index = getFoodPrepIndex(rec.id)
+  const foodPrepItem = index !== null ? rawFoodPrepItems[index] : null
+  if (foodPrepItem) return foodPrepItem.menu_item
+
+  if ((bakeryImageFiles as readonly string[]).includes(rec.affectedItemFileName)) {
+    return cleanBakeryTitle(rec.affectedItemFileName as BakeryImageFile)
+  }
+
+  return null
 }
 
 function getIngredientNeeds(
@@ -202,6 +220,7 @@ export function RecommendationCenter({
                   ? t.confidenceMedium
                   : t.confidenceLow
             const ingredientNeeds = getIngredientNeeds(rec, rawFoodPrepItems, menuItems)
+            const affectedItemLabel = getAffectedItemLabel(rec, rawFoodPrepItems)
 
             return (
               <div
@@ -219,9 +238,9 @@ export function RecommendationCenter({
                       <span className={`rounded-full px-3 py-1 text-xs font-black ${confidenceTone}`}>
                         {confidenceLabel}
                       </span>
-                      {rec.affectedItemFileName && (
+                      {affectedItemLabel && (
                         <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-muted-foreground">
-                          {translateItemName(cleanBakeryTitle(rec.affectedItemFileName), language)}
+                          {translateItemName(affectedItemLabel, language)}
                         </span>
                       )}
                     </div>

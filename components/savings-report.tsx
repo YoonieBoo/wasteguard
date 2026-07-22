@@ -4,16 +4,18 @@ import { useEffect, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
-import { cleanBakeryTitle } from '@/lib/bakery-catalog'
+import { resolveAffectedItemName } from '@/lib/bakery-catalog'
 import type { Recommendation } from '@/lib/recommendations'
 import type { FoodRow } from '@/lib/mock-data'
 import type { FlaskSavingsReportResponse } from '@/lib/ai-api'
+import type { BusinessMenuItem } from '@/lib/menu-data'
 
 interface SavingsReportProps {
   recommendations: Recommendation[]
   dailyInputs: FoodRow[]
   language: Language
   bakeryName?: string
+  menuItems?: BusinessMenuItem[]
   onGoToRecommendations: () => void
 }
 
@@ -55,6 +57,7 @@ export function SavingsReport({
   recommendations,
   dailyInputs,
   language,
+  menuItems = [],
   onGoToRecommendations,
 }: SavingsReportProps) {
   const t = getText(language)
@@ -71,8 +74,8 @@ export function SavingsReport({
   const [engineReport, setEngineReport] = useState<FlaskSavingsReportResponse | null>(null)
   useEffect(() => {
     const acceptedMenuItems = acceptedRecs
-      .filter((r) => r.affectedItemFileName)
-      .map((r) => cleanBakeryTitle(r.affectedItemFileName!))
+      .map((r) => (r.affectedItemFileName ? resolveAffectedItemName(r.affectedItemFileName, menuItems) : null))
+      .filter((name): name is string => Boolean(name))
 
     fetch('/api/savings-report', {
       method: 'POST',
@@ -156,9 +159,10 @@ export function SavingsReport({
               const isModified = rec.status === 'modified'
               const statusLabel = isModified ? t.modifiedBadge : t.acceptedBadge
               const statusTone = isModified ? 'bg-amber-50 text-amber-700' : 'bg-primary/12 text-primary'
-              const itemName = rec.affectedItemFileName
-                ? translateItemName(cleanBakeryTitle(rec.affectedItemFileName), language)
+              const resolvedItemName = rec.affectedItemFileName
+                ? resolveAffectedItemName(rec.affectedItemFileName, menuItems)
                 : null
+              const itemName = resolvedItemName ? translateItemName(resolvedItemName, language) : null
 
               return (
                 <div

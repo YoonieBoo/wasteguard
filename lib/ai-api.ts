@@ -169,9 +169,15 @@ const CO2_PER_UNIT = 0.75  // kg CO₂ per portion (2.5 kg CO₂/kg × ~0.3 kg/p
 // doesn't recognize (e.g. still on the mock dataset).
 export type PricingByName = Record<string, { foodCost: number; sellingPrice: number }>
 
+// Real per-business menu_items.id, keyed by dish name — lets accept/approve
+// state (affectedItemFileName) target the owner's actual dish instead of
+// only ever resolving for the 4 mock demo dishes via MENU_FILE_MAP.
+export type MenuItemIdByName = Record<string, string>
+
 export function transformFlaskToRecommendations(
   data: FlaskRecommendationsResponse,
   pricingByName: PricingByName = {},
+  menuItemIdByName: MenuItemIdByName = {},
 ): Recommendation[] {
   const recs: Recommendation[] = []
 
@@ -214,7 +220,7 @@ export function transformFlaskToRecommendations(
       confidence: Math.max(60, 100 - item.safety_buffer_percent),
       status: 'pending',
       wasteType: 'food',
-      affectedItemFileName: MENU_FILE_MAP[item.menu_item],
+      affectedItemFileName: menuItemIdByName[item.menu_item] ?? MENU_FILE_MAP[item.menu_item],
       suggestedQuantity: qty,
     })
   })

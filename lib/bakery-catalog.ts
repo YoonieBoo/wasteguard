@@ -142,6 +142,20 @@ export function cleanBakeryTitle(fileName: BakeryImageFile) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
+// Recommendation.affectedItemFileName is either a real menu_items.id or one
+// of the 4 mock BakeryImageFile keys — resolve either back to a display name.
+export function resolveAffectedItemName(
+  fileNameOrId: string,
+  menuItems: { id: string; name: string }[],
+): string | null {
+  const match = menuItems.find((item) => item.id === fileNameOrId)
+  if (match) return match.name
+  if ((bakeryImageFiles as readonly string[]).includes(fileNameOrId)) {
+    return cleanBakeryTitle(fileNameOrId as BakeryImageFile)
+  }
+  return null
+}
+
 export function getBakeryItems(dailyInputs: FoodRow[] = [], prepDemand = 0): BakeryItem[] {
   void dailyInputs
   void prepDemand

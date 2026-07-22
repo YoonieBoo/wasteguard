@@ -1,5 +1,3 @@
-import type { BakeryImageFile } from '@/lib/bakery-catalog'
-
 export type RecommendationStatus = 'pending' | 'accepted' | 'modified' | 'ignored'
 export type WasteType = 'food' | 'energy' | 'water' | 'packaging'
 
@@ -14,7 +12,8 @@ export type Recommendation = {
   confidence: number
   status: RecommendationStatus
   wasteType?: WasteType
-  affectedItemFileName?: BakeryImageFile
+  // Real dishes use their menu_items.id; the 4 demo dishes use a BakeryImageFile key.
+  affectedItemFileName?: string
   suggestedQuantity?: number
   modifiedQuantity?: number
 }
