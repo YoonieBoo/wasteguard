@@ -95,7 +95,7 @@ export function Navigation({
           <span className="truncate">{t.logOut}</span>
         </button>
 
-        {role === 'owner' && onToggleProPlan && (
+        {process.env.NODE_ENV !== 'production' && role === 'owner' && onToggleProPlan && (
           <button
             onClick={onToggleProPlan}
             className="mt-1 px-4 text-left text-[10px] font-bold text-muted-foreground/40 transition hover:text-muted-foreground"

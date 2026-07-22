@@ -225,6 +225,30 @@ export default function DashboardPage() {
       })
   }, [authProfile?.bakeryId])
 
+  // "Marked as done" prep items — a shared kitchen checklist, so any team
+  // member (owner or staff) can mark or see completion, same as the
+  // approved_recommendations read above but without an owner-only gate.
+  useEffect(() => {
+    const bakeryId = authProfile?.bakeryId
+    if (!bakeryId) return
+
+    supabase
+      .from('completed_prep_items')
+      .select('item_key')
+      .eq('business_id', bakeryId)
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Unable to load completed prep items', error)
+          return
+        }
+        const completed: Record<string, boolean> = {}
+        for (const row of data ?? []) {
+          completed[row.item_key] = true
+        }
+        setCompletedBakeryItems(completed)
+      })
+  }, [authProfile?.bakeryId])
+
   useEffect(() => {
     if (!authProfile?.bakeryId) {
       return
@@ -567,9 +591,20 @@ export default function DashboardPage() {
               approvedOverrides={approvedOverrides}
               pendingRecommendationsCount={pendingCount}
               pendingRecommendations={pendingRecommendations}
-              onCompleteBakeryItem={(fileName) =>
+              onCompleteBakeryItem={(fileName) => {
                 setCompletedBakeryItems((current) => ({ ...current, [fileName]: true }))
-              }
+                if (authProfile?.bakeryId) {
+                  supabase
+                    .from('completed_prep_items')
+                    .upsert(
+                      { business_id: authProfile.bakeryId, item_key: fileName },
+                      { onConflict: 'business_id,item_key' },
+                    )
+                    .then(({ error }) => {
+                      if (error) console.error('Unable to save completed prep item', error)
+                    })
+                }
+              }}
               onGoToRecommendations={() => setCurrentScreen('recommendations')}
               onUpdateRecommendation={handleUpdateRecommendation}
             />
@@ -588,6 +623,8 @@ export default function DashboardPage() {
               language={language}
               role={role}
               dailyInputs={dailyInputs}
+              menuItems={businessMenuItems}
+              foodPrepItems={rawFoodPrepItems}
               onSave={handleDailyInputSave}
               onViewResults={() => setCurrentScreen('home')}
             />

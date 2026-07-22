@@ -5,13 +5,17 @@ import { CheckCircle2, LoaderCircle, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
-import { getBakeryItems, translatePrepUnit } from '@/lib/bakery-catalog'
+import { buildRealBakeryItems, getBakeryItems, translatePrepUnit } from '@/lib/bakery-catalog'
 import { getPrepList, type FoodRow, type WasteGuardRole } from '@/lib/mock-data'
+import type { BusinessMenuItem } from '@/lib/menu-data'
+import type { FlaskFoodPrepItem } from '@/lib/ai-api'
 
 interface QuickInputProps {
   language: Language
   role?: WasteGuardRole
   dailyInputs?: FoodRow[]
+  menuItems?: BusinessMenuItem[]
+  foodPrepItems?: FlaskFoodPrepItem[]
   onSave?: (input: FoodRow) => void
   onViewResults?: () => void
 }
@@ -47,7 +51,15 @@ const wasteLevelMap: Record<string, string> = {
   '30+': 'High',
 }
 
-export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave, onViewResults }: QuickInputProps) {
+export function QuickInput({
+  language,
+  role = 'staff',
+  dailyInputs = [],
+  menuItems = [],
+  foodPrepItems = [],
+  onSave,
+  onViewResults,
+}: QuickInputProps) {
   const t = getText(language)
   const [demand, setDemand] = useState<string | null>(null)
   const [waste, setWaste] = useState<string | null>(null)
@@ -55,15 +67,31 @@ export function QuickInput({ language, role = 'staff', dailyInputs = [], onSave,
   const [submissionState, setSubmissionState] = useState<SubmissionState>('entry')
   const prepItems = getPrepList(dailyInputs).slice(0, 4)
   const prepDemand = prepItems.reduce((total, item) => total + item.quantity, 0)
+  // Real per-business dishes once the owner has imported/added any — same
+  // fallback rule as the Home tab, so Check never asks staff to log
+  // production against dishes the business doesn't actually serve.
   const productionItems = useMemo(
     () =>
-      getBakeryItems(dailyInputs, prepDemand).map((item) => ({
+      (menuItems.length > 0
+        ? buildRealBakeryItems(
+            menuItems.map((item) => ({
+              id: item.id,
+              name: item.name,
+              category: item.category,
+              unit: item.unit,
+              imageUrl: item.imageUrl,
+              ingredients: item.ingredients,
+            })),
+            foodPrepItems,
+          )
+        : getBakeryItems(dailyInputs, prepDemand)
+      ).map((item) => ({
         key: item.fileName,
         name: item.title,
         planned: item.prepQuantity,
         unit: item.prepUnit,
       })),
-    [dailyInputs, prepDemand],
+    [dailyInputs, prepDemand, menuItems, foodPrepItems],
   )
   const [actualBaked, setActualBaked] = useState<Record<string, string>>(
     Object.fromEntries(productionItems.map((item) => [item.key, String(item.planned)])),
