@@ -545,7 +545,7 @@ export function DashboardHome({
                 type="button"
                 key={item.fileName}
                 onClick={() => setSelectedBakeryItem(item)}
-                className={`group min-w-[10.5rem] snap-start overflow-hidden rounded-[0.75rem] bg-white text-left shadow-[0_14px_35px_rgba(41,91,67,0.09)] outline-none transition duration-300 animate-in fade-in-0 zoom-in-95 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
+                className={`group min-w-[10.5rem] snap-start overflow-hidden rounded-[0.75rem] bg-white text-left shadow-[0_14px_35px_rgba(41,91,67,0.09)] outline-none transition duration-300 animate-in fade-in-0 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(41,91,67,0.14)] focus-visible:ring-4 focus-visible:ring-primary/20 ${
                   isSelected ? 'ring-4 ring-primary/20' : ''
                 } ${isManagerApproved && !isCompleted ? 'ring-2 ring-primary/40' : ''}`}
               >
