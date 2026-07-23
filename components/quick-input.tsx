@@ -280,9 +280,6 @@ export function QuickInput({
         <div className="wg-page-header">
           <p className="wg-eyebrow">{t.beforeClosing}</p>
           <h1 className="wg-page-title">{t.todaysProductionEntry}</h1>
-          <p className="wg-page-subtitle">
-            {t.productionEntrySubtitle}
-          </p>
         </div>
 
         <section className="mb-5 overflow-hidden rounded-[0.75rem] bg-white shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
