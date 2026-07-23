@@ -14,6 +14,7 @@ import {
   type BusinessMenuItem,
   type MenuItemIngredient,
 } from '@/lib/menu-data'
+import { uploadReferencePhoto } from '@/lib/leftover-scan'
 
 interface MenuManagementProps {
   businessId: string
@@ -161,10 +162,13 @@ function DishEditPanel({
   const [sellingPrice, setSellingPrice] = useState(item?.sellingPrice != null ? String(item.sellingPrice) : '')
   const [imagePreview, setImagePreview] = useState<string | null>(item?.imageUrl ?? null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [referencePhotoPreview, setReferencePhotoPreview] = useState<string | null>(item?.referencePhotoUrl ?? null)
+  const [referencePhotoFile, setReferencePhotoFile] = useState<File | null>(null)
   const [ingredients, setIngredients] = useState<MenuItemIngredient[]>(item?.ingredients ?? [])
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const referenceFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => setMounted(true), [])
 
@@ -181,6 +185,13 @@ function DishEditPanel({
     if (!file) return
     setPhotoFile(file)
     setImagePreview(URL.createObjectURL(file))
+  }
+
+  function handleReferencePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setReferencePhotoFile(file)
+    setReferencePhotoPreview(URL.createObjectURL(file))
   }
 
   function addIngredientRow() {
@@ -224,6 +235,11 @@ function DishEditPanel({
         imageUrl = await uploadMenuItemPhoto(businessId, targetId, photoFile)
       }
 
+      let referencePhotoUrl = item?.referencePhotoUrl ?? null
+      if (referencePhotoFile) {
+        referencePhotoUrl = await uploadReferencePhoto(businessId, targetId, referencePhotoFile)
+      }
+
       const saved = await updateMenuItem(targetId, {
         name: name.trim(),
         category: category.trim() || null,
@@ -231,6 +247,7 @@ function DishEditPanel({
         unitCost: unitCost.trim() ? Number(unitCost) : null,
         sellingPrice: sellingPrice.trim() ? Number(sellingPrice) : null,
         imageUrl,
+        referencePhotoUrl,
         ingredients: cleanIngredients,
       })
 
@@ -290,6 +307,35 @@ function DishEditPanel({
                 className="h-10 rounded-[0.5rem] text-xs font-black"
               >
                 {imagePreview ? t.changePhoto : t.uploadPhoto}
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <label className="wg-label">{t.referencePhoto}</label>
+            <p className="wg-meta mt-1">{t.referencePhotoHelper}</p>
+            <div className="mt-2 flex items-center gap-4">
+              {referencePhotoPreview ? (
+                <img src={referencePhotoPreview} alt="" className="h-20 w-20 rounded-[0.5rem] object-cover" />
+              ) : (
+                <div className="grid h-20 w-20 place-items-center rounded-[0.5rem] bg-secondary text-muted-foreground">
+                  <UtensilsCrossed className="h-6 w-6" />
+                </div>
+              )}
+              <input
+                ref={referenceFileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleReferencePhotoChange}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => referenceFileInputRef.current?.click()}
+                className="h-10 rounded-[0.5rem] text-xs font-black"
+              >
+                {referencePhotoPreview ? t.changeReferencePhoto : t.uploadReferencePhoto}
               </Button>
             </div>
           </div>

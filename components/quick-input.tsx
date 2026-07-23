@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, LoaderCircle, Minus, Plus } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Camera, CheckCircle2, LoaderCircle, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
@@ -9,16 +9,20 @@ import { buildRealBakeryItems, getBakeryItems, translatePrepUnit } from '@/lib/b
 import { getPrepList, type FoodRow, type WasteGuardRole } from '@/lib/mock-data'
 import type { BusinessMenuItem } from '@/lib/menu-data'
 import type { FlaskFoodPrepItem } from '@/lib/ai-api'
+import { requestLeftoverEstimate, saveLeftoverScan, uploadLeftoverPhoto } from '@/lib/leftover-scan'
 
 interface QuickInputProps {
   language: Language
   role?: WasteGuardRole
+  businessId?: string
   dailyInputs?: FoodRow[]
   menuItems?: BusinessMenuItem[]
   foodPrepItems?: FlaskFoodPrepItem[]
   onSave?: (input: FoodRow) => void
   onViewResults?: () => void
 }
+
+type ScanStatus = 'idle' | 'estimating' | 'done' | 'error'
 
 type CheckResult = {
   date: string
@@ -54,6 +58,7 @@ const wasteLevelMap: Record<string, string> = {
 export function QuickInput({
   language,
   role = 'staff',
+  businessId,
   dailyInputs = [],
   menuItems = [],
   foodPrepItems = [],
@@ -93,6 +98,15 @@ export function QuickInput({
       })),
     [dailyInputs, prepDemand, menuItems, foodPrepItems],
   )
+  const referencePhotoByKey = useMemo(
+    () => new Map(menuItems.map((item) => [item.id, item.referencePhotoUrl])),
+    [menuItems],
+  )
+  const [scanStatus, setScanStatus] = useState<Record<string, ScanStatus>>({})
+  const [scanPhotoUrls, setScanPhotoUrls] = useState<Record<string, string>>({})
+  const [scanPredictions, setScanPredictions] = useState<Record<string, number>>({})
+  const scanFileInputRef = useRef<HTMLInputElement>(null)
+  const activeScanKeyRef = useRef<string | null>(null)
   const [actualBaked, setActualBaked] = useState<Record<string, string>>(
     Object.fromEntries(productionItems.map((item) => [item.key, String(item.planned)])),
   )
@@ -134,6 +148,47 @@ export function QuickInput({
 
     return () => window.clearTimeout(timer)
   }, [submissionState])
+
+  function handleCameraClick(itemKey: string) {
+    activeScanKeyRef.current = itemKey
+    scanFileInputRef.current?.click()
+  }
+
+  async function handleScanFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    const itemKey = activeScanKeyRef.current
+    // Reset so selecting the same file again still fires onChange next time.
+    event.target.value = ''
+    if (!file || !itemKey) return
+
+    const item = productionItems.find((production) => production.key === itemKey)
+    if (!item) return
+
+    setScanStatus((current) => ({ ...current, [itemKey]: 'estimating' }))
+
+    try {
+      const quantity = await requestLeftoverEstimate({
+        file,
+        itemName: item.name,
+        unit: item.unit,
+        referencePhotoUrl: referencePhotoByKey.get(itemKey),
+      })
+      setLeftovers((current) => ({ ...current, [itemKey]: String(quantity) }))
+      setScanPredictions((current) => ({ ...current, [itemKey]: quantity }))
+      setScanStatus((current) => ({ ...current, [itemKey]: 'done' }))
+
+      // Fire-and-forget: keep a copy for the audit trail without blocking the UI.
+      if (businessId) {
+        const date = new Date().toISOString().slice(0, 10)
+        uploadLeftoverPhoto(businessId, itemKey, date, file)
+          .then((url) => setScanPhotoUrls((current) => ({ ...current, [itemKey]: url })))
+          .catch((error) => console.error('Unable to upload leftover photo', error))
+      }
+    } catch (error) {
+      console.error('Leftover photo scan failed', error)
+      setScanStatus((current) => ({ ...current, [itemKey]: 'error' }))
+    }
+  }
 
   function handleDone() {
     if (!demand || !waste) {
@@ -197,6 +252,24 @@ export function QuickInput({
       is_weekend: today.getDay() === 0 || today.getDay() === 6 ? 1 : 0,
       promotion: 0,
     })
+
+    // Audit trail for any dish that got a photo scan — doesn't affect the
+    // aggregate save above, purely additive so AI accuracy can be reviewed later.
+    if (businessId) {
+      for (const item of productionItems) {
+        if (scanStatus[item.key] !== 'done') continue
+        saveLeftoverScan({
+          businessId,
+          itemKey: item.key,
+          date,
+          photoUrl: scanPhotoUrls[item.key] ?? null,
+          predictedQuantity: scanPredictions[item.key] ?? null,
+          unit: item.unit,
+          confirmedQuantity: Number(leftovers[item.key] || 0),
+        }).catch((error) => console.error('Unable to save leftover scan', error))
+      }
+    }
+
     setResult(nextResult)
     setSubmissionState('saving')
   }
@@ -264,18 +337,51 @@ export function QuickInput({
 
                 <div>
                   <p className="wg-label mb-2">{t.leftovers}</p>
-                  <Input
-                    value={leftovers[item.key] ?? ''}
-                    onChange={(event) => setLeftovers((current) => ({ ...current, [item.key]: event.target.value }))}
-                    inputMode="numeric"
-                    aria-label={`${item.name} ${t.leftovers}`}
-                    className="h-11 rounded-[0.5rem] border-secondary bg-secondary/45 px-4 text-center text-base font-black"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={leftovers[item.key] ?? ''}
+                      onChange={(event) => setLeftovers((current) => ({ ...current, [item.key]: event.target.value }))}
+                      inputMode="numeric"
+                      aria-label={`${item.name} ${t.leftovers}`}
+                      className="h-11 flex-1 rounded-[0.5rem] border-secondary bg-secondary/45 px-4 text-center text-base font-black"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleCameraClick(item.key)}
+                      disabled={scanStatus[item.key] === 'estimating'}
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/75 disabled:opacity-50"
+                      aria-label={`${t.scanLeftoverPhoto} ${item.name}`}
+                    >
+                      {scanStatus[item.key] === 'estimating' ? (
+                        <LoaderCircle className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                  {scanStatus[item.key] === 'estimating' && (
+                    <p className="mt-1 text-xs font-semibold text-muted-foreground">{t.analyzingPhoto}</p>
+                  )}
+                  {scanStatus[item.key] === 'done' && (
+                    <p className="mt-1 text-xs font-semibold text-primary">{t.aiEstimatedTapToAdjust}</p>
+                  )}
+                  {scanStatus[item.key] === 'error' && (
+                    <p className="mt-1 text-xs font-semibold text-destructive">{t.photoScanFailed}</p>
+                  )}
                 </div>
               </div>
             )
           })}
         </section>
+
+        <input
+          ref={scanFileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleScanFileSelected}
+        />
 
         <Button
           onClick={handleProductionDone}

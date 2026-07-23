@@ -622,6 +622,7 @@ export default function DashboardPage() {
             <QuickInput
               language={language}
               role={role}
+              businessId={authProfile?.bakeryId}
               dailyInputs={dailyInputs}
               menuItems={businessMenuItems}
               foodPrepItems={rawFoodPrepItems}

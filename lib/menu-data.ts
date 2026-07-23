@@ -15,6 +15,9 @@ export type BusinessMenuItem = {
   unitCost: number | null
   sellingPrice: number | null
   imageUrl: string | null
+  // One-time "full tray" baseline photo the leftover scanner compares
+  // closing-time photos against — see components/quick-input.tsx.
+  referencePhotoUrl: string | null
   ingredients: MenuItemIngredient[]
 }
 
@@ -45,6 +48,7 @@ function toMenuItem(row: Record<string, unknown>): BusinessMenuItem {
     unitCost: (row.unit_cost as number | null) ?? null,
     sellingPrice: (row.selling_price as number | null) ?? null,
     imageUrl: (row.image_url as string | null) ?? null,
+    referencePhotoUrl: (row.reference_photo_url as string | null) ?? null,
     ingredients: rawIngredients.map((ingredient) => {
       const i = ingredient as Record<string, unknown>
       return {
@@ -56,7 +60,7 @@ function toMenuItem(row: Record<string, unknown>): BusinessMenuItem {
   }
 }
 
-const MENU_ITEM_COLUMNS = 'id, name, category, unit, unit_cost, selling_price, image_url, ingredients'
+const MENU_ITEM_COLUMNS = 'id, name, category, unit, unit_cost, selling_price, image_url, reference_photo_url, ingredients'
 
 /**
  * Reads back the per-dish history an owner imported during onboarding
@@ -166,6 +170,7 @@ export type MenuItemEditableFields = {
   unitCost: number | null
   sellingPrice: number | null
   imageUrl: string | null
+  referencePhotoUrl: string | null
   ingredients: MenuItemIngredient[]
 }
 
@@ -179,6 +184,7 @@ export async function updateMenuItem(id: string, fields: MenuItemEditableFields)
       unit_cost: fields.unitCost,
       selling_price: fields.sellingPrice,
       image_url: fields.imageUrl,
+      reference_photo_url: fields.referencePhotoUrl,
       ingredients: fields.ingredients,
     })
     .eq('id', id)
