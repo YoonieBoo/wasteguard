@@ -85,7 +85,9 @@ export async function POST(request: Request) {
 
     const textBlock = message.content.find((block) => block.type === 'text')
     const raw = textBlock && 'text' in textBlock ? textBlock.text.trim() : ''
-    const parsed = JSON.parse(raw) as { quantity: number | null }
+    // Models sometimes wrap JSON in a markdown code fence despite instructions not to.
+    const unfenced = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()
+    const parsed = JSON.parse(unfenced) as { quantity: number | null }
 
     if (typeof parsed.quantity !== 'number' || !Number.isFinite(parsed.quantity) || parsed.quantity < 0) {
       return NextResponse.json({ error: 'AI could not estimate a quantity from this photo' }, { status: 422 })
