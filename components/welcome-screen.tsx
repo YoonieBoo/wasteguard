@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getText, type Language } from '@/lib/i18n'
@@ -79,6 +80,7 @@ export function WelcomeScreen({ language, onStart, onSignIn }: WelcomeScreenProp
 
 export function SignInScreen({ language, initialEmail = '', notice, onSignIn, onCreateAccount }: SignInScreenProps) {
   const t = getText(language)
+  const router = useRouter()
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -133,6 +135,13 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
             className="wg-control border-secondary bg-white"
           />
         </div>
+        <button
+          type="button"
+          onClick={() => router.push('/forgot-password')}
+          className="mt-2 text-sm font-bold text-primary hover:underline"
+        >
+          {t.forgotPassword}
+        </button>
         <Button
           type="submit"
           disabled={!email || !password || isLoading}
@@ -301,7 +310,7 @@ export function CreateAccountScreen({
   )
 }
 
-function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
     <main className="flex min-h-dvh w-full justify-center bg-white px-4 py-14 sm:px-5 md:px-6 md:py-16">
       <div className="w-full max-w-[430px] md:max-w-[620px]">

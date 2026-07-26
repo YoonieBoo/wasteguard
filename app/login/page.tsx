@@ -6,7 +6,7 @@ import { SignInScreen } from '@/components/welcome-screen'
 import { supabase } from '@/lib/supabase'
 import { ensureOwnerOrStaffProfile } from '@/lib/profile'
 import { friendlyAuthError } from '@/lib/auth-errors'
-import type { Language } from '@/lib/i18n'
+import { getText, type Language } from '@/lib/i18n'
 
 const languageKey = 'wasteGuardLanguage'
 
@@ -19,6 +19,7 @@ function LoginPageContent() {
 
   useEffect(() => {
     const savedLanguage = window.localStorage.getItem(languageKey)
+    const currentLanguage = savedLanguage === 'th' ? 'th' : 'en'
     if (savedLanguage === 'en' || savedLanguage === 'th') setLanguage(savedLanguage)
 
     const emailParam = searchParams.get('email')
@@ -28,6 +29,8 @@ function LoginPageContent() {
       setNotice('This email is already registered. Please log in.')
     } else if (searchParams.get('verified') === '1') {
       setNotice('Email verified. Please log in.')
+    } else if (searchParams.get('reset') === '1') {
+      setNotice(getText(currentLanguage).resetPasswordSuccessNotice)
     }
   }, [searchParams])
 
