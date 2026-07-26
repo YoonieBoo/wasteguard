@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getText, type Language } from '@/lib/i18n'
@@ -32,8 +34,21 @@ export function RecommendationsPreviewModal({
 }: RecommendationsPreviewModalProps) {
   const t = getText(language)
   const previewItems = recommendations.slice(0, 3)
+  const [mounted, setMounted] = useState(false)
 
-  return (
+  useEffect(() => setMounted(true), [])
+
+  if (!mounted) {
+    return null
+  }
+
+  // Portal straight to <body> — the dashboard content wrapper carries
+  // Tailwind's `animate-in` utility, which leaves a permanent (if identity)
+  // `transform` on itself. Any ancestor `transform` creates a new containing
+  // block for `position: fixed` descendants, so without the portal this
+  // modal renders relative to that scrolling wrapper instead of the
+  // viewport — appearing shifted down and clipped instead of centered.
+  return createPortal(
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
@@ -121,6 +136,7 @@ export function RecommendationsPreviewModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
