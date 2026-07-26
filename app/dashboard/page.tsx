@@ -522,11 +522,13 @@ export default function DashboardPage() {
     // Belt-and-suspenders: these are already scoped per-bakeryId so a different
     // account signing in afterward can't see them regardless, but clear this
     // account's own cache too so a return visit doesn't show stale data.
+    // recommendationsKey/recommendationsVersionKey/approvedItemsKey are
+    // deliberately NOT cleared here — they're already bakeryId-scoped (so
+    // this adds no privacy benefit), and clearing them wiped out the owner's
+    // own accepted/ignored recommendation status every time they logged back
+    // in, making already-reviewed recommendations reappear as pending.
     if (authProfile?.bakeryId) {
       window.localStorage.removeItem(scopedKey(dailyInputsKey, authProfile.bakeryId))
-      window.localStorage.removeItem(scopedKey(recommendationsKey, authProfile.bakeryId))
-      window.localStorage.removeItem(scopedKey(recommendationsVersionKey, authProfile.bakeryId))
-      window.localStorage.removeItem(scopedKey(approvedItemsKey, authProfile.bakeryId))
       window.localStorage.removeItem(scopedKey(isProPlanKey, authProfile.bakeryId))
       window.localStorage.removeItem(scopedKey(briefingDateKey, authProfile.bakeryId))
     }
