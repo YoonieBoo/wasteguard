@@ -174,6 +174,40 @@ export type PricingByName = Record<string, { foodCost: number; sellingPrice: num
 // only ever resolving for the 4 mock demo dishes via MENU_FILE_MAP.
 export type MenuItemIdByName = Record<string, string>
 
+/**
+ * Plain-language explanation of why the AI landed on this prep amount —
+ * shared by the Recommendation Center card and the dish detail panel
+ * (see components/dashboard-home.tsx) so staff/owners see the "why" right
+ * next to the number, not just buried in a separate recommendations tab.
+ */
+export function explainFoodPrepAmount(item: {
+  menu_item: string
+  seven_day_average: number
+  final_prep_recommendation: number
+}): { reason: string; reasonTh: string } {
+  const avg = Math.round(item.seven_day_average)
+  const qty = item.final_prep_recommendation
+  const diff = qty - avg
+  const isReducing = diff < 0
+
+  if (isReducing) {
+    return {
+      reason: `Your 7-day average for ${item.menu_item} is ${avg} portions, but today's demand looks lower. Preparing ${qty} should be just enough — helping you cut down on leftovers.`,
+      reasonTh: `ค่าเฉลี่ย 7 วันของ ${item.menu_item} อยู่ที่ ${avg} ส่วน แต่วันนี้ความต้องการดูต่ำลง การเตรียม ${qty} ส่วนน่าจะพอดี ช่วยลดของเหลือได้`,
+    }
+  }
+  if (diff > 0) {
+    return {
+      reason: `${item.menu_item} has been selling fast lately — your 7-day average is ${avg} portions and demand is rising. Preparing ${qty} helps you meet orders without running short.`,
+      reasonTh: `${item.menu_item} ขายดีในช่วงนี้ — ค่าเฉลี่ย 7 วันอยู่ที่ ${avg} ส่วน และความต้องการเพิ่มขึ้น การเตรียม ${qty} ส่วนช่วยให้ไม่ขาด`,
+    }
+  }
+  return {
+    reason: `Sales for ${item.menu_item} have been steady around ${avg} portions a day. Preparing ${qty} matches today's expected demand well.`,
+    reasonTh: `ยอดขายของ ${item.menu_item} อยู่ที่ประมาณ ${avg} ส่วนต่อวัน การเตรียม ${qty} ส่วนตรงกับความต้องการวันนี้`,
+  }
+}
+
 export function transformFlaskToRecommendations(
   data: FlaskRecommendationsResponse,
   pricingByName: PricingByName = {},
@@ -191,19 +225,7 @@ export function transformFlaskToRecommendations(
     const pricing = pricingByName[item.menu_item] ?? MENU_PRICING[item.menu_item] ?? DEFAULT_PRICING
 
     const action = isReducing ? 'Reduce' : diff > 0 ? 'Increase' : 'Maintain'
-
-    let reason: string
-    let reasonTh: string
-    if (isReducing) {
-      reason = `Your 7-day average for ${item.menu_item} is ${avg} portions, but today's demand looks lower. Preparing ${qty} should be just enough — helping you cut down on leftovers.`
-      reasonTh = `ค่าเฉลี่ย 7 วันของ ${item.menu_item} อยู่ที่ ${avg} ส่วน แต่วันนี้ความต้องการดูต่ำลง การเตรียม ${qty} ส่วนน่าจะพอดี ช่วยลดของเหลือได้`
-    } else if (diff > 0) {
-      reason = `${item.menu_item} has been selling fast lately — your 7-day average is ${avg} portions and demand is rising. Preparing ${qty} helps you meet orders without running short.`
-      reasonTh = `${item.menu_item} ขายดีในช่วงนี้ — ค่าเฉลี่ย 7 วันอยู่ที่ ${avg} ส่วน และความต้องการเพิ่มขึ้น การเตรียม ${qty} ส่วนช่วยให้ไม่ขาด`
-    } else {
-      reason = `Sales for ${item.menu_item} have been steady around ${avg} portions a day. Preparing ${qty} matches today's expected demand well.`
-      reasonTh = `ยอดขายของ ${item.menu_item} อยู่ที่ประมาณ ${avg} ส่วนต่อวัน การเตรียม ${qty} ส่วนตรงกับความต้องการวันนี้`
-    }
+    const { reason, reasonTh } = explainFoodPrepAmount(item)
 
     recs.push({
       id: `ai-prep-${i}`,

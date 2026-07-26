@@ -1,5 +1,6 @@
 import { getText, type Language } from '@/lib/i18n'
 import type { FoodRow, IngredientEstimate } from '@/lib/mock-data'
+import { explainFoodPrepAmount } from '@/lib/ai-api'
 
 // Widened from a closed union to `string` so real per-business menu items
 // (arbitrary names/categories from CSV import or the Menu tab) can flow
@@ -50,6 +51,10 @@ export type BakeryItem = {
   // changes after a manager approves/modifies a different quantity.
   ingredientsPerPortion?: { name: string; quantityPerPortion: number; unit: string }[]
   preparationNote: string
+  // Plain-language "why this amount" explanation from the AI's food-prep
+  // recommendation — only set for real dishes with a matching engine result.
+  demandReason?: string
+  demandReasonTh?: string
 }
 
 const bakeryPreparationData: Record<Exclude<BakeryCategory, 'All'>, Partial<Record<BakeryImageFile, PreparationRecord>>> = {
@@ -296,6 +301,7 @@ export type FoodPrepMatch = {
   final_prep_recommendation: number
   demand_status: string
   waste_risk_status: string
+  seven_day_average: number
 }
 
 function normalizeDemandLevel(status: string): DemandLevel {
@@ -339,6 +345,13 @@ export function buildRealBakeryItems(menuItems: RealMenuItemInput[], foodPrepIte
       })),
       ingredientsPerPortion: ingredients,
       preparationNote: '',
+      ...(match
+        ? explainFoodPrepAmount({
+            menu_item: menuItem.name,
+            seven_day_average: match.seven_day_average,
+            final_prep_recommendation: prepQuantity,
+          })
+        : {}),
     }
   })
 

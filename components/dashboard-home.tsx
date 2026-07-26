@@ -740,6 +740,14 @@ function PreparationDetailsPanel({
                 .replace('{amount}', item.prepQuantity.toLocaleString())
                 .replace('{unit}', translatePrepUnit(item.prepUnit, language))}
             </p>
+            {(item.demandReason || item.demandReasonTh) && (
+              <div className="mt-3 rounded-[0.625rem] bg-secondary/60 p-3">
+                <p className="wg-label">{t.whyThisAmount}</p>
+                <p className="mt-1.5 text-sm font-bold leading-6 text-foreground">
+                  {(language === 'th' ? item.demandReasonTh : item.demandReason) ?? item.demandReason}
+                </p>
+              </div>
+            )}
           </section>
 
           <section className="mt-7 xl:mt-6">

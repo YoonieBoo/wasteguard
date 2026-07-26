@@ -328,10 +328,20 @@ export default function DashboardPage() {
         const aiRecs = transformFlaskToRecommendations(data, pricingByName, menuItemIdByName)
         if (aiRecs.length > 0) {
           const nonFoodDefaults = defaultRecommendations.filter((r) => !r.affectedItemFileName)
-          const merged = [...aiRecs, ...nonFoodDefaults]
-          setRecommendations(merged)
-          window.localStorage.setItem(scopedKey(recommendationsKey, bakeryId), JSON.stringify(merged))
-          window.localStorage.setItem(scopedKey(recommendationsVersionKey, bakeryId), recommendationsVersion)
+          // Re-fetching on every page load must not reset a recommendation the
+          // owner already accepted/ignored back to "pending" — carry forward
+          // whatever status/modifiedQuantity this id already had.
+          setRecommendations((current) => {
+            const priorById = new Map(current.map((rec) => [rec.id, rec]))
+            const withPriorStatus = (rec: Recommendation): Recommendation => {
+              const prior = priorById.get(rec.id)
+              return prior ? { ...rec, status: prior.status, modifiedQuantity: prior.modifiedQuantity } : rec
+            }
+            const merged = [...aiRecs.map(withPriorStatus), ...nonFoodDefaults.map(withPriorStatus)]
+            window.localStorage.setItem(scopedKey(recommendationsKey, bakeryId), JSON.stringify(merged))
+            window.localStorage.setItem(scopedKey(recommendationsVersionKey, bakeryId), recommendationsVersion)
+            return merged
+          })
         }
       })
       .catch(() => undefined)
