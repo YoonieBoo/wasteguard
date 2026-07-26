@@ -128,3 +128,4 @@ The ML models currently train on sample data in `engine/mock_datas.py`. To use r
 ## Live demo
 
 [wasteguard-project.vercel.app](https://wasteguard-project.vercel.app)
+
