@@ -70,9 +70,15 @@ export async function POST(request: Request) {
   content.push({
     type: 'text',
     text:
-      `Estimate how much of "${body.itemName}" is left in the closing photo, in units of "${body.unit}". ` +
+      `You are estimating how much of "${body.itemName}" remains, expressed in "${body.unit}" — the same unit used ` +
+      `for how much was originally prepared. This means a serving-equivalent, not a literal count of physical plates ` +
+      `visible in the photo (e.g. a loose tray of salad that looks about a third full of a "56 plate" batch is "~19 plates worth left", ` +
+      `even though no individual plates are visible). Judge by the visible volume/coverage of food remaining compared to a full batch or full tray. ` +
+      'Always give your best-effort numeric estimate, even if the photo is imperfect, lighting is poor, or you are uncertain — ' +
+      'round to a sensible whole or half number. A member of staff will always review and correct this estimate before it is saved, ' +
+      'so a rough guess is far more useful than refusing to answer. ' +
       'Respond with ONLY a JSON object, no other text, in this exact shape: {"quantity": <number>}. ' +
-      'If you cannot make a reasonable estimate from the photo, respond with {"quantity": null}.',
+      'Only respond with {"quantity": null} if the image is completely unusable — e.g. solid black/corrupted, or clearly not a photo of food at all.',
   })
 
   try {
