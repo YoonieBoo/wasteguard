@@ -35,31 +35,36 @@ export async function uploadReferencePhoto(businessId: string, menuItemId: strin
   return data.publicUrl
 }
 
-const WEB_SAFE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+// Claude's vision API downsamples images beyond this on the long edge anyway,
+// so resizing to it client-side loses no estimation accuracy. It also keeps
+// the base64 JSON payload well under Vercel's fixed 4.5MB request-body limit
+// — a full-resolution phone/tablet camera photo (e.g. 4032x3024) can exceed
+// that on its own once base64-encoded, which serverless platforms reject
+// with a 413 before the request even reaches the API route.
+const MAX_DIMENSION = 1568
 
 /**
- * iOS cameras often capture HEIC/HEIF by default, which Claude's vision API
- * (and most browsers other than Safari) can't read. Safari can still decode
- * it for canvas drawing even though it can't be uploaded directly, so
- * re-encode to JPEG here regardless of source format before it goes anywhere
- * — the AI call, the audit-trail upload, and the reference-photo upload all
- * need a web-safe format.
+ * Re-encodes any camera photo to a size- and format-safe JPEG before it goes
+ * anywhere — the AI call, the audit-trail upload, and the reference-photo
+ * upload. This also covers HEIC/HEIF (iOS cameras' default capture format),
+ * which Claude's vision API can't read but Safari can still decode for
+ * canvas drawing even though it can't be uploaded directly.
  */
 export async function normalizeImageFile(file: File): Promise<File> {
-  if (WEB_SAFE_TYPES.has(file.type)) {
-    return file
-  }
-
   const bitmap = await createImageBitmap(file)
+  const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height))
+  const width = Math.round(bitmap.width * scale)
+  const height = Math.round(bitmap.height * scale)
+
   const canvas = document.createElement('canvas')
-  canvas.width = bitmap.width
-  canvas.height = bitmap.height
+  canvas.width = width
+  canvas.height = height
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('Unable to process photo')
-  ctx.drawImage(bitmap, 0, 0)
+  ctx.drawImage(bitmap, 0, 0, width, height)
   bitmap.close()
 
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85))
   if (!blob) throw new Error('Unable to process photo')
 
   const jpegName = file.name.replace(/\.[^.]+$/, '') + '.jpg'
@@ -107,7 +112,12 @@ export async function requestLeftoverEstimate({
     }),
   })
 
-  const data = await res.json()
+  let data: { quantity?: number; error?: string }
+  try {
+    data = await res.json()
+  } catch {
+    throw new Error(res.status === 413 ? 'Photo is too large — try a smaller image' : 'AI photo scan failed')
+  }
   if (!res.ok || typeof data.quantity !== 'number') {
     throw new Error(data.error || 'AI photo scan failed')
   }
