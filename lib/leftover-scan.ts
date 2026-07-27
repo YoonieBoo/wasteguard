@@ -35,6 +35,37 @@ export async function uploadReferencePhoto(businessId: string, menuItemId: strin
   return data.publicUrl
 }
 
+const WEB_SAFE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+
+/**
+ * iOS cameras often capture HEIC/HEIF by default, which Claude's vision API
+ * (and most browsers other than Safari) can't read. Safari can still decode
+ * it for canvas drawing even though it can't be uploaded directly, so
+ * re-encode to JPEG here regardless of source format before it goes anywhere
+ * — the AI call, the audit-trail upload, and the reference-photo upload all
+ * need a web-safe format.
+ */
+export async function normalizeImageFile(file: File): Promise<File> {
+  if (WEB_SAFE_TYPES.has(file.type)) {
+    return file
+  }
+
+  const bitmap = await createImageBitmap(file)
+  const canvas = document.createElement('canvas')
+  canvas.width = bitmap.width
+  canvas.height = bitmap.height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Unable to process photo')
+  ctx.drawImage(bitmap, 0, 0)
+  bitmap.close()
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+  if (!blob) throw new Error('Unable to process photo')
+
+  const jpegName = file.name.replace(/\.[^.]+$/, '') + '.jpg'
+  return new File([blob], jpegName, { type: 'image/jpeg' })
+}
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()

@@ -9,7 +9,7 @@ import { buildRealBakeryItems, getBakeryItems, translatePrepUnit } from '@/lib/b
 import { getPrepList, type FoodRow, type WasteGuardRole } from '@/lib/mock-data'
 import type { BusinessMenuItem } from '@/lib/menu-data'
 import type { FlaskFoodPrepItem } from '@/lib/ai-api'
-import { requestLeftoverEstimate, saveLeftoverScan, uploadLeftoverPhoto } from '@/lib/leftover-scan'
+import { normalizeImageFile, requestLeftoverEstimate, saveLeftoverScan, uploadLeftoverPhoto } from '@/lib/leftover-scan'
 
 interface QuickInputProps {
   language: Language
@@ -155,11 +155,11 @@ export function QuickInput({
   }
 
   async function handleScanFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
+    const rawFile = event.target.files?.[0]
     const itemKey = activeScanKeyRef.current
     // Reset so selecting the same file again still fires onChange next time.
     event.target.value = ''
-    if (!file || !itemKey) return
+    if (!rawFile || !itemKey) return
 
     const item = productionItems.find((production) => production.key === itemKey)
     if (!item) return
@@ -167,6 +167,9 @@ export function QuickInput({
     setScanStatus((current) => ({ ...current, [itemKey]: 'estimating' }))
 
     try {
+      // iOS cameras often capture HEIC, which the vision API can't read —
+      // normalize once and reuse for both the AI call and the audit upload.
+      const file = await normalizeImageFile(rawFile)
       const quantity = await requestLeftoverEstimate({
         file,
         itemName: item.name,

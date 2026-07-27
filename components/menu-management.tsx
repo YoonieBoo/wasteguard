@@ -14,7 +14,7 @@ import {
   type BusinessMenuItem,
   type MenuItemIngredient,
 } from '@/lib/menu-data'
-import { uploadReferencePhoto } from '@/lib/leftover-scan'
+import { normalizeImageFile, uploadReferencePhoto } from '@/lib/leftover-scan'
 
 interface MenuManagementProps {
   businessId: string
@@ -180,16 +180,20 @@ function DishEditPanel({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
-  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (!file) return
+  async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const rawFile = event.target.files?.[0]
+    if (!rawFile) return
+    const file = await normalizeImageFile(rawFile)
     setPhotoFile(file)
     setImagePreview(URL.createObjectURL(file))
   }
 
-  function handleReferencePhotoChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (!file) return
+  async function handleReferencePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const rawFile = event.target.files?.[0]
+    if (!rawFile) return
+    // iOS cameras often capture HEIC, which the vision API can't read when
+    // this photo is later sent to Claude as a leftover-scan reference.
+    const file = await normalizeImageFile(rawFile)
     setReferencePhotoFile(file)
     setReferencePhotoPreview(URL.createObjectURL(file))
   }
