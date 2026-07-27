@@ -356,26 +356,29 @@ function DishEditPanel({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="wg-label">{t.dishUnitCost}</label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={unitCost}
-                onChange={(event) => setUnitCost(event.target.value)}
-                className="wg-control mt-2 border-secondary bg-white"
-              />
-            </div>
-            <div>
-              <label className="wg-label">{t.dishSellingPrice}</label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                value={sellingPrice}
-                onChange={(event) => setSellingPrice(event.target.value)}
-                className="wg-control mt-2 border-secondary bg-white"
-              />
+          <div>
+            <p className="wg-meta">{t.dishCostingNote}</p>
+            <div className="mt-2 grid grid-cols-2 gap-3">
+              <div>
+                <label className="wg-label">{t.dishUnitCost}</label>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={unitCost}
+                  onChange={(event) => setUnitCost(event.target.value)}
+                  className="wg-control mt-2 border-secondary bg-white"
+                />
+              </div>
+              <div>
+                <label className="wg-label">{t.dishSellingPrice}</label>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={sellingPrice}
+                  onChange={(event) => setSellingPrice(event.target.value)}
+                  className="wg-control mt-2 border-secondary bg-white"
+                />
+              </div>
             </div>
           </div>
 
