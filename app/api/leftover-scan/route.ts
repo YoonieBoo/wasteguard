@@ -94,7 +94,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ quantity: parsed.quantity })
-  } catch {
+  } catch (err) {
+    console.error('leftover-scan error:', err)
     return NextResponse.json({ error: 'AI photo scan failed' }, { status: 502 })
   }
 }
