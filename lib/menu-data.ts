@@ -130,7 +130,7 @@ export function deriveDailyRowsFromSalesHistory(salesHistory: BusinessSalesHisto
 
   return Array.from(byDate.entries())
     .map(([date, totals]) => {
-      const wastePercent = totals.prepared > 0 ? (totals.leftover / totals.prepared) * 100 : 0
+      const wastePercent = totals.prepared > 0 ? Math.min(100, (totals.leftover / totals.prepared) * 100) : 0
       const dayOfWeek = new Date(date).getDay()
 
       return {
