@@ -170,7 +170,7 @@ function EventCard({
       </p>
       {event.status === 'closed' && (
         <p className="mt-1 text-xs font-black text-primary">
-          {(event.wastePercent ?? 0).toFixed(1)}% {t.wastePercentLabel.toLowerCase()}
+          {(event.wastePercent ?? 0).toFixed(1)}% waste
         </p>
       )}
     </button>
