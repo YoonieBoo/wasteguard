@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
 import { buildRealBakeryItems, getBakeryItems, translatePrepUnit } from '@/lib/bakery-catalog'
 import { getPrepList, type FoodRow, type WasteGuardRole } from '@/lib/mock-data'
-import type { BusinessMenuItem } from '@/lib/menu-data'
+import { saveDailyOperations, type BusinessMenuItem } from '@/lib/menu-data'
 import type { FlaskFoodPrepItem } from '@/lib/ai-api'
 import { normalizeImageFile, requestLeftoverEstimate, saveLeftoverScan, uploadLeftoverPhoto } from '@/lib/leftover-scan'
 
@@ -271,6 +271,28 @@ export function QuickInput({
           confirmedQuantity: Number(leftovers[item.key] || 0),
         }).catch((error) => console.error('Unable to save leftover scan', error))
       }
+    }
+
+    // Real per-dish numbers, written to the same table CSV import uses, so
+    // the AI recommendation engine has genuine per-dish sales history even
+    // for a business that never imports a CSV. item.key is only a real
+    // menu_items.id when productionItems was built from real menuItems (see
+    // buildRealBakeryItems) — the mock-fallback keys aren't valid dish ids,
+    // so skip entirely when there's no real menu to attach numbers to.
+    if (businessId && menuItems.length > 0) {
+      const operationRows = productionItems.map((item) => {
+        const prepared = Number(actualBaked[item.key] || 0)
+        const leftover = Number(leftovers[item.key] || 0)
+        return {
+          business_id: businessId,
+          menu_item_id: item.key,
+          date,
+          prepared_quantity: prepared,
+          sold_quantity: Math.max(0, prepared - leftover),
+          leftover_quantity: leftover,
+        }
+      })
+      saveDailyOperations(operationRows).catch((error) => console.error('Unable to save daily operations', error))
     }
 
     setResult(nextResult)

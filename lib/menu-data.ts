@@ -214,6 +214,29 @@ export async function createMenuItem(
   return toMenuItem(data)
 }
 
+export type DailyOperationRow = {
+  business_id: string
+  menu_item_id: string
+  date: string
+  prepared_quantity: number
+  sold_quantity: number
+  leftover_quantity: number
+}
+
+/**
+ * Upserts real per-dish daily numbers — the same table CSV import writes
+ * into (see lib/onboarding/import-data.ts). Lets the Check tab feed the AI
+ * recommendation engine real per-dish sales history even for a business
+ * that never imports a CSV, instead of the engine falling back to
+ * mismatched placeholder dish names when no per-dish history exists.
+ */
+export async function saveDailyOperations(rows: DailyOperationRow[]): Promise<void> {
+  const { error } = await supabase.from('daily_operations').upsert(rows, {
+    onConflict: 'business_id,menu_item_id,date',
+  })
+  if (error) throw new Error(`Unable to save daily operations: ${error.message}`)
+}
+
 /** Uploads a dish photo to the public menu-photos bucket and returns its public URL. */
 export async function uploadMenuItemPhoto(businessId: string, menuItemId: string, file: File): Promise<string> {
   const extension = file.name.split('.').pop() ?? 'jpg'
