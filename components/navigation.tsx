@@ -1,4 +1,4 @@
-import { Home, Leaf, Lock, LogOut, PlusCircle, Sparkles, TrendingUp, UtensilsCrossed, type LucideIcon } from 'lucide-react'
+import { CalendarDays, Home, Leaf, Lock, LogOut, PlusCircle, Sparkles, TrendingUp, UtensilsCrossed, type LucideIcon } from 'lucide-react'
 import { getText, type Language } from '@/lib/i18n'
 import type { WasteGuardRole } from '@/lib/mock-data'
 
@@ -27,6 +27,7 @@ export function Navigation({
   const navItems: Array<{ id: string; label: string; icon: LucideIcon; badge?: number; locked?: boolean }> = [
     { id: 'home', label: t.navHome, icon: Home },
     ...(role === 'staff' ? [{ id: 'input', label: t.navCheck, icon: PlusCircle }] : []),
+    { id: 'events', label: t.navEvents, icon: CalendarDays },
     ...(role === 'owner'
       ? [
           {
@@ -41,7 +42,7 @@ export function Navigation({
     ...(role === 'owner' ? [{ id: 'impact', label: t.navEsg, icon: Leaf, locked: !isProPlan }] : []),
     ...(role === 'owner' ? [{ id: 'report', label: t.navReport, icon: TrendingUp }] : []),
   ]
-  const gridColumns = role === 'owner' ? 'grid-cols-6' : 'grid-cols-3'
+  const gridColumns = role === 'owner' ? 'grid-cols-7' : 'grid-cols-4'
 
   return (
     <>

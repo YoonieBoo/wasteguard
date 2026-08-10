@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardHome } from '@/components/dashboard-home'
 import { MenuManagement } from '@/components/menu-management'
+import { EventManagement } from '@/components/event-management'
+import { EventCheck } from '@/components/event-check'
 import { QuickInput } from '@/components/quick-input'
 import { CarbonImpact } from '@/components/carbon-impact'
 import { Navigation } from '@/components/navigation'
@@ -38,7 +40,7 @@ function scopedKey(base: string, bakeryId: string) {
   return `${base}:${bakeryId}`
 }
 
-type AppScreen = 'home' | 'input' | 'impact' | 'recommendations' | 'report' | 'menu'
+type AppScreen = 'home' | 'input' | 'impact' | 'recommendations' | 'report' | 'menu' | 'events'
 
 type AuthProfile = {
   fullName: string
@@ -585,7 +587,11 @@ export default function DashboardPage() {
           className={`animate-in fade-in-0 duration-200 ${
             currentScreen === 'impact'
               ? 'w-full'
-              : isOwnerDashboard || currentScreen === 'recommendations' || currentScreen === 'report' || currentScreen === 'menu'
+              : isOwnerDashboard ||
+                  currentScreen === 'recommendations' ||
+                  currentScreen === 'report' ||
+                  currentScreen === 'menu' ||
+                  (currentScreen === 'events' && role === 'owner')
                 ? 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[920px] md:px-5 md:pt-5 xl:max-w-[1180px] xl:px-10 xl:pt-7'
                 : 'w-full max-w-[430px] px-4 pt-8 sm:px-5 md:max-w-[620px] md:px-6 lg:max-w-[1180px] lg:px-10 lg:pt-7'
           }`}
@@ -663,6 +669,12 @@ export default function DashboardPage() {
                 })
               }
             />
+          )}
+          {currentScreen === 'events' && role === 'owner' && authProfile?.bakeryId && (
+            <EventManagement businessId={authProfile.bakeryId} language={language} menuItems={businessMenuItems} />
+          )}
+          {currentScreen === 'events' && role === 'staff' && authProfile?.bakeryId && (
+            <EventCheck businessId={authProfile.bakeryId} language={language} />
           )}
           {currentScreen === 'impact' && role === 'owner' && (
             <EsgDashboard
