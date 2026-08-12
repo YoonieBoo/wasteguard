@@ -15,7 +15,7 @@ import { SavingsReport } from '@/components/savings-report'
 import { EsgDashboard } from '@/components/esg-dashboard'
 import { getText, type Language } from '@/lib/i18n'
 import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
-import { defaultRecommendations, type Recommendation, type RecommendationStatus } from '@/lib/recommendations'
+import type { Recommendation, RecommendationStatus } from '@/lib/recommendations'
 import { transformFlaskToRecommendations, type FlaskAnalyticsResponse, type FlaskFoodPrepItem, type FlaskRecommendationsResponse } from '@/lib/ai-api'
 import { deriveDailyRowsFromSalesHistory, fetchBusinessMenuData, type BusinessMenuItem, type BusinessSalesHistoryRow } from '@/lib/menu-data'
 import { supabase } from '@/lib/supabase'
@@ -186,19 +186,20 @@ export default function DashboardPage() {
 
     setIsProPlan(window.localStorage.getItem(scopedKey(isProPlanKey, bakeryId)) === 'true')
 
+    // No seeded fallback here — a brand-new business has zero real
+    // recommendations until the AI fetch below actually returns some. The
+    // old fallback (a hardcoded list of fake recs for dishes like "Breakfast
+    // Buffet"/"Fried Rice") stuck around forever whenever the real fetch
+    // legitimately came back empty, since nothing ever cleared it.
     const savedVersion = window.localStorage.getItem(scopedKey(recommendationsVersionKey, bakeryId))
     const savedRecs = window.localStorage.getItem(scopedKey(recommendationsKey, bakeryId))
     if (savedVersion === recommendationsVersion && savedRecs) {
       try {
         setRecommendations(JSON.parse(savedRecs) as Recommendation[])
-        return
       } catch {
-        // fall through to reset
+        // ignore — real fetch effect below will populate once it completes
       }
     }
-    setRecommendations(defaultRecommendations)
-    window.localStorage.setItem(scopedKey(recommendationsKey, bakeryId), JSON.stringify(defaultRecommendations))
-    window.localStorage.setItem(scopedKey(recommendationsVersionKey, bakeryId), recommendationsVersion)
   }, [authProfile?.bakeryId])
 
   // Authoritative "approved by manager" state — read from Supabase (not just
@@ -327,24 +328,29 @@ export default function DashboardPage() {
             .map((item) => [item.name, { foodCost: item.unitCost!, sellingPrice: item.sellingPrice! }]),
         )
         const menuItemIdByName = Object.fromEntries(businessMenuItems.map((item) => [item.name, item.id]))
+        // transformFlaskToRecommendations already converts the engine's real
+        // food-prep AND sustainability/anomaly recommendations — no need to
+        // additionally splice in the hardcoded defaultRecommendations list,
+        // which would either duplicate real data or (when the engine
+        // legitimately has nothing to say yet) show fabricated
+        // recommendations for dishes this business doesn't have.
         const aiRecs = transformFlaskToRecommendations(data, pricingByName, menuItemIdByName)
-        if (aiRecs.length > 0) {
-          const nonFoodDefaults = defaultRecommendations.filter((r) => !r.affectedItemFileName)
-          // Re-fetching on every page load must not reset a recommendation the
-          // owner already accepted/ignored back to "pending" — carry forward
-          // whatever status/modifiedQuantity this id already had.
-          setRecommendations((current) => {
-            const priorById = new Map(current.map((rec) => [rec.id, rec]))
-            const withPriorStatus = (rec: Recommendation): Recommendation => {
-              const prior = priorById.get(rec.id)
-              return prior ? { ...rec, status: prior.status, modifiedQuantity: prior.modifiedQuantity } : rec
-            }
-            const merged = [...aiRecs.map(withPriorStatus), ...nonFoodDefaults.map(withPriorStatus)]
-            window.localStorage.setItem(scopedKey(recommendationsKey, bakeryId), JSON.stringify(merged))
-            window.localStorage.setItem(scopedKey(recommendationsVersionKey, bakeryId), recommendationsVersion)
-            return merged
-          })
-        }
+        // Re-fetching on every page load must not reset a recommendation the
+        // owner already accepted/ignored back to "pending" — carry forward
+        // whatever status/modifiedQuantity this id already had. Always sync,
+        // even when aiRecs is empty, so a business with genuinely nothing to
+        // recommend yet correctly shows nothing instead of stale/seed data.
+        setRecommendations((current) => {
+          const priorById = new Map(current.map((rec) => [rec.id, rec]))
+          const withPriorStatus = (rec: Recommendation): Recommendation => {
+            const prior = priorById.get(rec.id)
+            return prior ? { ...rec, status: prior.status, modifiedQuantity: prior.modifiedQuantity } : rec
+          }
+          const merged = aiRecs.map(withPriorStatus)
+          window.localStorage.setItem(scopedKey(recommendationsKey, bakeryId), JSON.stringify(merged))
+          window.localStorage.setItem(scopedKey(recommendationsVersionKey, bakeryId), recommendationsVersion)
+          return merged
+        })
       })
       .catch(() => undefined)
       .finally(() => setAiRecsLoaded(true))

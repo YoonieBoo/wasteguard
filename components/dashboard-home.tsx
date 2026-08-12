@@ -13,7 +13,6 @@ import type { BusinessMenuItem } from '@/lib/menu-data'
 import {
   bakeryCategories,
   buildRealBakeryItems,
-  getBakeryItems,
   translateCategory,
   translateDemandLevel,
   translateIngredientName,
@@ -26,7 +25,6 @@ import {
 import {
   getBusinessDashboardData,
   getBusinessInsightData,
-  getPrepList,
   type FoodRow,
   type TimeRange,
   type WasteGuardRole,
@@ -75,9 +73,10 @@ export function DashboardHome({
   const [selectedCategory, setSelectedCategory] = useState<BakeryCategory>('All')
   const [showRecsPreview, setShowRecsPreview] = useState(false)
   const demandChartRef = useRef<HTMLDivElement>(null)
-  const prepList = getPrepList(dailyInputs).slice(0, 4)
-  // Real per-business dishes once the owner has imported/added any; falls back to
-  // the 4 demo dishes for brand-new accounts with nothing entered yet.
+  // Real per-business dishes once the owner has added any — a business with
+  // nothing entered yet genuinely has no dishes to show, so this must not
+  // fall back to the 4 demo dishes (that showed fabricated demand/revenue
+  // for real accounts that hadn't set up their menu yet).
   const bakeryItems =
     menuItems.length > 0
       ? buildRealBakeryItems(
@@ -91,10 +90,7 @@ export function DashboardHome({
           })),
           foodPrepItems,
         )
-      : getBakeryItems(
-          dailyInputs,
-          prepList.reduce((total, item) => total + item.quantity, 0),
-        )
+      : []
   const categoryFilters: BakeryCategory[] =
     menuItems.length > 0 ? ['All', ...new Set(bakeryItems.map((item) => item.category))] : bakeryCategories
   // "Most Requested" reflects actual demand (prepQuantity), not approval status —
@@ -375,6 +371,7 @@ export function DashboardHome({
             <section className="border-t border-secondary/80 p-5 md:p-6 xl:border-t-0">
               <p className="wg-section-title">{t.mostRequestedItems}</p>
               <p className="wg-meta mt-2">{t.mostRequestedNote}</p>
+              {requestedItems.length === 0 && <p className="wg-meta mt-4">{t.noMenuItemsYetNote}</p>}
               <div className="mt-8 divide-y divide-secondary/80">
                 {requestedItems.map((item, idx) => {
                   const isApproved = item.bakeryItem.fileName in approvedOverrides
@@ -467,6 +464,16 @@ export function DashboardHome({
         <p className="wg-page-subtitle">{t.staffDashboardNote}</p>
       </div>
 
+      {!featuredBakeryItem ? (
+        <div className="rounded-[0.75rem] bg-white p-8 text-center shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+            <UtensilsCrossed className="h-6 w-6" />
+          </div>
+          <p className="text-sm font-black text-foreground">{t.noMenuItemsYet}</p>
+          <p className="wg-meta mt-1">{t.noMenuItemsYetNote}</p>
+        </div>
+      ) : (
+      <>
       <button
         type="button"
         onClick={() => setSelectedBakeryItem(featuredBakeryItem)}
@@ -586,6 +593,8 @@ export function DashboardHome({
           })}
         </div>
       </section>
+      </>
+      )}
 
     </main>
     <PreparationDetailsPanel
