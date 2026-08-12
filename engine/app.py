@@ -20,6 +20,7 @@ confirmed_staff_preparation = []
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({
+        "status": "ok",
         "message": "WasteGuard AI Sustainability Consultant API is running.",
         "available_routes": [
             "GET  /api/analytics",
