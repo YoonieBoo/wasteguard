@@ -16,6 +16,12 @@ def create_menu_training_data():
     sales = get_sales_history()
     menu = get_menu_items()
 
+    if sales is None or sales.empty:
+         return pd.DataFrame()
+
+    if menu is None or menu.empty:
+         return pd.DataFrame()
+
     df = sales.merge(
         menu[["menu_item", "category"]],
         on="menu_item",
@@ -28,6 +34,9 @@ def create_menu_training_data():
 def train_menu_forecast_model():
     df = create_menu_training_data()
 
+    if df is None or df.empty:
+         return None 
+
     features = [
         "menu_item",
         "category",
@@ -37,6 +46,14 @@ def train_menu_forecast_model():
     ]
 
     target = "sold_quantity"
+
+    required_columns = features + [target]
+
+    missing_columns = [
+         column 
+         for column in required_columns
+         if column not in df.columns 
+    ]
 
     X = df[features]
     y = df[target]
@@ -103,15 +120,28 @@ def get_menu_comparison_data():
 
 
 def generate_menu_demand_forecast():
-    model = train_menu_forecast_model()
-    today = get_today_input()
-    menu = get_menu_items()
 
-    today["ai_forecast"] = model.predict(today).round().astype(int)
+        today = get_today_input()
+        menu = get_menu_items() 
 
-    comparison = get_menu_comparison_data()
+        # No real per-dish input -> not generate a mock forecast 
+        if today is None or today.empty:
+             return pd.DataFrame()
 
-    result = today.merge(comparison, on="menu_item", how="left")
-    result = result.merge(menu, on=["menu_item", "category"], how="left")
+        # if no Real Menu -> Break
+        if menu is None or menu.empty :
+             return pd.DataFrame()
 
-    return result
+        model = train_menu_forecast_model()
+
+        if model is None : 
+             return pd.DataFrame()
+
+        today["ai_forecast"] = model.predict(today).round().astype(int)
+
+        comparison = get_menu_comparison_data()
+
+        result = today.merge(comparison, on="menu_item", how="left")
+
+        result = result.merge(menu, on=["menu_item", "category"], how="left")
+        return result

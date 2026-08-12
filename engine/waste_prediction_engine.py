@@ -527,97 +527,45 @@ def predict_waste_from_input(items):
 
 
 def generate_waste_predictions():
-    """
-    Automatically use the output from
-    insight_menu_forecast.py and the current mock data.
 
-    This function is used by GET API routes.
-    """
+    forecast_df = generate_menu_demand_forecast()
 
-    forecast_df = (
-        generate_menu_demand_forecast()
-    )
-
-    mock_menu_lookup = {
-        item["menu"]: item
-        for item in menu_sales
-    }
+    if forecast_df is None or forecast_df.empty:
+        return {
+            "success" : False, 
+            "summary" : {
+                "total_items_received": 0,
+                "total_items_predicted" : 0,
+                "total_items_failed" : 0,
+                "message" : "Not enough real dish-level data for waste prediction."
+            },
+            "waste_predictions": [],
+            "errors" : []
+        }
 
     input_items = []
 
-    for _, forecast_row in (
-        forecast_df.iterrows()
-    ):
-        menu_item = forecast_row[
-            "menu_item"
-        ]
-
-        menu_data = mock_menu_lookup.get(
-            menu_item,
-            {},
-        )
+    for _, forecast_row in forecast_df.iterrows() :
 
         input_items.append({
-            "menu_item": menu_item,
+            "menu_item": forecast_row["menu_item"],
 
-            "category": forecast_row.get(
-                "category",
-                menu_data.get(
-                    "category",
-                    "Uncategorized",
-                ),
-            ),
+            "category": forecast_row.get("category", "Uncategorized"),
 
-            "prepared_quantity": (
-                menu_data.get(
-                    "prepared_qty",
-                    forecast_row[
-                        "ai_forecast"
-                    ],
-                )
-            ),
+            "prepared_quantity": forecast_row.get("prepared_quantity", forecast_row["ai_forecast"]),
 
-            "ai_forecast": forecast_row[
-                "ai_forecast"
-            ],
+            "ai_forecast": forecast_row["ai_forecast"],
 
-            "serving_weight_kg": (
-                DEFAULT_SERVING_WEIGHTS.get(
-                    menu_item,
-                    0.35,
-                )
-            ),
+            "serving_weight_kg" : forecast_row.get("serving_weight_kg", 0.35),
 
-            "food_cost_per_portion": (
-                menu_data.get(
-                    "food_cost",
-                    0,
-                )
-            ),
+            "food_cost_per_portion": forecast_row.get("selling_price_per_portion", 0),
 
-            "selling_price_per_portion": (
-                menu_data.get(
-                    "selling_price",
-                    0,
-                )
-            ),
+            "disposal_cost_per_kg": utility_rates["food_waste_disposal_per_kg"],
 
-            "disposal_cost_per_kg": (
-                utility_rates[
-                    "food_waste_disposal_per_kg"
-                ]
-            ),
-
-            "carbon_factor": (
-                carbon_factors[
-                    "food_waste"
-                ]
-            ),
+            "carbon_factor": carbon_factors["food_waste"]
         })
 
-    return predict_waste_from_input(
-        input_items
-    )
+    return predict_waste_from_input(input_items)
 
 
 if __name__ == "__main__":

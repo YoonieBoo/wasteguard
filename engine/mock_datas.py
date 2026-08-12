@@ -303,19 +303,11 @@ def get_sales_history():
     if override:
         return pd.DataFrame(override)
 
-    ops = _pipeline_override.get("daily_operations") or daily_operations
-    rows = []
-    for day in ops:
-        for item in menu_sales:
-            rows.append({
-                "date":        day["date"],
-                "menu_item":   item["menu"],
-                "day_of_week": day["day"],
-                "weather":     day["weather"],
-                "promotion":   day["promotion"],
-                "sold_quantity": item["sold_qty"],
-            })
-    return pd.DataFrame(rows)
+    return pd.DataFrame(
+        columns = [
+            "date", "menu_item", "day_of_week", "weather", "promotion", "sold_quantity", "stock_out"
+        ]
+    )
 
 
 def get_today_input():

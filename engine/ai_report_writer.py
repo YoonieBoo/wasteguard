@@ -1,631 +1,1003 @@
-# ai_report_writer.py
-
 from __future__ import annotations
 
-import json
-import os
-from typing import Any
+from datetime import date, datetime, timedelta
+from typing import Any, Literal
 
-from dotenv import load_dotenv
-from openai import OpenAI
-from pydantic import BaseModel, Field
+from analytics_engine import AnalyticsEngine
+from ai_insight_engine import generate_ai_insights
+from recommendation_engine import generate_final_recommendations
+from waste_prediction_engine import generate_waste_predictions
+from cost_saving_engine import calculate_cost_savings_from_predictions
+from carbon_impact_engine import calculate_carbon_impact_from_predictions
+from esg_score_calculation import calculate_esg_score
 
+ReportPeriod = Literal[
+    "day",
+    "week",
+    "month",
+    "year",
+]
 
-load_dotenv()
+VALID_PERIODS = {
+    "day",
+    "week",
+    "month",
+    "year",
+}
 
-
-OPENAI_REPORT_MODEL = os.getenv(
-    "OPENAI_REPORT_MODEL",
-    "gpt-5-mini",
-)
-
-
-class ReportHighlight(BaseModel):
-    title: str = Field(
-        description=(
-            "Short title for the report highlight."
-        )
-    )
-
-    description: str = Field(
-        description=(
-            "Short explanation using only supplied report data."
-        )
-    )
-
-    metric: str = Field(
-        description=(
-            "Relevant metric exactly based on the supplied values."
-        )
-    )
+DEFAULT_AVOIDABLE_WASTE_RATE = 0.80
 
 
-class ReportAttentionItem(BaseModel):
-    title: str = Field(
-        description=(
-            "Short title for an issue requiring attention."
-        )
-    )
-
-    reason: str = Field(
-        description=(
-            "Why this issue needs attention."
-        )
-    )
-
-    recommended_action: str = Field(
-        description=(
-            "A practical next action for the restaurant owner."
-        )
-    )
-
-
-class AIReportOutput(BaseModel):
-    report_title: str = Field(
-        description=(
-            "Professional title for the selected report period."
-        )
-    )
-
-    headline: str = Field(
-        description=(
-            "One short headline describing the main result."
-        )
-    )
-
-    executive_summary: str = Field(
-        description=(
-            "A clear two-to-four sentence summary written for "
-            "a non-technical restaurant owner."
-        )
-    )
-
-    financial_summary: str = Field(
-        description=(
-            "A short explanation of cost savings and losses."
-        )
-    )
-
-    environmental_summary: str = Field(
-        description=(
-            "A short explanation of waste and carbon results."
-        )
-    )
-
-    esg_summary: str = Field(
-        description=(
-            "A short explanation of environmental, social, "
-            "governance, and overall ESG scores."
-        )
-    )
-
-    recommendation_summary: str = Field(
-        description=(
-            "A short explanation of recommendation adoption "
-            "and the most important actions."
-        )
-    )
-
-    highlights: list[ReportHighlight] = Field(
-        description=(
-            "Two to five important report highlights."
-        )
-    )
-
-    attention_items: list[
-        ReportAttentionItem
-    ] = Field(
-        description=(
-            "Zero to four issues requiring attention."
-        )
-    )
-
-    next_actions: list[str] = Field(
-        description=(
-            "Two to four practical next actions."
-        )
-    )
-
-    conclusion: str = Field(
-        description=(
-            "A short closing statement for the report."
-        )
-    )
-
-
-def get_openai_client() -> OpenAI:
+def validate_period(period: str) -> ReportPeriod:
     """
-    Create an OpenAI client from the backend API key.
+    Validate the report period.
     """
 
-    api_key = os.getenv(
-        "OPENAI_API_KEY"
-    )
+    normalized = str(period).strip().lower()
 
-    if not api_key:
-        raise RuntimeError(
-            "OPENAI_API_KEY is missing. "
-            "Add it to your .env file."
+    if normalized not in VALID_PERIODS:
+        raise ValueError(
+            "period must be day, week, month, or year."
         )
 
-    return OpenAI(
-        api_key=api_key
-    )
+    return normalized  # type: ignore[return-value]
 
 
-def create_report_subset(
-    report_data: dict[str, Any],
-) -> dict[str, Any]:
+def validate_rate(
+    value: Any,
+    field_name: str,
+) -> float:
     """
-    Reduce the amount of data sent to OpenAI.
+    Validate a rate between 0 and 1.
+    """
 
-    The detailed raw analytics are still returned to the
-    frontend, but OpenAI only needs the important calculated
-    fields for writing.
+    try:
+        rate = float(value)
+
+    except (TypeError, ValueError):
+        raise ValueError(
+            f"{field_name} must be a valid number."
+        )
+
+    if rate < 0 or rate > 1:
+        raise ValueError(
+            f"{field_name} must be between 0 and 1."
+        )
+
+    return rate
+
+
+def parse_reference_date(
+    reference_date: str | None,
+) -> date:
+    """
+    Parse YYYY-MM-DD or use today's date.
+    """
+
+    if reference_date is None:
+        return date.today()
+
+    try:
+        return datetime.strptime(
+            reference_date,
+            "%Y-%m-%d",
+        ).date()
+
+    except ValueError:
+        raise ValueError(
+            "reference_date must use YYYY-MM-DD format."
+        )
+
+
+def get_period_dates(
+    period: ReportPeriod,
+    reference_date: date,
+) -> dict[str, str]:
+    """
+    Calculate the selected period's date range.
+    """
+
+    if period == "day":
+        start_date = reference_date
+        end_date = reference_date
+
+    elif period == "week":
+        start_date = (
+            reference_date
+            - timedelta(
+                days=reference_date.weekday()
+            )
+        )
+
+        end_date = (
+            start_date
+            + timedelta(days=6)
+        )
+
+    elif period == "month":
+        start_date = reference_date.replace(
+            day=1
+        )
+
+        if reference_date.month == 12:
+            next_month = date(
+                reference_date.year + 1,
+                1,
+                1,
+            )
+
+        else:
+            next_month = date(
+                reference_date.year,
+                reference_date.month + 1,
+                1,
+            )
+
+        end_date = (
+            next_month
+            - timedelta(days=1)
+        )
+
+    else:
+        start_date = date(
+            reference_date.year,
+            1,
+            1,
+        )
+
+        end_date = date(
+            reference_date.year,
+            12,
+            31,
+        )
+
+    return {
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+    }
+
+
+def get_prototype_multiplier(
+    period: ReportPeriod,
+) -> int:
+    """
+    Temporary mock-data scaling.
+
+    Replace this when real historical records are stored
+    in Supabase.
     """
 
     return {
-        "report_type": report_data.get(
-            "report_type"
-        ),
+        "day": 1,
+        "week": 7,
+        "month": 30,
+        "year": 365,
+    }[period]
 
-        "period": report_data.get(
-            "period"
-        ),
 
-        "period_label": report_data.get(
-            "period_label"
-        ),
+def scale_number(
+    value: Any,
+    multiplier: float,
+) -> float:
+    """
+    Multiply and round a numeric value.
+    """
 
-        "date_range": report_data.get(
-            "date_range",
+    try:
+        number = float(value)
+
+    except (TypeError, ValueError):
+        number = 0.0
+
+    return round(
+        number * multiplier,
+        2,
+    )
+
+
+def calculate_adherence_percent(
+    acted_on: int,
+    total: int,
+) -> float:
+    """
+    Recommendation adherence percentage.
+    """
+
+    if total <= 0:
+        return 0.0
+
+    percentage = (
+        acted_on
+        / total
+        * 100
+    )
+
+    return round(
+        max(
+            0.0,
+            min(percentage, 100.0),
+        ),
+        2,
+    )
+
+
+def get_period_cost_summary(
+    cost_report: dict[str, Any],
+    period: ReportPeriod,
+) -> dict[str, float]:
+    """
+    Select the correct cost-saving period.
+    """
+
+    if period == "day":
+        source = cost_report.get(
+            "daily_summary",
             {},
+        )
+
+        multiplier = 1
+
+    elif period == "week":
+        source = cost_report.get(
+            "daily_summary",
+            {},
+        )
+
+        multiplier = 7
+
+    elif period == "month":
+        source = cost_report.get(
+            "monthly_summary",
+            {},
+        )
+
+        multiplier = 1
+
+    else:
+        source = cost_report.get(
+            "yearly_summary",
+            {},
+        )
+
+        multiplier = 1
+
+    return {
+        "estimated_food_cost_saving_thb": scale_number(
+            source.get(
+                "estimated_food_cost_saving_thb",
+                0,
+            ),
+            multiplier,
         ),
 
-        "company": report_data.get(
+        "estimated_disposal_cost_saving_thb": scale_number(
+            source.get(
+                "estimated_disposal_cost_saving_thb",
+                0,
+            ),
+            multiplier,
+        ),
+
+        "estimated_total_cost_saving_thb": scale_number(
+            source.get(
+                "estimated_total_cost_saving_thb",
+                0,
+            ),
+            multiplier,
+        ),
+
+        "avoidable_waste_kg": scale_number(
+            source.get(
+                "avoidable_waste_kg",
+                0,
+            ),
+            multiplier,
+        ),
+    }
+
+
+def get_period_carbon_summary(
+    carbon_report: dict[str, Any],
+    period: ReportPeriod,
+) -> dict[str, float]:
+    """
+    Select the correct carbon-impact period.
+    """
+
+    if period == "day":
+        source = carbon_report.get(
+            "daily_summary",
+            {},
+        )
+
+        multiplier = 1
+
+    elif period == "week":
+        source = carbon_report.get(
+            "daily_summary",
+            {},
+        )
+
+        multiplier = 7
+
+    elif period == "month":
+        source = carbon_report.get(
+            "monthly_summary",
+            {},
+        )
+
+        multiplier = 1
+
+    else:
+        source = carbon_report.get(
+            "yearly_summary",
+            {},
+        )
+
+        multiplier = 1
+
+    return {
+        "predicted_waste_kg": scale_number(
+            source.get(
+                "predicted_waste_kg",
+                0,
+            ),
+            multiplier,
+        ),
+
+        "carbon_impact_kg_co2e": scale_number(
+            source.get(
+                "carbon_impact_kg_co2e",
+                0,
+            ),
+            multiplier,
+        ),
+
+        "avoidable_waste_kg": scale_number(
+            source.get(
+                "avoidable_waste_kg",
+                0,
+            ),
+            multiplier,
+        ),
+
+        "estimated_carbon_reduction_kg_co2e": scale_number(
+            source.get(
+                "estimated_carbon_reduction_kg_co2e",
+                0,
+            ),
+            multiplier,
+        ),
+
+        "remaining_carbon_impact_kg_co2e": scale_number(
+            source.get(
+                "remaining_carbon_impact_kg_co2e",
+                0,
+            ),
+            multiplier,
+        ),
+    }
+
+
+def build_accepted_recommendations(
+    cost_report: dict[str, Any],
+    carbon_report: dict[str, Any],
+    accepted_menu_items: list[str],
+    period: ReportPeriod,
+) -> list[dict[str, Any]]:
+    """
+    Combine accepted recommendations with their
+    projected financial and environmental benefits.
+    """
+
+    accepted_names = {
+        str(name).strip().lower()
+        for name in accepted_menu_items
+    }
+
+    multiplier = get_prototype_multiplier(
+        period
+    )
+
+    carbon_lookup = {
+        str(
+            item.get(
+                "menu_item",
+                "Unknown",
+            )
+        ): item
+        for item in carbon_report.get(
+            "item_carbon_impacts",
+            [],
+        )
+    }
+
+    results = []
+
+    for item in cost_report.get(
+        "item_cost_savings",
+        [],
+    ):
+        menu_item = str(
+            item.get(
+                "menu_item",
+                "Unknown",
+            )
+        )
+
+        if (
+            menu_item.strip().lower()
+            not in accepted_names
+        ):
+            continue
+
+        carbon_item = carbon_lookup.get(
+            menu_item,
+            {},
+        )
+
+        results.append({
+            "menu_item": menu_item,
+
+            "category": item.get(
+                "category",
+                "Uncategorized",
+            ),
+
+            "status": "Accepted",
+
+            "waste_risk_status": item.get(
+                "waste_risk_status",
+                "Unknown",
+            ),
+
+            "action": (
+                f"Adjust {menu_item} preparation "
+                f"closer to forecasted demand."
+            ),
+
+            "projected_cost_saving_thb": scale_number(
+                item.get(
+                    "estimated_total_cost_saving_thb",
+                    0,
+                ),
+                multiplier,
+            ),
+
+            "projected_food_cost_saving_thb": scale_number(
+                item.get(
+                    "estimated_food_cost_saving_thb",
+                    0,
+                ),
+                multiplier,
+            ),
+
+            "projected_disposal_cost_saving_thb": scale_number(
+                item.get(
+                    "estimated_disposal_cost_saving_thb",
+                    0,
+                ),
+                multiplier,
+            ),
+
+            "projected_waste_reduction_kg": scale_number(
+                item.get(
+                    "avoidable_waste_kg",
+                    0,
+                ),
+                multiplier,
+            ),
+
+            "projected_carbon_reduction_kg_co2e": scale_number(
+                carbon_item.get(
+                    "estimated_carbon_reduction_kg_co2e",
+                    0,
+                ),
+                multiplier,
+            ),
+        })
+
+    return results
+
+
+def create_performance_history(
+    period: ReportPeriod,
+    total_cost_saving: float,
+    total_waste_reduction: float,
+    total_carbon_reduction: float,
+) -> list[dict[str, Any]]:
+    """
+    Create temporary chart points.
+
+    This is only for mock data. Real chart data should be
+    aggregated from Supabase records for each date.
+    """
+
+    if period == "day":
+        labels = ["Today"]
+
+    elif period == "week":
+        labels = [
+            "Mon",
+            "Tue",
+            "Wed",
+            "Thu",
+            "Fri",
+            "Sat",
+            "Sun",
+        ]
+
+    elif period == "month":
+        labels = [
+            "Week 1",
+            "Week 2",
+            "Week 3",
+            "Week 4",
+        ]
+
+    else:
+        labels = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+        ]
+
+    count = len(labels)
+
+    return [
+        {
+            "label": label,
+
+            "cost_saving_thb": round(
+                total_cost_saving / count,
+                2,
+            ),
+
+            "waste_reduction_kg": round(
+                total_waste_reduction / count,
+                2,
+            ),
+
+            "carbon_reduction_kg_co2e": round(
+                total_carbon_reduction / count,
+                2,
+            ),
+        }
+        for label in labels
+    ]
+
+
+def generate_savings_report(
+    period: str = "month",
+    reference_date: str | None = None,
+    avoidable_waste_rate: float = (
+        DEFAULT_AVOIDABLE_WASTE_RATE
+    ),
+    accepted_menu_items: list[str] | None = None,
+    total_recommendations: int | None = None,
+    days_logged: int = 1,
+    total_days_in_period: int = 1,
+    reporting_rate: float = 1.0,
+    previous_overall_esg_score: float | None = None,
+) -> dict[str, Any]:
+    """
+    Generate one complete Waste Guard report.
+
+    This function combines:
+    - analytics
+    - AI forecasting and anomaly insights
+    - waste prediction
+    - cost saving
+    - carbon impact
+    - ESG score
+    - recommendations
+    """
+
+    normalized_period = validate_period(
+        period
+    )
+
+    report_date = parse_reference_date(
+        reference_date
+    )
+
+    avoidable_waste_rate = validate_rate(
+        avoidable_waste_rate,
+        "avoidable_waste_rate",
+    )
+
+    if accepted_menu_items is None:
+        accepted_menu_items = []
+
+    analytics_report = (
+        AnalyticsEngine().generate_report()
+    )
+
+    ai_insights = generate_ai_insights()
+
+    waste_prediction_result = (
+        generate_waste_predictions()
+    )
+
+    cost_report = (
+        calculate_cost_savings_from_predictions(
+            waste_prediction_result=(
+                waste_prediction_result
+            ),
+            avoidable_waste_rate=(
+                avoidable_waste_rate
+            ),
+        )
+    )
+
+    carbon_report = (
+        calculate_carbon_impact_from_predictions(
+            waste_prediction_result=(
+                waste_prediction_result
+            ),
+            avoidable_waste_rate=(
+                avoidable_waste_rate
+            ),
+        )
+    )
+
+    recommendations = (
+        generate_final_recommendations()
+    )
+
+    food_recommendations = (
+        recommendations.get(
+            "food_preparation_recommendations",
+            [],
+        )
+    )
+
+    sustainability_recommendations = (
+        recommendations.get(
+            "sustainability_recommendations",
+            [],
+        )
+    )
+
+    anomaly_recommendations = (
+        recommendations.get(
+            "anomaly_recommendations",
+            [],
+        )
+    )
+
+    if total_recommendations is None:
+        total_recommendations = (
+            len(food_recommendations)
+            + len(sustainability_recommendations)
+            + len(anomaly_recommendations)
+        )
+
+    accepted_count = len(
+        accepted_menu_items
+    )
+
+    adherence_percent = (
+        calculate_adherence_percent(
+            acted_on=accepted_count,
+            total=total_recommendations,
+        )
+    )
+
+    adherence_rate = (
+        adherence_percent / 100
+    )
+
+    waste_summary = (
+        waste_prediction_result.get(
+            "summary",
+            {},
+        )
+    )
+
+    average_waste_percent = float(
+        waste_summary.get(
+            "overall_waste_percent",
+            0,
+        )
+    )
+
+    esg_report = calculate_esg_score(
+        average_waste_percent=(
+            average_waste_percent
+        ),
+
+        days_logged=days_logged,
+
+        total_days_in_period=(
+            total_days_in_period
+        ),
+
+        reporting_rate=reporting_rate,
+
+        recommendations_acted_on=(
+            accepted_count
+        ),
+
+        total_recommendations=(
+            total_recommendations
+        ),
+
+        previous_overall_score=(
+            previous_overall_esg_score
+        ),
+    )
+
+    period_cost = get_period_cost_summary(
+        cost_report=cost_report,
+        period=normalized_period,
+    )
+
+    period_carbon = (
+        get_period_carbon_summary(
+            carbon_report=carbon_report,
+            period=normalized_period,
+        )
+    )
+
+    accepted_recommendations = (
+        build_accepted_recommendations(
+            cost_report=cost_report,
+            carbon_report=carbon_report,
+            accepted_menu_items=(
+                accepted_menu_items
+            ),
+            period=normalized_period,
+        )
+    )
+
+    date_range = get_period_dates(
+        period=normalized_period,
+        reference_date=report_date,
+    )
+
+    summary = {
+        "estimated_food_cost_saving_thb": (
+            period_cost[
+                "estimated_food_cost_saving_thb"
+            ]
+        ),
+
+        "estimated_disposal_cost_saving_thb": (
+            period_cost[
+                "estimated_disposal_cost_saving_thb"
+            ]
+        ),
+
+        "estimated_total_cost_saving_thb": (
+            period_cost[
+                "estimated_total_cost_saving_thb"
+            ]
+        ),
+
+        "estimated_waste_reduction_kg": (
+            period_cost[
+                "avoidable_waste_kg"
+            ]
+        ),
+
+        "predicted_waste_kg": (
+            period_carbon[
+                "predicted_waste_kg"
+            ]
+        ),
+
+        "carbon_impact_before_action_kg_co2e": (
+            period_carbon[
+                "carbon_impact_kg_co2e"
+            ]
+        ),
+
+        "estimated_carbon_reduction_kg_co2e": (
+            period_carbon[
+                "estimated_carbon_reduction_kg_co2e"
+            ]
+        ),
+
+        "remaining_carbon_impact_kg_co2e": (
+            period_carbon[
+                "remaining_carbon_impact_kg_co2e"
+            ]
+        ),
+
+        "recommendations_acted_on": (
+            accepted_count
+        ),
+
+        "total_recommendations": (
+            total_recommendations
+        ),
+
+        "recommendation_adherence_percent": (
+            adherence_percent
+        ),
+
+        "recommendation_adherence_rate": (
+            round(
+                adherence_rate,
+                4,
+            )
+        ),
+
+        "overall_esg_score": (
+            esg_report.get(
+                "scores",
+                {},
+            ).get(
+                "overall_sustainability_score",
+                0,
+            )
+        ),
+
+        "environmental_score": (
+            esg_report.get(
+                "scores",
+                {},
+            ).get(
+                "environmental_score",
+                0,
+            )
+        ),
+
+        "social_score": (
+            esg_report.get(
+                "scores",
+                {},
+            ).get(
+                "social_score",
+                0,
+            )
+        ),
+
+        "governance_score": (
+            esg_report.get(
+                "scores",
+                {},
+            ).get(
+                "governance_score",
+                0,
+            )
+        ),
+    }
+
+    return {
+        "success": True,
+
+        "report_type": (
+            "wasteguard_savings_and_sustainability_report"
+        ),
+
+        "period": normalized_period,
+
+        "period_label": (
+            normalized_period.capitalize()
+        ),
+
+        "date_range": date_range,
+
+        "calculation_mode": (
+            "prototype_scaled_estimate"
+        ),
+
+        "summary": summary,
+
+        "company": analytics_report.get(
             "company",
             {},
         ),
 
-        "summary": report_data.get(
-            "summary",
-            {},
-        ),
+        "analytics": analytics_report,
 
-        "analytics_summary": {
-            "totals": report_data.get(
-                "analytics",
-                {},
-            ).get(
-                "totals",
-                {},
-            ),
+        "ai_insights": ai_insights,
 
-            "costs": report_data.get(
-                "analytics",
-                {},
-            ).get(
-                "costs",
-                {},
-            ),
-
-            "efficiency_metrics": report_data.get(
-                "analytics",
-                {},
-            ).get(
-                "efficiency_metrics",
-                {},
-            ),
-
-            "trends": report_data.get(
-                "analytics",
-                {},
-            ).get(
-                "trends",
-                {},
-            ),
-
-            "benchmark_comparison": report_data.get(
-                "analytics",
-                {},
-            ).get(
-                "benchmark_comparison",
-                {},
-            ),
-        },
-
-        "waste_summary": report_data.get(
-            "waste_prediction",
-            {},
-        ).get(
-            "summary",
-            {},
-        ),
-
-        "esg_scores": report_data.get(
-            "esg",
-            {},
-        ).get(
-            "scores",
-            {},
-        ),
-
-        "accepted_recommendations": (
-            report_data.get(
-                "accepted_recommendations",
+        "menu_demand_forecast": (
+            ai_insights.get(
+                "menu_demand_forecast",
                 [],
             )
         ),
 
-        "recommendations": (
-            report_data.get(
-                "recommendations",
-                {},
+        "waste_prediction": (
+            waste_prediction_result
+        ),
+
+        "cost_saving": cost_report,
+
+        "carbon_impact": carbon_report,
+
+        "esg": esg_report,
+
+        "recommendations": recommendations,
+
+        "accepted_recommendations": (
+            accepted_recommendations
+        ),
+
+        "performance_history": (
+            create_performance_history(
+                period=normalized_period,
+
+                total_cost_saving=summary[
+                    "estimated_total_cost_saving_thb"
+                ],
+
+                total_waste_reduction=summary[
+                    "estimated_waste_reduction_kg"
+                ],
+
+                total_carbon_reduction=summary[
+                    "estimated_carbon_reduction_kg_co2e"
+                ],
             )
         ),
 
-        "calculation_basis": (
-            report_data.get(
-                "calculation_basis",
-                {},
-            )
-        ),
+        "calculation_basis": {
+            "avoidable_waste_rate": (
+                avoidable_waste_rate
+            ),
+
+            "avoidable_waste_rate_percent": round(
+                avoidable_waste_rate * 100,
+                2,
+            ),
+
+            "cost_saving_formula": (
+                "avoidable food cost loss "
+                "+ avoidable disposal cost"
+            ),
+
+            "carbon_impact_formula": (
+                "predicted waste kg "
+                "× food-waste carbon factor"
+            ),
+
+            "carbon_reduction_formula": (
+                "carbon impact "
+                "× avoidable waste rate"
+            ),
+
+            "prototype_note": (
+                "Weekly, monthly, and yearly results are "
+                "currently projected from the daily mock-data "
+                "result. Replace this with real period aggregation "
+                "when Supabase historical data is available."
+            ),
+        },
     }
-
-
-def build_report_prompt(
-    report_data: dict[str, Any],
-) -> str:
-    """
-    Build the prompt sent to OpenAI.
-    """
-
-    report_subset = create_report_subset(
-        report_data
-    )
-
-    return (
-        "Write a professional Waste Guard savings and "
-        "sustainability report using the supplied JSON.\n\n"
-        "Important rules:\n"
-        "1. Use only numbers that exist in the supplied JSON.\n"
-        "2. Do not invent, modify, estimate, or recalculate values.\n"
-        "3. Describe calculated savings as projected or estimated, "
-        "unless the input explicitly states that they are actual.\n"
-        "4. Clearly distinguish carbon impact from carbon reduction.\n"
-        "5. Clearly distinguish predicted waste from actual waste.\n"
-        "6. Write for a non-technical restaurant or hotel owner.\n"
-        "7. Mention major waste risks, cost opportunities, ESG "
-        "performance, and recommendation adherence.\n"
-        "8. Do not mention OpenAI, prompts, JSON, or being an AI.\n"
-        "9. Do not claim that the report is independently audited.\n"
-        "10. Keep the report concise enough for a dashboard.\n\n"
-        "Calculated Waste Guard report data:\n"
-        + json.dumps(
-            report_subset,
-            ensure_ascii=False,
-            indent=2,
-            default=str,
-        )
-    )
-
-
-def create_fallback_report(
-    report_data: dict[str, Any],
-    error_message: str | None = None,
-) -> dict[str, Any]:
-    """
-    Create a non-AI report when OpenAI is unavailable.
-    """
-
-    company = report_data.get(
-        "company",
-        {},
-    )
-
-    company_name = company.get(
-        "company_name",
-        "The business",
-    )
-
-    period = str(
-        report_data.get(
-            "period",
-            "reporting period",
-        )
-    )
-
-    summary = report_data.get(
-        "summary",
-        {},
-    )
-
-    total_saving = float(
-        summary.get(
-            "estimated_total_cost_saving_thb",
-            0,
-        )
-    )
-
-    waste_reduction = float(
-        summary.get(
-            "estimated_waste_reduction_kg",
-            0,
-        )
-    )
-
-    carbon_reduction = float(
-        summary.get(
-            "estimated_carbon_reduction_kg_co2e",
-            0,
-        )
-    )
-
-    overall_esg = float(
-        summary.get(
-            "overall_esg_score",
-            0,
-        )
-    )
-
-    acted_on = int(
-        summary.get(
-            "recommendations_acted_on",
-            0,
-        )
-    )
-
-    total_recommendations = int(
-        summary.get(
-            "total_recommendations",
-            0,
-        )
-    )
-
-    adherence = float(
-        summary.get(
-            "recommendation_adherence_percent",
-            0,
-        )
-    )
-
-    attention_items = []
-
-    if adherence < 50 and total_recommendations > 0:
-        attention_items.append({
-            "title": (
-                "Low recommendation adoption"
-            ),
-
-            "reason": (
-                f"Only {acted_on} of "
-                f"{total_recommendations} recommendations "
-                f"were acted on."
-            ),
-
-            "recommended_action": (
-                "Review the highest-priority remaining "
-                "recommendation."
-            ),
-        })
-
-    if overall_esg < 70:
-        attention_items.append({
-            "title": "ESG score needs improvement",
-
-            "reason": (
-                f"The overall ESG score is "
-                f"{overall_esg:.2f} out of 100."
-            ),
-
-            "recommended_action": (
-                "Prioritize environmental and governance "
-                "improvements."
-            ),
-        })
-
-    result = {
-        "report_title": (
-            f"{period.capitalize()} Waste Guard Report"
-        ),
-
-        "headline": (
-            f"{company_name} sustainability performance"
-        ),
-
-        "executive_summary": (
-            f"{company_name} is projected to save "
-            f"THB {total_saving:,.2f} during this "
-            f"{period}. The current actions could avoid "
-            f"approximately {waste_reduction:,.2f} kg "
-            f"of food waste and reduce emissions by "
-            f"{carbon_reduction:,.2f} kg CO2e."
-        ),
-
-        "financial_summary": (
-            f"Estimated total cost savings are "
-            f"THB {total_saving:,.2f} for the selected period."
-        ),
-
-        "environmental_summary": (
-            f"Estimated waste reduction is "
-            f"{waste_reduction:,.2f} kg, with an estimated "
-            f"carbon reduction of "
-            f"{carbon_reduction:,.2f} kg CO2e."
-        ),
-
-        "esg_summary": (
-            f"The overall sustainability score is "
-            f"{overall_esg:.2f} out of 100."
-        ),
-
-        "recommendation_summary": (
-            f"{acted_on} of {total_recommendations} "
-            f"recommendations were acted on, giving an "
-            f"adherence rate of {adherence:.2f}%."
-        ),
-
-        "highlights": [
-            {
-                "title": "Projected cost saving",
-                "description": (
-                    "Potential savings from reducing "
-                    "avoidable food waste."
-                ),
-                "metric": (
-                    f"THB {total_saving:,.2f}"
-                ),
-            },
-            {
-                "title": "Waste reduction",
-                "description": (
-                    "Food waste that could potentially "
-                    "be prevented."
-                ),
-                "metric": (
-                    f"{waste_reduction:,.2f} kg"
-                ),
-            },
-            {
-                "title": "Carbon reduction",
-                "description": (
-                    "Estimated emissions avoided through "
-                    "waste reduction."
-                ),
-                "metric": (
-                    f"{carbon_reduction:,.2f} kg CO2e"
-                ),
-            },
-        ],
-
-        "attention_items": attention_items,
-
-        "next_actions": [
-            (
-                "Review the highest-risk menu items."
-            ),
-            (
-                "Record actual preparation, sales, and "
-                "leftovers after service."
-            ),
-            (
-                "Compare projected and actual savings at "
-                "the end of the reporting period."
-            ),
-        ],
-
-        "conclusion": (
-            "Continue tracking actual outcomes to improve "
-            "forecast accuracy and validate projected savings."
-        ),
-
-        "generated_by": "fallback",
-    }
-
-    if error_message:
-        result["generation_error"] = (
-            error_message
-        )
-
-    return result
-
-
-def generate_ai_report(
-    report_data: dict[str, Any],
-) -> dict[str, Any]:
-    """
-    Generate the report using OpenAI Structured Outputs.
-    """
-
-    if not isinstance(
-        report_data,
-        dict,
-    ):
-        raise ValueError(
-            "report_data must be a dictionary."
-        )
-
-    try:
-        client = get_openai_client()
-
-        response = client.responses.parse(
-            model=OPENAI_REPORT_MODEL,
-
-            input=[
-                {
-                    "role": "developer",
-                    "content": (
-                        "You are the report-writing assistant "
-                        "for Waste Guard, a food-waste reduction "
-                        "and sustainability platform. Write "
-                        "accurate, practical, owner-facing reports. "
-                        "Never change supplied numbers."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": build_report_prompt(
-                        report_data
-                    ),
-                },
-            ],
-
-            text_format=AIReportOutput,
-        )
-
-        parsed = response.output_parsed
-
-        if parsed is None:
-            raise RuntimeError(
-                "OpenAI returned no parsed report."
-            )
-
-        result = parsed.model_dump()
-
-        result["generated_by"] = "openai"
-        result["model"] = (
-            OPENAI_REPORT_MODEL
-        )
-
-        return result
-
-    except Exception as error:
-        print(
-            f"OpenAI report generation failed: {error}"
-        )
-
-        return create_fallback_report(
-            report_data=report_data,
-            error_message=str(error),
-        )
 
 
 if __name__ == "__main__":
-    from savings_report import (
-        generate_savings_report,
+    report = generate_savings_report(
+        period="month",
+        reference_date="2026-07-15",
+        avoidable_waste_rate=0.80,
+        accepted_menu_items=[
+            "Fried Rice",
+        ],
+        days_logged=26,
+        total_days_in_period=30,
+        reporting_rate=0.90,
     )
 
-    calculated_report = (
-        generate_savings_report(
-            period="month",
-            reference_date="2026-07-15",
-            avoidable_waste_rate=0.80,
-            accepted_menu_items=[
-                "Fried Rice",
-            ],
-            days_logged=26,
-            total_days_in_period=30,
-            reporting_rate=0.90,
-        )
-    )
-
-    written_report = generate_ai_report(
-        calculated_report
-    )
+    import json
 
     print(
         json.dumps(
-            written_report,
+            report,
             indent=2,
             ensure_ascii=False,
         )

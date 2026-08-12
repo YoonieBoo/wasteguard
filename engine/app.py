@@ -9,7 +9,7 @@ from ai_insight_engine import generate_ai_insights
 from recommendation_engine import generate_final_recommendations
 from waste_prediction_engine import generate_waste_predictions, predict_waste_from_input
 from esg_score_calculation import calculate_esg_score
-from savings_report import generate_savings_report
+from saving_report import generate_savings_report
 
 app = Flask(__name__)
 CORS(app)
