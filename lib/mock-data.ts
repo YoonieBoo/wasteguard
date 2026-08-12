@@ -1,5 +1,3 @@
-import data from '@/data/hotelMockData.json'
-
 export type FoodRow = {
   date: string
   menu_item_name?: string
@@ -62,20 +60,17 @@ export type BusinessDashboardData = {
   }
 }
 
-const rows = data as FoodRow[]
-
 function dateValue(date: string) {
   return new Date(date).getTime()
 }
 
-// Falls back to the bundled demo dataset only when there's no real data yet
-// (e.g. a brand-new account) — every function below this one previously
-// ignored inputRows unconditionally and always showed the mock dataset,
-// regardless of what real data existed.
+// A brand-new business genuinely has zero rows until it logs real data (via
+// CSV import or the Check tab) — every function below this one must treat
+// that as "nothing yet," not silently substitute the bundled demo dataset,
+// which would present fabricated revenue/demand/recommendations as if they
+// were this business's real numbers.
 export function getSortedRows(inputRows: FoodRow[] = []) {
-  const source = inputRows.length > 0 ? inputRows : rows
-
-  return [...source].sort((a, b) => dateValue(b.date) - dateValue(a.date))
+  return [...inputRows].sort((a, b) => dateValue(b.date) - dateValue(a.date))
 }
 
 function getDemoRows(inputRows: FoodRow[] = []) {
@@ -98,6 +93,11 @@ const co2PerGoodPortion = 0.75 // kg CO₂ per portion (food_waste factor 2.5 ×
 export function getDashboardData(inputRows: FoodRow[] = []) {
   const demoRows = getDemoRows(inputRows)
   const todayRow = demoRows[0]
+
+  if (!todayRow) {
+    return { ordersToday: 0, cookThisMuch: 0, wasteYesterday: 0, moneySaved: 0, revenueToday: 0, co2Saved: 0, wasteReduced: 0 }
+  }
+
   const yesterdayRow = demoRows[1] ?? todayRow
   const averageLeftover = demoRows.reduce((sum, row) => sum + row.leftover, 0) / demoRows.length
   const ordersToday = todayRow.orders
@@ -219,6 +219,11 @@ export function getIngredientEstimate(itemName: string, quantity: number): Ingre
 export function getTodayRecommendations(inputRows: FoodRow[] = []) {
   const demoRows = getDemoRows(inputRows)
   const todayRow = demoRows[0]
+
+  if (!todayRow) {
+    return [{ title: 'Cook normal today', note: 'No data yet.', kind: 'steady' }]
+  }
+
   const averageOrders = Math.round(demoRows.reduce((sum, row) => sum + row.orders, 0) / demoRows.length)
   const hasRain = todayRow.weather.toLowerCase() === 'rainy'
   const hasPromotion = todayRow.promotion === 1
@@ -427,11 +432,12 @@ function getMonthChartRows(rowsForRange: FoodRow[]) {
 
 export function getSavingsData(range: TimeRange, inputRows: FoodRow[] = []) {
   const rowsForRange = getRowsForRange(range, inputRows)
-  const averageLeftover = average(rowsForRange.map((row) => row.leftover))
+  const averageLeftover = safeAverage(rowsForRange.map((row) => row.leftover))
   const moneySaved = Math.round(
     rowsForRange.reduce((sum, row) => sum + Math.max(0, averageLeftover - row.leftover) * savedPerPortion, 0),
   )
-  const lessWaste = Math.max(0, Math.round(average(rowsForRange.map((row) => 100 - row.waste_percent))))
+  const lessWaste =
+    rowsForRange.length > 0 ? Math.max(0, Math.round(safeAverage(rowsForRange.map((row) => 100 - row.waste_percent)))) : 0
   const chartRows =
     range === 'month'
       ? getMonthChartRows(rowsForRange)
@@ -454,8 +460,8 @@ export function getImpactData(range: TimeRange, inputRows: FoodRow[] = []) {
   const co2Reduced = Math.round(
     rowsForRange.reduce((sum, row) => sum + row.food_sold * (1 - row.waste_percent / 100) * co2PerGoodPortion, 0),
   )
-  const averageWaste = average(rowsForRange.map((row) => row.waste_percent))
-  const wasteDown = Math.max(0, Math.round(averageWaste - latestRow.waste_percent))
+  const averageWaste = safeAverage(rowsForRange.map((row) => row.waste_percent))
+  const wasteDown = latestRow ? Math.max(0, Math.round(averageWaste - latestRow.waste_percent)) : 0
   const goal = range === 'day' ? 20 : range === 'week' ? 120 : 500
   const periodLabel = range === 'day' ? 'Impact today' : range === 'week' ? 'Impact this week' : 'Impact this month'
   const listTitle = range === 'day' ? 'Daily Impact' : range === 'week' ? 'Weekly Impact' : 'Monthly Impact'
