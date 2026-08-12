@@ -263,8 +263,8 @@ def _transform_bakery_inputs(rows):
 
 
 def get_effective_daily_operations():
-    """Return real daily ops as a list (analytics_engine uses this)."""
-    return _pipeline_override.get("daily_operations") or daily_operations
+    """Return real daily ops as a list, or [] if none has been provided yet."""
+    return _pipeline_override.get("daily_operations") or []
 
 
 # ==========================================================
@@ -272,7 +272,15 @@ def get_effective_daily_operations():
 # ==========================================================
 
 def get_daily_operations():
-    source = _pipeline_override.get("daily_operations") or daily_operations
+    source = _pipeline_override.get("daily_operations")
+    if not source:
+        return pd.DataFrame(columns=[
+            "date", "day_of_week", "weather", "promotion", "customer_count",
+            "occupancy_rate", "food_waste_kg", "electricity_kwh", "water_liters",
+            "gas_kg", "revenue_thb", "waste_disposal_cost", "is_weekend",
+            "buffet_prepared_kg",
+        ])
+
     df = pd.DataFrame(source)
     df = df.rename(columns={
         "day":      "day_of_week",

@@ -1,5 +1,7 @@
 import pandas as pd
 
+from mock_datas import get_sales_history, get_menu_items, get_daily_operations
+
 from insight_menu_forecast import (
     generate_menu_demand_forecast,
 )
@@ -18,8 +20,16 @@ from waste_prediction_engine import (
 
 
 def generate_ai_insights():
+    # Same "not enough real data yet" gates used in recommendation_engine.py
+    # — these models can't fit on zero rows, and a business with nothing
+    # logged yet shouldn't get a forecast trained on mock data either.
+    sales = get_sales_history()
+    menu = get_menu_items()
+    has_menu_signal = not (sales.empty or menu.empty or sales["date"].nunique() < 2)
+    has_daily_signal = not get_daily_operations().empty
+
     menu_forecast = (
-        generate_menu_demand_forecast()
+        generate_menu_demand_forecast() if has_menu_signal else pd.DataFrame()
     )
 
     waste_predictions = (
@@ -27,11 +37,11 @@ def generate_ai_insights():
     )
 
     sustainability_forecast = (
-        generate_sustainability_forecast()
+        generate_sustainability_forecast() if has_daily_signal else None
     )
 
     anomalies = (
-        detect_unusual_patterns()
+        detect_unusual_patterns() if has_daily_signal else []
     )
 
     return {

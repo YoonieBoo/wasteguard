@@ -3,6 +3,7 @@ import math
 from mock_datas import (
     get_sales_history,
     get_menu_items,
+    get_daily_operations,
     industry_benchmarks,
     utility_rates,
     carbon_factors
@@ -98,6 +99,12 @@ def generate_food_prep_recommendations():
 # PART 2: SUSTAINABILITY RECOMMENDATIONS
 
 def generate_sustainability_recommendations():
+    # Same reasoning as generate_food_prep_recommendations(): a business with
+    # no logged daily operations yet has nothing real to forecast from —
+    # show nothing rather than a forecast trained on mock data.
+    if get_daily_operations().empty:
+        return []
+
     forecast = generate_sustainability_forecast()
     predictions = forecast["predictions"]
 
@@ -176,6 +183,9 @@ def generate_sustainability_recommendations():
 
 # PART 3: ANOMALY-BASED RECOMMENDATIONS
 def generate_anomaly_recommendations():
+    if get_daily_operations().empty:
+        return []
+
     anomalies = detect_unusual_patterns()
 
     results = []
