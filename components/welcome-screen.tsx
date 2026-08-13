@@ -315,12 +315,12 @@ export function CreateAccountScreen({
 
 export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
-    <main className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-[#f8fbf8] px-4 py-6 sm:px-6 lg:justify-end lg:px-[6vw] lg:py-8">
+    <main className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-[#f8fbf8] px-4 py-6 sm:px-6 lg:justify-end lg:px-[4vw] lg:py-8">
       <AuthBackdrop />
-      <div className="pointer-events-none absolute bottom-[-4%] left-[5%] z-10 hidden w-[48vw] max-w-[650px] lg:block xl:left-[8%]">
+      <div className="pointer-events-none absolute bottom-[-6%] left-[3%] z-10 hidden w-[52vw] max-w-[720px] lg:block">
         <Image src="/mascot.png" alt="Waste Guard mascot" width={512} height={512} priority className="h-auto w-full mix-blend-multiply drop-shadow-[0_25px_30px_rgba(22,99,65,0.12)]" />
       </div>
-      <section className="relative z-20 w-full max-w-[560px] rounded-[2rem] border border-white/80 bg-white/95 px-5 py-7 shadow-[0_28px_80px_rgba(32,83,58,0.13)] backdrop-blur-sm sm:px-10 sm:py-9 lg:max-h-[calc(100dvh-4rem)] lg:overflow-y-auto lg:px-12">
+      <section className="relative z-20 w-full max-w-[560px] rounded-[2rem] border border-white/80 bg-white/95 px-5 py-7 shadow-[0_28px_80px_rgba(32,83,58,0.13)] backdrop-blur-sm sm:px-10 sm:py-9 lg:max-h-[calc(100dvh-4rem)] lg:max-w-[58vw] lg:overflow-y-auto lg:px-14 xl:max-w-[680px] xl:px-16 xl:py-11">
         <div className="mb-7 text-center">
           <Image src="/apple-icon.png" alt="Waste Guard" width={128} height={128} priority className="mx-auto h-auto w-[94px] sm:w-[108px]" />
           <h1 className="mt-4 text-3xl font-black tracking-[-0.04em] text-[#075f3e] sm:text-4xl">{title}</h1>
