@@ -324,7 +324,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
           width={1322}
           height={1190}
           priority
-          className="pointer-events-none absolute right-[330px] top-1/2 z-10 hidden h-auto w-[630px] -translate-y-1/2 drop-shadow-[0_24px_28px_rgba(22,99,65,0.13)] lg:block xl:right-[360px] xl:w-[700px]"
+          className="pointer-events-none absolute right-[390px] top-1/2 z-10 hidden h-auto w-[550px] -translate-y-1/2 drop-shadow-[0_24px_28px_rgba(22,99,65,0.13)] lg:block xl:right-[430px] xl:w-[610px]"
         />
         <section className="relative z-20 w-full max-w-[560px] rounded-[2rem] border border-white/80 bg-white/95 px-5 py-7 shadow-[0_28px_80px_rgba(32,83,58,0.13)] backdrop-blur-sm sm:px-10 sm:py-9 lg:absolute lg:right-0 lg:top-1/2 lg:max-h-full lg:w-[620px] lg:max-w-none lg:-translate-y-1/2 lg:overflow-y-auto lg:px-14 xl:w-[680px] xl:px-16 xl:py-11">
           <div className="mb-7 text-center">
