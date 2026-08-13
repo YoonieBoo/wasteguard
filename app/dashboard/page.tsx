@@ -640,6 +640,7 @@ export default function DashboardPage() {
               onUpdate={handleUpdateRecommendation}
               rawFoodPrepItems={rawFoodPrepItems}
               menuItems={businessMenuItems}
+              daysLogged={dailyInputs.length}
             />
           )}
           {currentScreen === 'input' && (

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Check, ChevronDown, Minus, Plus } from 'lucide-react'
+import { Check, ChevronDown, Clock, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
@@ -20,12 +20,15 @@ const FILTER_OPTIONS: { value: FilterType; label: string; labelTh: string; emoji
   { value: 'packaging', label: 'Packaging', labelTh: 'บรรจุภัณฑ์', emoji: '📦' },
 ]
 
+const DAYS_UNTIL_RECS = 7
+
 interface RecommendationCenterProps {
   recommendations: Recommendation[]
   language: Language
   onUpdate: (id: string, status: RecommendationStatus, modifiedQuantity?: number) => void
   rawFoodPrepItems?: FlaskFoodPrepItem[]
   menuItems?: BusinessMenuItem[]
+  daysLogged?: number
 }
 
 // Recommendation ids for food-prep items are assigned as `ai-prep-${index}`
@@ -84,6 +87,7 @@ export function RecommendationCenter({
   onUpdate,
   rawFoodPrepItems = [],
   menuItems = [],
+  daysLogged = 0,
 }: RecommendationCenterProps) {
   const t = getText(language)
   const [modifyingId, setModifyingId] = useState<string | null>(null)
@@ -187,19 +191,33 @@ export function RecommendationCenter({
 
       {pendingRecs.length === 0 ? (
         <div className="rounded-[0.75rem] bg-white p-10 text-center shadow-[0_18px_45px_rgba(41,91,67,0.08)]">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
-            <Check className="h-7 w-7" />
-          </div>
-          <p className="text-base font-black text-foreground">
-            {activeFilter === 'all' ? t.noPendingRecs : `No ${activeFilterOption.label} recommendations pending`}
-          </p>
-          <p className="wg-meta mt-1">
-            {activeFilter === 'all' ? t.allRecsReviewed : (
-              <button type="button" onClick={() => setActiveFilter('all')} className="underline">
-                Show all types
-              </button>
-            )}
-          </p>
+          {activeFilter === 'all' && recommendations.length === 0 && daysLogged < DAYS_UNTIL_RECS ? (
+            <>
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                <Clock className="h-7 w-7" />
+              </div>
+              <p className="text-base font-black text-foreground">{t.notEnoughDataForRecsTitle}</p>
+              <p className="wg-meta mt-1">
+                {t.notEnoughDataForRecsNote.replace('{days}', String(daysLogged)).replace('{total}', String(DAYS_UNTIL_RECS))}
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
+                <Check className="h-7 w-7" />
+              </div>
+              <p className="text-base font-black text-foreground">
+                {activeFilter === 'all' ? t.noPendingRecs : `No ${activeFilterOption.label} recommendations pending`}
+              </p>
+              <p className="wg-meta mt-1">
+                {activeFilter === 'all' ? t.allRecsReviewed : (
+                  <button type="button" onClick={() => setActiveFilter('all')} className="underline">
+                    Show all types
+                  </button>
+                )}
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
