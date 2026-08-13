@@ -324,7 +324,7 @@ export function AuthShell({ title, subtitle, children, compact = false }: { titl
           width={1322}
           height={1190}
           priority
-          className="pointer-events-none absolute left-1/2 top-[-75px] z-10 block h-auto w-[190px] -translate-x-1/2 drop-shadow-[0_18px_22px_rgba(22,99,65,0.11)] sm:left-[-42px] sm:top-1/2 sm:w-[300px] sm:translate-x-0 sm:-translate-y-1/2 lg:left-auto lg:right-[350px] lg:w-[470px] lg:drop-shadow-[0_24px_28px_rgba(22,99,65,0.13)] xl:w-[520px]"
+          className="pointer-events-none absolute left-1/2 top-[-135px] z-10 block h-auto w-[190px] -translate-x-1/2 drop-shadow-[0_18px_22px_rgba(22,99,65,0.11)] sm:left-[-42px] sm:top-1/2 sm:w-[300px] sm:translate-x-0 sm:-translate-y-1/2 lg:left-auto lg:right-[350px] lg:w-[470px] lg:drop-shadow-[0_24px_28px_rgba(22,99,65,0.13)] xl:w-[520px]"
         />
         <section className={`relative z-20 w-full max-w-[560px] rounded-[2rem] border border-white/80 bg-white/95 px-5 shadow-[0_28px_80px_rgba(32,83,58,0.13)] backdrop-blur-sm sm:px-9 lg:absolute lg:right-0 lg:top-1/2 lg:max-h-full lg:w-[540px] lg:max-w-none lg:-translate-y-1/2 lg:overflow-hidden lg:px-10 xl:w-[560px] xl:px-12 ${compact ? 'py-5 sm:py-5 lg:py-5 xl:py-5' : 'py-7 sm:py-8 lg:py-7 xl:py-8'}`}>
           <div className={`${compact ? 'mb-3' : 'mb-5'} text-center`}>
