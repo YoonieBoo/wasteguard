@@ -116,7 +116,7 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
           void submit()
         }}
       >
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {notice && (
             <p className="rounded-[0.5rem] bg-white px-4 py-3 text-sm font-bold leading-6 text-primary shadow-sm">
               {notice}
@@ -143,21 +143,21 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
         <button
           type="button"
           onClick={() => router.push('/forgot-password')}
-          className="mt-3 text-sm font-bold text-[#167a50] hover:underline"
+          className="mt-2 text-sm font-bold text-[#167a50] hover:underline"
         >
           {t.forgotPassword}
         </button>
         <Button
           type="submit"
           disabled={!email || !password || isLoading}
-          className="mt-6 h-14 w-full rounded-2xl bg-[#087447] text-base font-extrabold text-white shadow-[0_14px_30px_rgba(8,116,71,0.2)] hover:bg-[#06663e] disabled:opacity-45"
+          className="mt-4 h-14 w-full rounded-2xl bg-[#087447] text-base font-extrabold text-white shadow-[0_14px_30px_rgba(8,116,71,0.2)] hover:bg-[#06663e] disabled:opacity-45"
         >
           <span>{isLoading ? `${t.signIn}...` : t.signIn}</span>
           {!isLoading && <ArrowRight className="ml-auto size-5" />}
         </Button>
       </form>
       {error && <p className="mt-3 text-sm font-bold text-destructive">{error}</p>}
-      <p className="mt-7 text-center text-sm font-semibold text-slate-500 sm:text-base">
+      <p className="mt-5 text-center text-sm font-semibold text-slate-500 sm:text-base">
         {language === 'th' ? 'ยังไม่มีบัญชี?' : "Don't have an account?"}{' '}
         <button type="button" onClick={onCreateAccount} className="font-extrabold text-[#087447] hover:underline">
           {language === 'th' ? 'สมัครสมาชิก' : 'Sign up'} <span aria-hidden>→</span>
@@ -324,12 +324,12 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
           width={1322}
           height={1190}
           priority
-          className="pointer-events-none absolute right-[390px] top-1/2 z-10 hidden h-auto w-[550px] -translate-y-1/2 drop-shadow-[0_24px_28px_rgba(22,99,65,0.13)] lg:block xl:right-[430px] xl:w-[610px]"
+          className="pointer-events-none absolute right-[350px] top-1/2 z-10 hidden h-auto w-[550px] -translate-y-1/2 drop-shadow-[0_24px_28px_rgba(22,99,65,0.13)] lg:block xl:w-[610px]"
         />
-        <section className="relative z-20 w-full max-w-[560px] rounded-[2rem] border border-white/80 bg-white/95 px-5 py-7 shadow-[0_28px_80px_rgba(32,83,58,0.13)] backdrop-blur-sm sm:px-10 sm:py-9 lg:absolute lg:right-0 lg:top-1/2 lg:max-h-full lg:w-[620px] lg:max-w-none lg:-translate-y-1/2 lg:overflow-y-auto lg:px-14 xl:w-[680px] xl:px-16 xl:py-11">
-          <div className="mb-7 text-center">
+        <section className="relative z-20 w-full max-w-[560px] rounded-[2rem] border border-white/80 bg-white/95 px-5 py-7 shadow-[0_28px_80px_rgba(32,83,58,0.13)] backdrop-blur-sm sm:px-9 sm:py-8 lg:absolute lg:right-0 lg:top-1/2 lg:max-h-full lg:w-[580px] lg:max-w-none lg:-translate-y-1/2 lg:overflow-y-auto lg:px-10 lg:py-7 xl:w-[600px] xl:px-12 xl:py-8">
+          <div className="mb-5 text-center">
             <Image src="/apple-icon.png" alt="Waste Guard" width={128} height={128} priority className="mx-auto h-auto w-[94px] sm:w-[108px]" />
-            <h1 className="mt-4 text-3xl font-black tracking-[-0.04em] text-[#075f3e] sm:text-4xl">{title}</h1>
+            <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[#075f3e] sm:text-4xl">{title}</h1>
             <p className="mt-2 text-sm font-semibold text-slate-500 sm:text-base">{subtitle}</p>
           </div>
           {children}
