@@ -230,7 +230,7 @@ export function CreateAccountScreen({
   }
 
   return (
-    <AuthShell title={t.newBakeryAccount} subtitle={form.role === 'owner' ? t.openBakery : t.joinBakery}>
+    <AuthShell title={t.newBakeryAccount} subtitle={form.role === 'owner' ? t.openBakery : t.joinBakery} compact>
       <form
         onSubmit={(event) => {
           event.preventDefault()
@@ -254,7 +254,7 @@ export function CreateAccountScreen({
           ))}
         </div>
 
-        <div className="mt-5 space-y-3">
+        <div className="mt-3 space-y-2">
           <AuthInput
             icon={<UserRound />}
             value={form.fullName}
@@ -297,13 +297,13 @@ export function CreateAccountScreen({
         <Button
           type="submit"
           disabled={!canContinue || isLoading}
-          className="mt-6 h-14 w-full rounded-2xl bg-[#087447] text-base font-extrabold text-white shadow-[0_14px_30px_rgba(8,116,71,0.2)] hover:bg-[#06663e] disabled:opacity-45"
+          className="mt-4 h-14 w-full rounded-2xl bg-[#087447] text-base font-extrabold text-white shadow-[0_14px_30px_rgba(8,116,71,0.2)] hover:bg-[#06663e] disabled:opacity-45"
         >
           {isLoading ? `${t.createAccount}...` : t.createAccount}
         </Button>
       </form>
       {error && <p className="mt-3 text-sm font-bold text-destructive">{error}</p>}
-      <p className="mt-7 text-center text-sm font-semibold text-slate-500 sm:text-base">
+      <p className="mt-4 text-center text-sm font-semibold text-slate-500 sm:text-base">
         {language === 'th' ? 'มีบัญชีแล้ว?' : 'Already have an account?'}{' '}
         <button type="button" onClick={onSignIn} className="font-extrabold text-[#087447] hover:underline">
           {t.signIn} <span aria-hidden>→</span>
@@ -313,7 +313,7 @@ export function CreateAccountScreen({
   )
 }
 
-export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
+export function AuthShell({ title, subtitle, children, compact = false }: { title: string; subtitle: string; children: ReactNode; compact?: boolean }) {
   return (
     <main className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-[#f8fbf8] px-4 py-6 sm:px-6 lg:py-8">
       <AuthBackdrop />
@@ -324,13 +324,13 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
           width={1322}
           height={1190}
           priority
-          className="pointer-events-none absolute right-[350px] top-1/2 z-10 hidden h-auto w-[550px] -translate-y-1/2 drop-shadow-[0_24px_28px_rgba(22,99,65,0.13)] lg:block xl:w-[610px]"
+          className="pointer-events-none absolute right-[350px] top-1/2 z-10 hidden h-auto w-[470px] -translate-y-1/2 drop-shadow-[0_24px_28px_rgba(22,99,65,0.13)] lg:block xl:w-[520px]"
         />
-        <section className="relative z-20 w-full max-w-[560px] rounded-[2rem] border border-white/80 bg-white/95 px-5 py-7 shadow-[0_28px_80px_rgba(32,83,58,0.13)] backdrop-blur-sm sm:px-9 sm:py-8 lg:absolute lg:right-0 lg:top-1/2 lg:max-h-full lg:w-[540px] lg:max-w-none lg:-translate-y-1/2 lg:overflow-y-auto lg:px-10 lg:py-7 xl:w-[560px] xl:px-12 xl:py-8">
-          <div className="mb-5 text-center">
-            <Image src="/apple-icon.png" alt="Waste Guard" width={128} height={128} priority className="mx-auto h-auto w-[94px] sm:w-[108px]" />
-            <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[#075f3e] sm:text-4xl">{title}</h1>
-            <p className="mt-2 text-sm font-semibold text-slate-500 sm:text-base">{subtitle}</p>
+        <section className={`relative z-20 w-full max-w-[560px] rounded-[2rem] border border-white/80 bg-white/95 px-5 shadow-[0_28px_80px_rgba(32,83,58,0.13)] backdrop-blur-sm sm:px-9 lg:absolute lg:right-0 lg:top-1/2 lg:max-h-full lg:w-[540px] lg:max-w-none lg:-translate-y-1/2 lg:overflow-hidden lg:px-10 xl:w-[560px] xl:px-12 ${compact ? 'py-5 sm:py-5 lg:py-5 xl:py-5' : 'py-7 sm:py-8 lg:py-7 xl:py-8'}`}>
+          <div className={`${compact ? 'mb-3' : 'mb-5'} text-center`}>
+            <Image src="/apple-icon.png" alt="Waste Guard" width={128} height={128} priority className={`mx-auto h-auto ${compact ? 'w-[72px] sm:w-[78px]' : 'w-[94px] sm:w-[108px]'}`} />
+            <h1 className={`${compact ? 'mt-2 text-3xl' : 'mt-3 text-3xl sm:text-4xl'} font-black tracking-[-0.04em] text-[#075f3e]`}>{title}</h1>
+            <p className={`${compact ? 'mt-1' : 'mt-2'} text-sm font-semibold text-slate-500 sm:text-base`}>{subtitle}</p>
           </div>
           {children}
         </section>
