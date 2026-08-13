@@ -52,23 +52,8 @@ export function RecommendationsPreviewModal({
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
-      {/* Positioning wrapper carries the width constraint that used to live
-          directly on the modal card, so the card's own size/centering is
-          unchanged — this just gives the mascot a sizing context to peek out
-          of on the left without being clipped by the card's own
-          overflow-hidden. Purely decorative: pointer-events-none, sits below
-          the card in both DOM order and z-index, hidden below lg so it never
-          has to fight the modal for space on narrow screens. */}
-      <div className="relative w-full max-w-[780px]">
-        <img
-          src="/mascot.png"
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute left-0 top-6 z-0 hidden w-40 -translate-x-[55%] select-none lg:block xl:top-8 xl:w-48 xl:-translate-x-[60%]"
-        />
-
-        <div className="relative z-10 flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-[1rem] bg-white shadow-[0_32px_80px_rgba(35,88,62,0.25)] animate-in fade-in-0 zoom-in-95 duration-200">
-          <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-6 sm:px-8 sm:pt-8">
+      <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-[780px] flex-col overflow-hidden rounded-[1rem] bg-white shadow-[0_32px_80px_rgba(35,88,62,0.25)] animate-in fade-in-0 zoom-in-95 duration-200">
+        <div className="flex shrink-0 items-center justify-between gap-4 px-6 pt-6 sm:px-8 sm:pt-8">
           <p className="wg-eyebrow mb-0 font-black">{t.todaysRecommendations}</p>
           <button
             type="button"
@@ -149,7 +134,6 @@ export function RecommendationsPreviewModal({
             <span>{t.viewAllRecommendations}</span>
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
           </button>
-        </div>
         </div>
       </div>
     </div>,
