@@ -5,8 +5,8 @@ import { Camera, CheckCircle2, LoaderCircle, Minus, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
-import { buildRealBakeryItems, getBakeryItems, translatePrepUnit } from '@/lib/bakery-catalog'
-import { getPrepList, type FoodRow, type WasteGuardRole } from '@/lib/mock-data'
+import { buildRealBakeryItems, translatePrepUnit } from '@/lib/bakery-catalog'
+import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
 import { saveDailyOperations, type BusinessMenuItem } from '@/lib/menu-data'
 import type { FlaskFoodPrepItem } from '@/lib/ai-api'
 import { normalizeImageFile, requestLeftoverEstimate, saveLeftoverScan, uploadLeftoverPhoto } from '@/lib/leftover-scan'
@@ -70,11 +70,10 @@ export function QuickInput({
   const [waste, setWaste] = useState<string | null>(null)
   const [result, setResult] = useState<CheckResult | null>(null)
   const [submissionState, setSubmissionState] = useState<SubmissionState>('entry')
-  const prepItems = getPrepList(dailyInputs).slice(0, 4)
-  const prepDemand = prepItems.reduce((total, item) => total + item.quantity, 0)
-  // Real per-business dishes once the owner has imported/added any — same
-  // fallback rule as the Home tab, so Check never asks staff to log
-  // production against dishes the business doesn't actually serve.
+  // Real per-business dishes once the owner has added any — a business with
+  // no menu set up yet genuinely has nothing to check off, so this must not
+  // fall back to the 4 demo dishes (staff would be logging production
+  // numbers against dishes the business doesn't actually serve).
   const productionItems = useMemo(
     () =>
       (menuItems.length > 0
@@ -89,14 +88,14 @@ export function QuickInput({
             })),
             foodPrepItems,
           )
-        : getBakeryItems(dailyInputs, prepDemand)
+        : []
       ).map((item) => ({
         key: item.fileName,
         name: item.title,
         planned: item.prepQuantity,
         unit: item.prepUnit,
       })),
-    [dailyInputs, prepDemand, menuItems, foodPrepItems],
+    [menuItems, foodPrepItems],
   )
   const referencePhotoByKey = useMemo(
     () => new Map(menuItems.map((item) => [item.id, item.referencePhotoUrl])),
@@ -300,6 +299,21 @@ export function QuickInput({
   }
 
   if (role === 'staff' && submissionState === 'entry') {
+    if (productionItems.length === 0) {
+      return (
+        <main className="wg-page">
+          <div className="wg-page-header">
+            <p className="wg-eyebrow">{t.beforeClosing}</p>
+            <h1 className="wg-page-title">{t.todaysProductionEntry}</h1>
+          </div>
+          <div className="rounded-[0.75rem] bg-white p-8 text-center shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
+            <p className="text-sm font-black text-foreground">{t.noMenuItemsYet}</p>
+            <p className="wg-meta mt-1">{t.noMenuItemsYetNote}</p>
+          </div>
+        </main>
+      )
+    }
+
     return (
       <main className="wg-page">
         <div className="wg-page-header">
