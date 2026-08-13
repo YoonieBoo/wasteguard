@@ -25,7 +25,7 @@ export const translations = {
     enterInviteCode: 'Enter restaurant invite code',
     joinBakery: 'Join your restaurant',
     openBakery: 'Open my restaurant',
-    welcomeBack: 'Welcome back',
+    welcomeBack: 'Welcome to WasteGuard',
     continueToBakery: 'Continue to restaurant',
     forgotPassword: 'Forgot password?',
     resetPasswordTitle: 'Reset your password',

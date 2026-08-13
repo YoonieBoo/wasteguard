@@ -326,7 +326,7 @@ export function AuthShell({ title, subtitle, children }: { title: string; subtit
           priority
           className="pointer-events-none absolute right-[350px] top-1/2 z-10 hidden h-auto w-[550px] -translate-y-1/2 drop-shadow-[0_24px_28px_rgba(22,99,65,0.13)] lg:block xl:w-[610px]"
         />
-        <section className="relative z-20 w-full max-w-[560px] rounded-[2rem] border border-white/80 bg-white/95 px-5 py-7 shadow-[0_28px_80px_rgba(32,83,58,0.13)] backdrop-blur-sm sm:px-9 sm:py-8 lg:absolute lg:right-0 lg:top-1/2 lg:max-h-full lg:w-[580px] lg:max-w-none lg:-translate-y-1/2 lg:overflow-y-auto lg:px-10 lg:py-7 xl:w-[600px] xl:px-12 xl:py-8">
+        <section className="relative z-20 w-full max-w-[560px] rounded-[2rem] border border-white/80 bg-white/95 px-5 py-7 shadow-[0_28px_80px_rgba(32,83,58,0.13)] backdrop-blur-sm sm:px-9 sm:py-8 lg:absolute lg:right-0 lg:top-1/2 lg:max-h-full lg:w-[540px] lg:max-w-none lg:-translate-y-1/2 lg:overflow-y-auto lg:px-10 lg:py-7 xl:w-[560px] xl:px-12 xl:py-8">
           <div className="mb-5 text-center">
             <Image src="/apple-icon.png" alt="Waste Guard" width={128} height={128} priority className="mx-auto h-auto w-[94px] sm:w-[108px]" />
             <h1 className="mt-3 text-3xl font-black tracking-[-0.04em] text-[#075f3e] sm:text-4xl">{title}</h1>
