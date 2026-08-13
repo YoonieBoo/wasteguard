@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"app.py\")",
+      "Bash(PORT=5050 /tmp/wg-venv/bin/python app.py)",
+      "Bash(pnpm install *)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\\\\n\" https://wasteguard-project.vercel.app/api/recommendations)",
+      "Bash(git check-ignore *)",
+      "Bash(open \"/private/tmp/claude-501/-Users-yoonie-Downloads-waste-guard/b5f2705a-efbd-45e6-9bb9-2d6e578ccbad/scratchpad/\")",
+      "Bash(npx chromium-cli *)",
+      "Bash(npx playwright *)",
+      "Read(//Users/yoonie/Library/Caches/ms-playwright/**)",
+      "Bash(node flow-test.mjs)",
+      "Bash(node flow-test-2.mjs)",
+      "Bash(node verify-recs-fix-3.mjs)",
+      "Bash(node verify-owner-staff-parity.mjs)",
+      "Bash(node verify-staff-prep-fix.mjs)",
+      "Bash(supabase --help)",
+      "Bash(node verify-approval-sync.mjs)",
+      "Bash(node verify-featured-sort-fix.mjs)",
+      "Bash(python3 -c ' *)",
+      "Bash(node verify-photo-ingredients-sync.mjs)",
+      "Bash(node verify-check-tab-bug.mjs)",
+      "Bash(node verify-completed-sync.mjs)",
+      "Bash(echo \"exit code: $?\")"
+    ],
+    "additionalDirectories": [
+      "/Users/yoonie/Downloads"
+    ]
+  }
+}

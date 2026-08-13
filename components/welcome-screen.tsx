@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import Image from 'next/image'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowRight, Building2, Eye, EyeOff, LockKeyhole, Mail, UserRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { getText, type Language } from '@/lib/i18n'
@@ -83,8 +85,11 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
   const router = useRouter()
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => setEmail(initialEmail), [initialEmail])
 
   async function submit() {
     if (!email || !password || isLoading) {
@@ -104,7 +109,7 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
   }
 
   return (
-    <AuthShell title={t.welcomeBack} subtitle={t.continueToBakery}>
+    <AuthShell title={`${t.welcomeBack}!`} subtitle={t.continueToBakery}>
       <form
         onSubmit={(event) => {
           event.preventDefault()
@@ -117,48 +122,47 @@ export function SignInScreen({ language, initialEmail = '', notice, onSignIn, on
               {notice}
             </p>
           )}
-          <Input
+          <AuthInput
+            icon={<Mail />}
             value={email}
             onChange={(event) => setEmail(event.target.value.trim())}
             type="email"
             autoComplete="email"
             inputMode="email"
             placeholder={t.email}
-            className="wg-control border-secondary bg-white"
           />
-          <Input
+          <PasswordInput
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            type="password"
+            visible={showPassword}
+            onToggle={() => setShowPassword((current) => !current)}
             autoComplete="current-password"
             placeholder={t.password}
-            className="wg-control border-secondary bg-white"
           />
         </div>
         <button
           type="button"
           onClick={() => router.push('/forgot-password')}
-          className="mt-2 text-sm font-bold text-primary hover:underline"
+          className="mt-3 text-sm font-bold text-[#167a50] hover:underline"
         >
           {t.forgotPassword}
         </button>
         <Button
           type="submit"
           disabled={!email || !password || isLoading}
-          className="wg-action mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-45"
+          className="mt-6 h-14 w-full rounded-2xl bg-[#087447] text-base font-extrabold text-white shadow-[0_14px_30px_rgba(8,116,71,0.2)] hover:bg-[#06663e] disabled:opacity-45"
         >
-          {isLoading ? `${t.signIn}...` : t.signIn}
+          <span>{isLoading ? `${t.signIn}...` : t.signIn}</span>
+          {!isLoading && <ArrowRight className="ml-auto size-5" />}
         </Button>
       </form>
       {error && <p className="mt-3 text-sm font-bold text-destructive">{error}</p>}
-      <Button
-        type="button"
-        onClick={onCreateAccount}
-        variant="secondary"
-        className="mt-3 h-[3.25rem] w-full rounded-[0.5rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
-      >
-        {t.needAccount}
-      </Button>
+      <p className="mt-7 text-center text-sm font-semibold text-slate-500 sm:text-base">
+        {language === 'th' ? 'ยังไม่มีบัญชี?' : "Don't have an account?"}{' '}
+        <button type="button" onClick={onCreateAccount} className="font-extrabold text-[#087447] hover:underline">
+          {language === 'th' ? 'สมัครสมาชิก' : 'Sign up'} <span aria-hidden>→</span>
+        </button>
+      </p>
     </AuthShell>
   )
 }
@@ -183,6 +187,7 @@ export function CreateAccountScreen({
     form.fullName && form.bakeryName && form.email && form.password && (form.role === 'owner' || form.inviteCode)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   function updateField(field: keyof AccountForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
@@ -250,77 +255,114 @@ export function CreateAccountScreen({
         </div>
 
         <div className="mt-5 space-y-3">
-          <Input
+          <AuthInput
+            icon={<UserRound />}
             value={form.fullName}
             onChange={(event) => updateField('fullName', event.target.value)}
             placeholder={t.fullName}
-            className="wg-control border-secondary bg-white"
           />
-          <Input
+          <AuthInput
+            icon={<Building2 />}
             value={form.bakeryName}
             onChange={(event) => updateField('bakeryName', event.target.value)}
             placeholder={t.bakeryName}
-            className="wg-control border-secondary bg-white"
           />
           {form.role === 'staff' && (
-            <Input
+            <AuthInput
+              icon={<LockKeyhole />}
               value={form.inviteCode}
               onChange={(event) => updateField('inviteCode', event.target.value.toUpperCase())}
               placeholder={t.enterInviteCode}
-              className="wg-control border-secondary bg-white"
             />
           )}
-          <Input
+          <AuthInput
+            icon={<Mail />}
             value={form.email}
             onChange={(event) => updateField('email', event.target.value.trim())}
             type="email"
             autoComplete="email"
             inputMode="email"
             placeholder={t.email}
-            className="wg-control border-secondary bg-white"
           />
-          <Input
+          <PasswordInput
             value={form.password}
             onChange={(event) => updateField('password', event.target.value)}
-            type="password"
+            visible={showPassword}
+            onToggle={() => setShowPassword((current) => !current)}
             autoComplete="new-password"
             placeholder={t.password}
-            className="wg-control border-secondary bg-white"
           />
         </div>
 
         <Button
           type="submit"
           disabled={!canContinue || isLoading}
-          className="wg-action mt-5 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-45"
+          className="mt-6 h-14 w-full rounded-2xl bg-[#087447] text-base font-extrabold text-white shadow-[0_14px_30px_rgba(8,116,71,0.2)] hover:bg-[#06663e] disabled:opacity-45"
         >
           {isLoading ? `${t.createAccount}...` : t.createAccount}
         </Button>
       </form>
       {error && <p className="mt-3 text-sm font-bold text-destructive">{error}</p>}
-      <Button
-        type="button"
-        onClick={onSignIn}
-        variant="secondary"
-        className="mt-3 h-[3.25rem] w-full rounded-[0.5rem] bg-secondary text-sm font-black text-foreground hover:bg-secondary/80 sm:text-base"
-      >
-        {t.alreadyHaveAccount}
-      </Button>
+      <p className="mt-7 text-center text-sm font-semibold text-slate-500 sm:text-base">
+        {language === 'th' ? 'มีบัญชีแล้ว?' : 'Already have an account?'}{' '}
+        <button type="button" onClick={onSignIn} className="font-extrabold text-[#087447] hover:underline">
+          {t.signIn} <span aria-hidden>→</span>
+        </button>
+      </p>
     </AuthShell>
   )
 }
 
 export function AuthShell({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return (
-    <main className="flex min-h-dvh w-full justify-center bg-white px-4 py-14 sm:px-5 md:px-6 md:py-16">
-      <div className="w-full max-w-[430px] md:max-w-[620px]">
-        <div className="wg-page-header">
-          <p className="wg-eyebrow">Waste Guard</p>
-          <h1 className="wg-page-title">{title}</h1>
-          <p className="wg-page-subtitle">{subtitle}</p>
-        </div>
-        <section className="rounded-[0.75rem] bg-secondary/70 p-4 md:p-5">{children}</section>
+    <main className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-[#f8fbf8] px-4 py-6 sm:px-6 lg:justify-end lg:px-[6vw] lg:py-8">
+      <AuthBackdrop />
+      <div className="pointer-events-none absolute bottom-[-4%] left-[5%] z-10 hidden w-[48vw] max-w-[650px] lg:block xl:left-[8%]">
+        <Image src="/mascot.png" alt="Waste Guard mascot" width={512} height={512} priority className="h-auto w-full mix-blend-multiply drop-shadow-[0_25px_30px_rgba(22,99,65,0.12)]" />
       </div>
+      <section className="relative z-20 w-full max-w-[560px] rounded-[2rem] border border-white/80 bg-white/95 px-5 py-7 shadow-[0_28px_80px_rgba(32,83,58,0.13)] backdrop-blur-sm sm:px-10 sm:py-9 lg:max-h-[calc(100dvh-4rem)] lg:overflow-y-auto lg:px-12">
+        <div className="mb-7 text-center">
+          <Image src="/apple-icon.png" alt="Waste Guard" width={128} height={128} priority className="mx-auto h-auto w-[94px] sm:w-[108px]" />
+          <h1 className="mt-4 text-3xl font-black tracking-[-0.04em] text-[#075f3e] sm:text-4xl">{title}</h1>
+          <p className="mt-2 text-sm font-semibold text-slate-500 sm:text-base">{subtitle}</p>
+        </div>
+        {children}
+      </section>
     </main>
+  )
+}
+
+function AuthBackdrop() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute -left-[9rem] -top-[10rem] size-[27rem] rounded-full bg-white/75" />
+      <div className="absolute -left-[5rem] top-[36%] size-[28rem] rounded-full bg-[#dcefe1]/55" />
+      <div className="absolute left-[21%] -top-[14rem] size-[35rem] rounded-full bg-[#e7f3e9]/70" />
+      <div className="absolute bottom-[-18rem] left-[25%] size-[34rem] rounded-full bg-[#eaf5ed]/75" />
+      <div className="absolute right-[-12rem] top-[12%] size-[25rem] rounded-full bg-white/80" />
+      <span className="absolute left-[8%] top-[17%] rotate-[-28deg] text-4xl text-[#7fbd38]/65">●</span>
+      <span className="absolute bottom-[11%] left-[20%] rotate-[18deg] text-5xl text-[#7fbd38]/45">●</span>
+    </div>
+  )
+}
+
+function AuthInput({ icon, className = '', ...props }: React.ComponentProps<typeof Input> & { icon: ReactNode }) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-slate-500 [&_svg]:size-5">{icon}</span>
+      <Input className={`h-14 rounded-2xl border-[#dce4df] bg-white pl-12 pr-4 text-base font-semibold shadow-none placeholder:font-medium focus-visible:border-[#4a9a72] focus-visible:ring-[#4a9a72]/15 ${className}`} {...props} />
+    </div>
+  )
+}
+
+function PasswordInput({ visible, onToggle, ...props }: Omit<React.ComponentProps<typeof Input>, 'type'> & { visible: boolean; onToggle: () => void }) {
+  return (
+    <div className="relative">
+      <span className="pointer-events-none absolute left-4 top-1/2 z-10 -translate-y-1/2 text-slate-500"><LockKeyhole className="size-5" /></span>
+      <Input type={visible ? 'text' : 'password'} className="h-14 rounded-2xl border-[#dce4df] bg-white pl-12 pr-12 text-base font-semibold shadow-none placeholder:font-medium focus-visible:border-[#4a9a72] focus-visible:ring-[#4a9a72]/15" {...props} />
+      <button type="button" onClick={onToggle} aria-label={visible ? 'Hide password' : 'Show password'} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-[#087447]">
+        {visible ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+      </button>
+    </div>
   )
 }
