@@ -470,7 +470,7 @@ export function DashboardHome({
             <UtensilsCrossed className="h-6 w-6" />
           </div>
           <p className="text-sm font-black text-foreground">{t.noMenuItemsYet}</p>
-          <p className="wg-meta mt-1">{t.noMenuItemsYetNote}</p>
+          <p className="wg-meta mt-1">{t.noMenuItemsYetStaffNote}</p>
         </div>
       ) : (
       <>

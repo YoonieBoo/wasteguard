@@ -308,7 +308,7 @@ export function QuickInput({
           </div>
           <div className="rounded-[0.75rem] bg-white p-8 text-center shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
             <p className="text-sm font-black text-foreground">{t.noMenuItemsYet}</p>
-            <p className="wg-meta mt-1">{t.noMenuItemsYetNote}</p>
+            <p className="wg-meta mt-1">{t.noMenuItemsYetStaffNote}</p>
           </div>
         </main>
       )
