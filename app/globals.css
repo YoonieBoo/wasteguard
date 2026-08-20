@@ -234,6 +234,15 @@
   }
 }
 
+@keyframes loading-text-wave {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-6px);
+  }
+}
+
 .welcome-fade-up {
   animation: welcome-fade-up 700ms ease-out both;
 }

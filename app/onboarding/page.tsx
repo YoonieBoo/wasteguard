@@ -12,6 +12,7 @@ import { SetupCompleteStep } from '@/components/onboarding/setup-complete-step'
 import { parseImportFile } from '@/lib/onboarding/parse-file'
 import type { ImportSummary, ParsedFile } from '@/lib/onboarding/types'
 import { getText, type Language } from '@/lib/i18n'
+import { LoadingScreen } from '@/components/loading-screen'
 
 type OnboardingStepNumber = 1 | 2 | 3 | 4
 
@@ -202,11 +203,7 @@ export default function OnboardingPage() {
   }
 
   if (isLoading || !businessId) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-white">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-secondary border-t-primary" />
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   if (step === 1) {

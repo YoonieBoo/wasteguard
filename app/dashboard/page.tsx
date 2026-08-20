@@ -10,6 +10,7 @@ import { QuickInput } from '@/components/quick-input'
 import { CarbonImpact } from '@/components/carbon-impact'
 import { Navigation } from '@/components/navigation'
 import { RecommendationsPreviewModal } from '@/components/recommendations-preview-modal'
+import { LoadingScreen } from '@/components/loading-screen'
 import { RecommendationCenter } from '@/components/recommendation-center'
 import { SavingsReport } from '@/components/savings-report'
 import { EsgDashboard } from '@/components/esg-dashboard'
@@ -568,11 +569,7 @@ export default function DashboardPage() {
   }
 
   if (!isInitialized) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-white">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-secondary border-t-primary" />
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   return (
