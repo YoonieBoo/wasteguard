@@ -3,7 +3,7 @@ const LOADING_LETTERS = 'Loading...'.split('')
 export function LoadingScreen() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-white px-6">
-      <img src="/loading-screen.png" alt="" className="h-40 w-40 object-contain sm:h-48 sm:w-48" />
+      <img src="/loading-screen.png" alt="" className="h-64 w-64 object-contain sm:h-80 sm:w-80" />
       <p className="flex text-2xl font-black text-primary sm:text-3xl" aria-label="Loading">
         {LOADING_LETTERS.map((letter, index) => (
           <span
