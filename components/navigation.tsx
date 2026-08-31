@@ -68,26 +68,17 @@ export function Navigation({
 
   // The owner's mobile bottom bar can't fit 6 destinations + Log out
   // without feeling cramped, so Menu/ESG/Report collapse into one "More"
-  // tab that opens a sheet — staff only ever has 3 destinations, so their
-  // bar is unaffected.
+  // action — a separate floating circular button (not a pill tab) that
+  // opens a sheet, matching the detached-FAB pattern of iOS tab bars.
+  // Staff only ever has 3 destinations, so their bar is unaffected.
   const mobileNavItems: NavItem[] =
     role === 'owner'
       ? [
           { id: 'home', label: t.navHome, icon: Home },
           { id: 'events', label: t.navEvents, icon: CalendarDays },
           recommendationsItem,
-          { id: 'more', label: t.navMore, icon: MoreHorizontal },
         ]
       : desktopNavItems
-  const mobileGridColumns = role === 'owner' ? 'grid-cols-4' : 'grid-cols-3'
-
-  function handleMobileItemTap(id: string) {
-    if (id === 'more') {
-      setShowMoreSheet(true)
-      return
-    }
-    onScreenChange(id)
-  }
 
   function handleMoreSheetSelect(id: string) {
     setShowMoreSheet(false)
@@ -146,37 +137,53 @@ export function Navigation({
       </aside>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 px-2 pb-3 sm:px-4 sm:pb-4 md:px-6 lg:hidden">
-        <div className="mx-auto flex w-full max-w-[430px] justify-center rounded-[0.75rem] border border-white/80 bg-white/95 px-1.5 py-2 shadow-[0_18px_50px_rgba(35,88,62,0.16)] backdrop-blur sm:px-2 md:max-w-[620px] md:px-3">
-          <div className={`grid w-full ${mobileGridColumns} gap-1 md:gap-2`}>
-            {mobileNavItems.map((item) => {
-              const Icon = item.icon
-              const isActive = item.id === 'more' ? isOnMoreScreen : currentScreen === item.id
+        <div className="mx-auto flex w-full max-w-[430px] items-center justify-center gap-2 md:max-w-[620px]">
+          <div className="flex flex-1 justify-center rounded-[0.75rem] border border-white/80 bg-white/95 px-1.5 py-2 shadow-[0_18px_50px_rgba(35,88,62,0.16)] backdrop-blur sm:px-2 md:px-3">
+            <div className="grid w-full grid-cols-3 gap-1 md:gap-2">
+              {mobileNavItems.map((item) => {
+                const Icon = item.icon
+                const isActive = currentScreen === item.id
 
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleMobileItemTap(item.id)}
-                  className={`relative flex h-[3.75rem] flex-col items-center justify-center rounded-[0.5rem] transition-all duration-200 md:h-16 ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground shadow-[0_8px_18px_rgba(68,179,126,0.22)]'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  }`}
-                >
-                  <div className="relative">
-                    <Icon className="mb-1 h-5 w-5" />
-                    {item.badge != null && (
-                      <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-black text-white ring-2 ring-white">
-                        {item.badge}
-                      </span>
-                    )}
-                  </div>
-                  <span className="max-w-full truncate px-0.5 text-[10px] font-bold leading-none sm:text-[11px]">
-                    {item.label}
-                  </span>
-                </button>
-              )
-            })}
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onScreenChange(item.id)}
+                    className={`relative flex h-[3.75rem] flex-col items-center justify-center rounded-[0.5rem] transition-all duration-200 md:h-16 ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground shadow-[0_8px_18px_rgba(68,179,126,0.22)]'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
+                  >
+                    <div className="relative">
+                      <Icon className="mb-1 h-5 w-5" />
+                      {item.badge != null && (
+                        <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-black text-white ring-2 ring-white">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <span className="max-w-full truncate px-0.5 text-[10px] font-bold leading-none sm:text-[11px]">
+                      {item.label}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
+
+          {role === 'owner' && (
+            <button
+              onClick={() => setShowMoreSheet(true)}
+              aria-label={t.navMore}
+              className={`grid h-[3.75rem] w-[3.75rem] shrink-0 place-items-center rounded-full shadow-[0_18px_50px_rgba(35,88,62,0.16)] backdrop-blur transition-all duration-200 md:h-16 md:w-16 ${
+                isOnMoreScreen
+                  ? 'bg-primary text-primary-foreground shadow-[0_8px_18px_rgba(68,179,126,0.22)]'
+                  : 'border border-white/80 bg-white/95 text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <MoreHorizontal className="h-6 w-6" />
+            </button>
+          )}
         </div>
       </nav>
 
