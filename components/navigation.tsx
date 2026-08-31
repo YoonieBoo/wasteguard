@@ -189,21 +189,10 @@ export function Navigation({
 
       {mounted && showMoreSheet &&
         createPortal(
-          <div className="fixed inset-0 z-[80] flex items-end justify-center lg:hidden">
+          <div className="fixed inset-0 z-[80] flex items-end justify-center pb-24 lg:hidden">
             <div className="absolute inset-0 bg-black/40" onClick={() => setShowMoreSheet(false)} />
-            <div className="relative w-full max-w-[430px] rounded-t-[1rem] bg-white p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-18px_50px_rgba(35,88,62,0.2)] animate-in slide-in-from-bottom-4 fade-in-0 duration-200 md:max-w-[620px]">
-              <div className="mb-2 flex items-center justify-between px-2">
-                <p className="wg-eyebrow mb-0 font-black">{t.navMore}</p>
-                <button
-                  type="button"
-                  onClick={() => setShowMoreSheet(false)}
-                  className="grid h-9 w-9 place-items-center rounded-full text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-                  aria-label="Close"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="space-y-1.5">
+            <div className="relative flex items-end gap-3">
+              <div className="grid grid-cols-3 gap-4 rounded-[1.5rem] bg-white p-5 shadow-[0_24px_60px_rgba(35,88,62,0.28)] animate-in zoom-in-95 fade-in-0 duration-200">
                 {moreScreenItems.map((item) => {
                   const Icon = item.icon
                   const isActive = currentScreen === item.id
@@ -212,18 +201,29 @@ export function Navigation({
                     <button
                       key={item.id}
                       onClick={() => handleMoreSheetSelect(item.id)}
-                      className={`flex h-[3.25rem] w-full items-center gap-3 rounded-[0.5rem] px-4 text-left text-sm font-black transition-all duration-200 ${
-                        isActive
-                          ? 'bg-primary text-primary-foreground shadow-[0_10px_22px_rgba(68,179,126,0.2)]'
-                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                      }`}
+                      className="flex w-16 flex-col items-center gap-2"
                     >
-                      <Icon className="h-5 w-5 shrink-0" />
-                      <span className="truncate">{item.label}</span>
+                      <div
+                        className={`grid h-16 w-16 place-items-center rounded-[1.1rem] transition-all duration-200 ${
+                          isActive ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'
+                        }`}
+                      >
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <span className="truncate text-xs font-bold text-foreground">{item.label}</span>
                     </button>
                   )
                 })}
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowMoreSheet(false)}
+                aria-label="Close"
+                className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-white/90 text-foreground shadow-[0_18px_40px_rgba(35,88,62,0.28)] backdrop-blur transition hover:bg-white"
+              >
+                <X className="h-6 w-6" />
+              </button>
             </div>
           </div>,
           document.body,
