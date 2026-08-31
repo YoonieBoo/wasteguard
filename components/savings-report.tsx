@@ -126,9 +126,9 @@ export function SavingsReport({
         {statCards.map((card) => (
           <div
             key={card.label}
-            className={`flex flex-col justify-between rounded-[0.75rem] p-4 sm:p-5 ${card.tone}`}
+            className={`flex min-w-0 flex-col justify-between rounded-[0.75rem] p-4 sm:p-5 ${card.tone}`}
           >
-            <p className="wg-label mb-3">{card.label}</p>
+            <p className="wg-label mb-3 break-words">{card.label}</p>
             <p className="text-lg font-black leading-tight sm:text-xl">{card.value}</p>
           </div>
         ))}
@@ -227,20 +227,20 @@ export function SavingsReport({
           <h2 className="wg-section-title mb-4">{t.engineProjectionTitle}</h2>
           <p className="wg-meta mb-4 -mt-2">{t.engineProjectionNote}</p>
           <div className="grid grid-cols-3 gap-3 sm:gap-4">
-            <div className="rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] sm:p-5">
-              <p className="wg-label mb-3">{t.engineProjectedSavingsLabel}</p>
+            <div className="min-w-0 rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] sm:p-5">
+              <p className="wg-label mb-3 break-words">{t.engineProjectedSavingsLabel}</p>
               <p className="text-lg font-black leading-tight text-primary sm:text-xl">
                 THB {engineReport.summary.estimated_total_cost_saving_thb.toLocaleString()}
               </p>
             </div>
-            <div className="rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] sm:p-5">
-              <p className="wg-label mb-3">{t.engineProjectedCo2Label}</p>
+            <div className="min-w-0 rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] sm:p-5">
+              <p className="wg-label mb-3 break-words">{t.engineProjectedCo2Label}</p>
               <p className="text-lg font-black leading-tight text-primary sm:text-xl">
                 {engineReport.summary.estimated_carbon_reduction_kg_co2e.toLocaleString()} {t.kgCo2}
               </p>
             </div>
-            <div className="rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] sm:p-5">
-              <p className="wg-label mb-3">{t.engineProjectedEsgLabel}</p>
+            <div className="min-w-0 rounded-[0.75rem] bg-white p-4 shadow-[0_14px_35px_rgba(41,91,67,0.08)] sm:p-5">
+              <p className="wg-label mb-3 break-words">{t.engineProjectedEsgLabel}</p>
               <p className="text-lg font-black leading-tight text-primary sm:text-xl">
                 {engineReport.summary.overall_esg_score}/100
               </p>
