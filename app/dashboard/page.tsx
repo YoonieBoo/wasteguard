@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { LogOut } from 'lucide-react'
 import { DashboardHome } from '@/components/dashboard-home'
 import { MenuManagement } from '@/components/menu-management'
 import { EventManagement } from '@/components/event-management'
@@ -564,6 +565,13 @@ export default function DashboardPage() {
         className="fixed right-3 top-3 z-[60] rounded-full bg-secondary px-3 py-2 text-xs font-black leading-none text-primary shadow-[0_10px_24px_rgba(35,88,62,0.14)] transition hover:bg-secondary/80 sm:right-4 sm:top-4 sm:px-4 md:right-6"
       >
         {language === 'en' ? 'EN / TH' : 'TH / EN'}
+      </button>
+      <button
+        onClick={handleLogout}
+        aria-label={getText(language).logOut}
+        className="fixed left-3 top-3 z-[60] grid h-9 w-9 place-items-center rounded-full bg-secondary text-primary shadow-[0_10px_24px_rgba(35,88,62,0.14)] transition hover:bg-secondary/80 sm:left-4 sm:top-4 md:left-6 lg:hidden"
+      >
+        <LogOut className="h-4 w-4" />
       </button>
       <div
         className={`flex-1 flex w-full justify-center lg:justify-start lg:pl-64 ${

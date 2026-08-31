@@ -79,7 +79,7 @@ export function Navigation({
           { id: 'more', label: t.navMore, icon: MoreHorizontal },
         ]
       : desktopNavItems
-  const mobileGridColumns = role === 'owner' ? 'grid-cols-5' : 'grid-cols-4'
+  const mobileGridColumns = role === 'owner' ? 'grid-cols-4' : 'grid-cols-3'
 
   function handleMobileItemTap(id: string) {
     if (id === 'more') {
@@ -176,15 +176,6 @@ export function Navigation({
                 </button>
               )
             })}
-            <button
-              onClick={onLogout}
-              className="flex h-[3.75rem] flex-col items-center justify-center rounded-[0.5rem] text-muted-foreground transition-all duration-200 hover:bg-secondary hover:text-foreground md:h-16"
-            >
-              <LogOut className="mb-1 h-5 w-5" />
-              <span className="max-w-full truncate px-0.5 text-[10px] font-bold leading-none sm:text-[11px]">
-                {t.logOut}
-              </span>
-            </button>
           </div>
         </div>
       </nav>
