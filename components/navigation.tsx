@@ -1,4 +1,4 @@
-import { CalendarDays, Home, Leaf, Lock, LogOut, PlusCircle, Sparkles, TrendingUp, UtensilsCrossed, type LucideIcon } from 'lucide-react'
+import { CalendarDays, Home, Leaf, LogOut, PlusCircle, Sparkles, TrendingUp, UtensilsCrossed, type LucideIcon } from 'lucide-react'
 import { getText, type Language } from '@/lib/i18n'
 import type { WasteGuardRole } from '@/lib/mock-data'
 
@@ -7,10 +7,8 @@ interface NavigationProps {
   language: Language
   role?: WasteGuardRole
   pendingRecommendationsCount?: number
-  isProPlan?: boolean
   onLogout: () => void
   onScreenChange: (screen: string) => void
-  onToggleProPlan?: () => void
 }
 
 export function Navigation({
@@ -18,13 +16,11 @@ export function Navigation({
   language,
   role = 'staff',
   pendingRecommendationsCount = 0,
-  isProPlan = false,
   onLogout,
   onScreenChange,
-  onToggleProPlan,
 }: NavigationProps) {
   const t = getText(language)
-  const navItems: Array<{ id: string; label: string; icon: LucideIcon; badge?: number; locked?: boolean }> = [
+  const navItems: Array<{ id: string; label: string; icon: LucideIcon; badge?: number }> = [
     { id: 'home', label: t.navHome, icon: Home },
     ...(role === 'staff' ? [{ id: 'input', label: t.navCheck, icon: PlusCircle }] : []),
     { id: 'events', label: t.navEvents, icon: CalendarDays },
@@ -39,7 +35,7 @@ export function Navigation({
         ]
       : []),
     ...(role === 'owner' ? [{ id: 'menu', label: t.navMenu, icon: UtensilsCrossed }] : []),
-    ...(role === 'owner' ? [{ id: 'impact', label: t.navEsg, icon: Leaf, locked: !isProPlan }] : []),
+    ...(role === 'owner' ? [{ id: 'impact', label: t.navEsg, icon: Leaf }] : []),
     ...(role === 'owner' ? [{ id: 'report', label: t.navReport, icon: TrendingUp }] : []),
   ]
   const gridColumns = role === 'owner' ? 'grid-cols-7' : 'grid-cols-4'
@@ -71,9 +67,6 @@ export function Navigation({
               >
                 <Icon className="h-5 w-5 shrink-0" />
                 <span className="truncate">{item.label}</span>
-                {item.locked && (
-                  <Lock className={`ml-auto h-3.5 w-3.5 shrink-0 ${isActive ? 'text-white/70' : 'text-muted-foreground/60'}`} />
-                )}
                 {item.badge != null && (
                   <span
                     className={`ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-black ${
@@ -96,14 +89,6 @@ export function Navigation({
           <span className="truncate">{t.logOut}</span>
         </button>
 
-        {process.env.NODE_ENV !== 'production' && role === 'owner' && onToggleProPlan && (
-          <button
-            onClick={onToggleProPlan}
-            className="mt-1 px-4 text-left text-[10px] font-bold text-muted-foreground/40 transition hover:text-muted-foreground"
-          >
-            Dev: {isProPlan ? 'reset to Free plan' : 'simulate Pro plan'}
-          </button>
-        )}
       </aside>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 px-2 pb-3 sm:px-4 sm:pb-4 md:px-6 lg:hidden">
@@ -125,9 +110,6 @@ export function Navigation({
                 >
                   <div className="relative">
                     <Icon className="mb-1 h-5 w-5" />
-                    {item.locked && (
-                      <Lock className="absolute -right-1.5 -top-1 h-3 w-3 shrink-0 rounded-full bg-white text-muted-foreground/70 ring-1 ring-white" />
-                    )}
                     {item.badge != null && (
                       <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-black text-white ring-2 ring-white">
                         {item.badge}

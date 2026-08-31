@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { CheckCircle2, Lock, ShieldCheck } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { getText, type Language } from '@/lib/i18n'
 import { getBusinessInsightData, getEsgData, getSortedRows, type FoodRow, type TimeRange } from '@/lib/mock-data'
 import { TimeFilterToggle } from '@/components/time-filter-toggle'
@@ -13,8 +11,6 @@ interface EsgDashboardProps {
   language: Language
   recsTotal: number
   recsActed: number
-  isProPlan?: boolean
-  onUpgrade?: () => void
   analyticsData?: FlaskAnalyticsResponse | null
 }
 
@@ -59,7 +55,7 @@ function computeWasteTrend(inputs: FoodRow[]) {
   })
 }
 
-export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isProPlan = false, onUpgrade, analyticsData }: EsgDashboardProps) {
+export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, analyticsData }: EsgDashboardProps) {
   const t = getText(language)
   const [range, setRange] = useState<TimeRange>('month')
   const esg = getEsgData(range, dailyInputs, recsTotal, recsActed)
@@ -236,7 +232,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
 
   return (
     <main className="relative min-h-dvh w-full bg-[#eef2ef] px-4 pb-28 pt-8 sm:px-5 md:px-6 lg:px-8 lg:pb-8 lg:pt-7">
-      <div className={`mx-auto w-full max-w-[960px] ${!isProPlan ? 'pointer-events-none select-none blur-sm' : ''}`}>
+      <div className="mx-auto w-full max-w-[960px]">
 
         {/* Header */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -401,52 +397,6 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, isPr
         </div>
 
       </div>
-
-      {/* Pro-plan paywall */}
-      {!isProPlan && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-white/30" />
-          <div className="relative w-full max-w-[420px] rounded-[1rem] bg-white p-8 text-center shadow-[0_32px_80px_rgba(35,88,62,0.25)] animate-in fade-in-0 zoom-in-95 duration-200">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/12">
-              <Lock className="h-6 w-6 text-primary" />
-            </div>
-
-            <h2 className="mt-5 text-xl font-black leading-snug text-gray-900">
-              {t.lockedSectionPrefix} <span className="text-primary">{t.proPlanLabel}</span>
-            </h2>
-
-            <div className="mt-5 space-y-3 border-t border-gray-100 pt-5 text-left">
-              {[t.proFeatureFullPerformance, t.proFeatureInsights, t.proFeatureExport].map((feature) => (
-                <div key={feature} className="flex items-center gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
-                  <p className="text-sm font-medium text-gray-700">{feature}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-6 space-y-2.5">
-              <Button
-                onClick={onUpgrade}
-                className="h-[3.25rem] w-full rounded-[0.5rem] bg-primary text-sm font-black text-primary-foreground hover:bg-primary/90"
-              >
-                {t.upgradeToProButton}
-              </Button>
-              <Button
-                onClick={onUpgrade}
-                variant="outline"
-                className="h-[3.25rem] w-full rounded-[0.5rem] border-primary/40 text-sm font-black text-primary hover:bg-primary/5"
-              >
-                {t.viewPlansButton}
-              </Button>
-            </div>
-
-            <p className="mt-4 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-400">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              {t.cancelAnytimeNote}
-            </p>
-          </div>
-        </div>
-      )}
     </main>
   )
 }

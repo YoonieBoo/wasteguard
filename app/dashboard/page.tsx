@@ -35,7 +35,6 @@ const recommendationsVersionKey = 'wasteGuardRecommendationsVersion'
 const recommendationsVersion = 'v2'
 const briefingDateKey = 'wasteGuardBriefingDate'
 const approvedItemsKey = 'wasteGuardApprovedItems'
-const isProPlanKey = 'wasteGuardIsPro'
 
 function scopedKey(base: string, bakeryId: string) {
   return `${base}:${bakeryId}`
@@ -121,7 +120,6 @@ export default function DashboardPage() {
   const [storedApprovedItems, setStoredApprovedItems] = useState<Record<string, number>>({})
   const [showMorningBriefing, setShowMorningBriefing] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
-  const [isProPlan, setIsProPlan] = useState(false)
 
   useEffect(() => {
     const savedLanguage = window.localStorage.getItem(languageKey)
@@ -184,8 +182,6 @@ export default function DashboardPage() {
     if (savedApproved) {
       try { setStoredApprovedItems(JSON.parse(savedApproved) as Record<string, number>) } catch { /* ignore */ }
     }
-
-    setIsProPlan(window.localStorage.getItem(scopedKey(isProPlanKey, bakeryId)) === 'true')
 
     // No seeded fallback here — a brand-new business has zero real
     // recommendations until the AI fetch below actually returns some. The
@@ -441,16 +437,6 @@ export default function DashboardPage() {
     setCurrentScreen('recommendations')
   }
 
-  function handleToggleProPlan() {
-    setIsProPlan((current) => {
-      const next = !current
-      if (authProfile?.bakeryId) {
-        window.localStorage.setItem(scopedKey(isProPlanKey, authProfile.bakeryId), String(next))
-      }
-      return next
-    })
-  }
-
   function handleUpdateRecommendation(id: string, status: RecommendationStatus, modifiedQuantity?: number) {
     setRecommendations((current) => {
       const next = current.map((rec) =>
@@ -538,7 +524,6 @@ export default function DashboardPage() {
     // in, making already-reviewed recommendations reappear as pending.
     if (authProfile?.bakeryId) {
       window.localStorage.removeItem(scopedKey(dailyInputsKey, authProfile.bakeryId))
-      window.localStorage.removeItem(scopedKey(isProPlanKey, authProfile.bakeryId))
       window.localStorage.removeItem(scopedKey(briefingDateKey, authProfile.bakeryId))
     }
 
@@ -686,8 +671,6 @@ export default function DashboardPage() {
               language={language}
               recsTotal={recommendations.length}
               recsActed={recommendations.filter((r) => r.status === 'accepted' || r.status === 'modified').length}
-              isProPlan={isProPlan}
-              onUpgrade={handleToggleProPlan}
               analyticsData={analyticsData}
             />
           )}
@@ -708,10 +691,8 @@ export default function DashboardPage() {
           language={language}
           role={role}
           pendingRecommendationsCount={role === 'owner' ? pendingCount : 0}
-          isProPlan={isProPlan}
           onLogout={handleLogout}
           onScreenChange={handleScreenChange}
-          onToggleProPlan={handleToggleProPlan}
         />
       )}
 
