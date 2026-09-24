@@ -169,11 +169,17 @@ export function QuickInput({
       // iOS cameras often capture HEIC, which the vision API can't read —
       // normalize once and reuse for both the AI call and the audit upload.
       const file = await normalizeImageFile(rawFile)
+      // Staff has usually already logged Actual Prepared before scanning —
+      // passing the real batch size lets the AI estimate a % remaining and
+      // apply it to a known number, instead of also having to guess the
+      // batch size itself from the reference photo alone.
+      const preparedQuantity = Number(actualBaked[itemKey])
       const quantity = await requestLeftoverEstimate({
         file,
         itemName: item.name,
         unit: item.unit,
         referencePhotoUrl: referencePhotoByKey.get(itemKey),
+        preparedQuantity: preparedQuantity > 0 ? preparedQuantity : null,
       })
       setLeftovers((current) => ({ ...current, [itemKey]: String(quantity) }))
       setScanPredictions((current) => ({ ...current, [itemKey]: quantity }))

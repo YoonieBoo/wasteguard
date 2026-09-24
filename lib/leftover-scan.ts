@@ -89,6 +89,7 @@ export type LeftoverEstimateInput = {
   itemName: string
   unit: string
   referencePhotoUrl?: string | null
+  preparedQuantity?: number | null
 }
 
 /** Asks the AI to estimate leftover quantity from a photo. Throws on any failure. */
@@ -97,6 +98,7 @@ export async function requestLeftoverEstimate({
   itemName,
   unit,
   referencePhotoUrl,
+  preparedQuantity,
 }: LeftoverEstimateInput): Promise<number> {
   const imageBase64 = await fileToBase64(file)
 
@@ -109,6 +111,7 @@ export async function requestLeftoverEstimate({
       itemName,
       unit,
       referencePhotoUrl: referencePhotoUrl ?? null,
+      preparedQuantity: preparedQuantity ?? null,
     }),
   })
 

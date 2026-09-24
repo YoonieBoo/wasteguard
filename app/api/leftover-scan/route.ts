@@ -11,6 +11,7 @@ type ScanRequestBody = {
   itemName: string
   unit: string
   referencePhotoUrl?: string | null
+  preparedQuantity?: number | null
 }
 
 function imageBlock(mediaType: string, base64: string) {
@@ -53,12 +54,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
+  const hasKnownTotal = typeof body.preparedQuantity === 'number' && Number.isFinite(body.preparedQuantity) && body.preparedQuantity > 0
+
   const content: (ReturnType<typeof imageBlock> | { type: 'text'; text: string })[] = []
   let referenceNote = 'No reference photo was provided for this dish, so estimate from general judgement.'
+  let hasReferencePhoto = false
 
   if (body.referencePhotoUrl) {
     const reference = await fetchReferenceImage(body.referencePhotoUrl)
     if (reference) {
+      hasReferencePhoto = true
       content.push({ type: 'text', text: 'Reference photo: this dish served as a full, freshly prepared tray.' })
       content.push(imageBlock(reference.mediaType, reference.base64))
       referenceNote = 'Compare the closing photo against the reference photo above to judge how much is left.'
@@ -67,6 +72,21 @@ export async function POST(request: Request) {
 
   content.push({ type: 'text', text: `Closing photo of "${body.itemName}" at end of service. ${referenceNote}` })
   content.push(imageBlock(body.imageMediaType, body.imageBase64))
+
+  // Grounding the estimate in the real prepared quantity (when known) turns
+  // an open-ended "guess the whole batch size and the remainder from a
+  // photo" task into a much better-constrained "estimate a % remaining, then
+  // apply it to a real number" task — this is the main lever on accuracy,
+  // more than lighting/angle, since otherwise the model has to also silently
+  // guess how big a "full" batch looks like purely from the reference photo.
+  const groundingNote = hasKnownTotal
+    ? `This dish's batch today was prepared as exactly ${body.preparedQuantity} ${body.unit}. ` +
+      (hasReferencePhoto
+        ? 'First judge what percentage of the reference photo\'s full tray is still visually present in the closing photo, '
+        : 'First judge what percentage of a full tray of this dish looks visually present in the closing photo, ') +
+      `then multiply that percentage by ${body.preparedQuantity} to get your estimate — do not guess the total batch size independently, it is already known. `
+    : ''
+
   content.push({
     type: 'text',
     text:
@@ -74,6 +94,7 @@ export async function POST(request: Request) {
       `for how much was originally prepared. This means a serving-equivalent, not a literal count of physical plates ` +
       `visible in the photo (e.g. a loose tray of salad that looks about a third full of a "56 plate" batch is "~19 plates worth left", ` +
       `even though no individual plates are visible). Judge by the visible volume/coverage of food remaining compared to a full batch or full tray. ` +
+      groundingNote +
       'Always give your best-effort numeric estimate, even if the photo is imperfect, lighting is poor, or you are uncertain — ' +
       'round to a sensible whole or half number. A member of staff will always review and correct this estimate before it is saved, ' +
       'so a rough guess is far more useful than refusing to answer. ' +
