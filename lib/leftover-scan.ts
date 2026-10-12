@@ -115,16 +115,29 @@ export async function requestLeftoverEstimate({
     }),
   })
 
-  let data: { quantity?: number; error?: string }
+  let data: { quantity?: number; error?: string; detectedDish?: string | null }
   try {
     data = await res.json()
   } catch {
     throw new Error(res.status === 413 ? 'Photo is too large — try a smaller image' : 'AI photo scan failed')
   }
+  if (data.error === 'dish_mismatch') {
+    throw new DishMismatchError(data.detectedDish ?? null)
+  }
   if (!res.ok || typeof data.quantity !== 'number') {
     throw new Error(data.error || 'AI photo scan failed')
   }
   return data.quantity
+}
+
+/** Thrown when the photo clearly shows a different dish than the one being scanned for. */
+export class DishMismatchError extends Error {
+  detectedDish: string | null
+  constructor(detectedDish: string | null) {
+    super('dish_mismatch')
+    this.name = 'DishMismatchError'
+    this.detectedDish = detectedDish
+  }
 }
 
 export type SaveLeftoverScanInput = {

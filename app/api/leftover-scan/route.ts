@@ -90,16 +90,28 @@ export async function POST(request: Request) {
   content.push({
     type: 'text',
     text:
-      `You are estimating how much of "${body.itemName}" remains, expressed in "${body.unit}" — the same unit used ` +
-      `for how much was originally prepared. This means a serving-equivalent, not a literal count of physical plates ` +
-      `visible in the photo (e.g. a loose tray of salad that looks about a third full of a "56 plate" batch is "~19 plates worth left", ` +
-      `even though no individual plates are visible). Judge by the visible volume/coverage of food remaining compared to a full batch or full tray. ` +
+      `First check whether the closing photo plausibly shows "${body.itemName}" — a tray that's mostly or fully eaten, ` +
+      'empty, dark, blurry, or hard to make out still counts as a match (treat it the same as any other low-confidence ' +
+      `photo of "${body.itemName}"). Only treat it as a mismatch if you can clearly and specifically identify a ` +
+      `DIFFERENT, NAMED dish in the photo (e.g. the photo obviously shows a salad when "${body.itemName}" is a soup, ` +
+      'or a dessert when it\'s a main course) — a kitchen/catering tray swap mistake by whoever took the photo. ' +
+      'If you cannot confidently name what specific different dish it is, it is NOT a mismatch — treat it as a normal, ' +
+      `low-confidence photo of "${body.itemName}" instead. Never use placeholder values like "unknown", "empty", ` +
+      '"unclear", or "n/a" for detected_dish — if you would have to write something like that, it means this is not ' +
+      'a mismatch at all, so set dish_match to true and detected_dish to null instead. ' +
+      `If it IS a genuine mismatch, set "dish_match" to false and "detected_dish" to the specific real dish name you can see, and set "quantity" to null. ` +
+      `Otherwise set "dish_match" to true, "detected_dish" to null, and estimate how much of "${body.itemName}" remains, ` +
+      `expressed in "${body.unit}" — the same unit used for how much was originally prepared. This means a serving-equivalent, ` +
+      `not a literal count of physical plates visible in the photo (e.g. a loose tray of salad that looks about a third full ` +
+      `of a "56 plate" batch is "~19 plates worth left", even though no individual plates are visible). Judge by the visible ` +
+      'volume/coverage of food remaining compared to a full batch or full tray. ' +
       groundingNote +
-      'Always give your best-effort numeric estimate, even if the photo is imperfect, lighting is poor, or you are uncertain — ' +
-      'round to a sensible whole or half number. A member of staff will always review and correct this estimate before it is saved, ' +
-      'so a rough guess is far more useful than refusing to answer. ' +
-      'Respond with ONLY a JSON object, no other text, in this exact shape: {"quantity": <number>}. ' +
-      'Only respond with {"quantity": null} if the image is completely unusable — e.g. solid black/corrupted, or clearly not a photo of food at all.',
+      'When it is a match, always give your best-effort numeric estimate, even if the photo is imperfect, lighting is poor, ' +
+      'or you are uncertain — round to a sensible whole or half number. A member of staff will always review and correct ' +
+      'this estimate before it is saved, so a rough guess is far more useful than refusing to answer. ' +
+      'Respond with ONLY a JSON object, no other text, in this exact shape: ' +
+      '{"dish_match": <boolean>, "detected_dish": <string or null>, "quantity": <number or null>}. ' +
+      'Only respond with quantity: null (with dish_match: true) if the image is completely unusable — e.g. solid black/corrupted, or clearly not a photo of food at all.',
   })
 
   try {
@@ -112,9 +124,23 @@ export async function POST(request: Request) {
 
     const textBlock = message.content.find((block) => block.type === 'text')
     const raw = textBlock && 'text' in textBlock ? textBlock.text.trim() : ''
-    // Models sometimes wrap JSON in a markdown code fence despite instructions not to.
+    // Models sometimes wrap JSON in a markdown code fence, or add a trailing
+    // sentence of commentary, despite instructions not to — the longer,
+    // two-part prompt (dish-match check + quantity) makes this more likely
+    // on ambiguous photos. Extract just the outermost {...} rather than
+    // requiring the whole response to be strictly valid JSON on its own.
     const unfenced = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()
-    const parsed = JSON.parse(unfenced) as { quantity: number | null }
+    const firstBrace = unfenced.indexOf('{')
+    const lastBrace = unfenced.lastIndexOf('}')
+    const jsonSlice = firstBrace !== -1 && lastBrace > firstBrace ? unfenced.slice(firstBrace, lastBrace + 1) : unfenced
+    const parsed = JSON.parse(jsonSlice) as { dish_match?: boolean; detected_dish?: string | null; quantity: number | null }
+
+    if (parsed.dish_match === false) {
+      return NextResponse.json(
+        { error: 'dish_mismatch', detectedDish: parsed.detected_dish || null },
+        { status: 422 },
+      )
+    }
 
     if (typeof parsed.quantity !== 'number' || !Number.isFinite(parsed.quantity) || parsed.quantity < 0) {
       return NextResponse.json({ error: 'AI could not estimate a quantity from this photo' }, { status: 422 })

@@ -9,7 +9,7 @@ import { buildRealBakeryItems, translatePrepUnit } from '@/lib/bakery-catalog'
 import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
 import { saveDailyOperations, type BusinessMenuItem } from '@/lib/menu-data'
 import type { FlaskFoodPrepItem } from '@/lib/ai-api'
-import { normalizeImageFile, requestLeftoverEstimate, saveLeftoverScan, uploadLeftoverPhoto } from '@/lib/leftover-scan'
+import { DishMismatchError, normalizeImageFile, requestLeftoverEstimate, saveLeftoverScan, uploadLeftoverPhoto } from '@/lib/leftover-scan'
 
 interface QuickInputProps {
   language: Language
@@ -22,7 +22,7 @@ interface QuickInputProps {
   onViewResults?: () => void
 }
 
-type ScanStatus = 'idle' | 'estimating' | 'done' | 'error'
+type ScanStatus = 'idle' | 'estimating' | 'done' | 'error' | 'mismatch'
 
 type CheckResult = {
   date: string
@@ -104,6 +104,7 @@ export function QuickInput({
   const [scanStatus, setScanStatus] = useState<Record<string, ScanStatus>>({})
   const [scanPhotoUrls, setScanPhotoUrls] = useState<Record<string, string>>({})
   const [scanPredictions, setScanPredictions] = useState<Record<string, number>>({})
+  const [scanMismatchDish, setScanMismatchDish] = useState<Record<string, string | null>>({})
   const scanFileInputRef = useRef<HTMLInputElement>(null)
   const activeScanKeyRef = useRef<string | null>(null)
   const [actualBaked, setActualBaked] = useState<Record<string, string>>(
@@ -194,6 +195,11 @@ export function QuickInput({
       }
     } catch (error) {
       console.error('Leftover photo scan failed', error)
+      if (error instanceof DishMismatchError) {
+        setScanMismatchDish((current) => ({ ...current, [itemKey]: error.detectedDish }))
+        setScanStatus((current) => ({ ...current, [itemKey]: 'mismatch' }))
+        return
+      }
       setScanStatus((current) => ({ ...current, [itemKey]: 'error' }))
     }
   }
@@ -409,6 +415,15 @@ export function QuickInput({
                   )}
                   {scanStatus[item.key] === 'error' && (
                     <p className="mt-1 text-xs font-semibold text-destructive">{t.photoScanFailed}</p>
+                  )}
+                  {scanStatus[item.key] === 'mismatch' && (
+                    <p className="mt-1 text-xs font-semibold text-destructive">
+                      {scanMismatchDish[item.key]
+                        ? t.photoScanMismatchWithDish
+                            .replace('{expected}', item.name)
+                            .replace('{detected}', scanMismatchDish[item.key] as string)
+                        : t.photoScanMismatch.replace('{expected}', item.name)}
+                    </p>
                   )}
                 </div>
               </div>
