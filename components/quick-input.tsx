@@ -7,9 +7,18 @@ import { Input } from '@/components/ui/input'
 import { getText, translateItemName, type Language } from '@/lib/i18n'
 import { buildRealBakeryItems, translatePrepUnit } from '@/lib/bakery-catalog'
 import type { FoodRow, WasteGuardRole } from '@/lib/mock-data'
-import { saveDailyOperations, type BusinessMenuItem } from '@/lib/menu-data'
+import { fetchDailyOperationTotals, saveDailyOperations, type BusinessMenuItem } from '@/lib/menu-data'
 import type { FlaskFoodPrepItem } from '@/lib/ai-api'
 import { DishMismatchError, normalizeImageFile, requestLeftoverEstimate, saveLeftoverScan, uploadLeftoverPhoto } from '@/lib/leftover-scan'
+import { MealPeriodToggle, type CheckMealPeriod } from '@/components/meal-period-toggle'
+
+// A dish tagged "both" has independent Breakfast and Dinner numbers in the
+// same browser session, so per-dish UI state is keyed by (dish, period) —
+// menu_item_id is always a UUID (never contains ":"), so splitting on the
+// last ":" to recover both parts is unambiguous.
+function stateKey(itemKey: string, period: CheckMealPeriod) {
+  return `${itemKey}:${period}`
+}
 
 interface QuickInputProps {
   language: Language
@@ -70,22 +79,27 @@ export function QuickInput({
   const [waste, setWaste] = useState<string | null>(null)
   const [result, setResult] = useState<CheckResult | null>(null)
   const [submissionState, setSubmissionState] = useState<SubmissionState>('entry')
+  const [mealPeriod, setMealPeriod] = useState<CheckMealPeriod>('breakfast')
   // Real per-business dishes once the owner has added any — a business with
   // no menu set up yet genuinely has nothing to check off, so this must not
   // fall back to the 4 demo dishes (staff would be logging production
-  // numbers against dishes the business doesn't actually serve).
+  // numbers against dishes the business doesn't actually serve). Also
+  // filtered to the currently-selected meal period — a dish tagged
+  // Breakfast-only has nothing to do with the Dinner buffet's checklist.
   const productionItems = useMemo(
     () =>
       (menuItems.length > 0
         ? buildRealBakeryItems(
-            menuItems.map((item) => ({
-              id: item.id,
-              name: item.name,
-              category: item.category,
-              unit: item.unit,
-              imageUrl: item.imageUrl,
-              ingredients: item.ingredients,
-            })),
+            menuItems
+              .filter((item) => item.mealPeriod === 'both' || item.mealPeriod === mealPeriod)
+              .map((item) => ({
+                id: item.id,
+                name: item.name,
+                category: item.category,
+                unit: item.unit,
+                imageUrl: item.imageUrl,
+                ingredients: item.ingredients,
+              })),
             foodPrepItems,
           )
         : []
@@ -95,7 +109,7 @@ export function QuickInput({
         planned: item.prepQuantity,
         unit: item.prepUnit,
       })),
-    [menuItems, foodPrepItems],
+    [menuItems, foodPrepItems, mealPeriod],
   )
   const referencePhotoByKey = useMemo(
     () => new Map(menuItems.map((item) => [item.id, item.referencePhotoUrl])),
@@ -108,10 +122,10 @@ export function QuickInput({
   const scanFileInputRef = useRef<HTMLInputElement>(null)
   const activeScanKeyRef = useRef<string | null>(null)
   const [actualBaked, setActualBaked] = useState<Record<string, string>>(
-    Object.fromEntries(productionItems.map((item) => [item.key, String(item.planned)])),
+    Object.fromEntries(productionItems.map((item) => [stateKey(item.key, mealPeriod), String(item.planned)])),
   )
   const [leftovers, setLeftovers] = useState<Record<string, string>>(
-    Object.fromEntries(productionItems.map((item) => [item.key, '0'])),
+    Object.fromEntries(productionItems.map((item) => [stateKey(item.key, mealPeriod), '0'])),
   )
   const demandOptions = [
     { label: '0-50', helper: t.quiet, value: '0-50' },
@@ -128,43 +142,35 @@ export function QuickInput({
 
   useEffect(() => {
     setActualBaked((current) => ({
-      ...Object.fromEntries(productionItems.map((item) => [item.key, String(item.planned)])),
+      ...Object.fromEntries(productionItems.map((item) => [stateKey(item.key, mealPeriod), String(item.planned)])),
       ...current,
     }))
     setLeftovers((current) => ({
-      ...Object.fromEntries(productionItems.map((item) => [item.key, '0'])),
+      ...Object.fromEntries(productionItems.map((item) => [stateKey(item.key, mealPeriod), '0'])),
       ...current,
     }))
-  }, [productionItems])
+  }, [productionItems, mealPeriod])
 
-  useEffect(() => {
-    if (submissionState !== 'saving') {
-      return
-    }
-
-    const timer = window.setTimeout(() => {
-      setSubmissionState('success')
-    }, 1400)
-
-    return () => window.clearTimeout(timer)
-  }, [submissionState])
-
-  function handleCameraClick(itemKey: string) {
-    activeScanKeyRef.current = itemKey
+  function handleCameraClick(compositeKey: string) {
+    activeScanKeyRef.current = compositeKey
     scanFileInputRef.current?.click()
   }
 
   async function handleScanFileSelected(event: React.ChangeEvent<HTMLInputElement>) {
     const rawFile = event.target.files?.[0]
-    const itemKey = activeScanKeyRef.current
+    const compositeKey = activeScanKeyRef.current
     // Reset so selecting the same file again still fires onChange next time.
     event.target.value = ''
-    if (!rawFile || !itemKey) return
+    if (!rawFile || !compositeKey) return
 
+    // menu_item_id is always a UUID (never contains ":"), so the part before
+    // the last ":" is unambiguously the raw dish id, and the part after is
+    // the meal period that was active when the camera button was tapped.
+    const itemKey = compositeKey.slice(0, compositeKey.lastIndexOf(':'))
     const item = productionItems.find((production) => production.key === itemKey)
     if (!item) return
 
-    setScanStatus((current) => ({ ...current, [itemKey]: 'estimating' }))
+    setScanStatus((current) => ({ ...current, [compositeKey]: 'estimating' }))
 
     try {
       // iOS cameras often capture HEIC, which the vision API can't read —
@@ -174,7 +180,7 @@ export function QuickInput({
       // passing the real batch size lets the AI estimate a % remaining and
       // apply it to a known number, instead of also having to guess the
       // batch size itself from the reference photo alone.
-      const preparedQuantity = Number(actualBaked[itemKey])
+      const preparedQuantity = Number(actualBaked[compositeKey])
       const quantity = await requestLeftoverEstimate({
         file,
         itemName: item.name,
@@ -182,25 +188,25 @@ export function QuickInput({
         referencePhotoUrl: referencePhotoByKey.get(itemKey),
         preparedQuantity: preparedQuantity > 0 ? preparedQuantity : null,
       })
-      setLeftovers((current) => ({ ...current, [itemKey]: String(quantity) }))
-      setScanPredictions((current) => ({ ...current, [itemKey]: quantity }))
-      setScanStatus((current) => ({ ...current, [itemKey]: 'done' }))
+      setLeftovers((current) => ({ ...current, [compositeKey]: String(quantity) }))
+      setScanPredictions((current) => ({ ...current, [compositeKey]: quantity }))
+      setScanStatus((current) => ({ ...current, [compositeKey]: 'done' }))
 
       // Fire-and-forget: keep a copy for the audit trail without blocking the UI.
       if (businessId) {
         const date = new Date().toISOString().slice(0, 10)
         uploadLeftoverPhoto(businessId, itemKey, date, file)
-          .then((url) => setScanPhotoUrls((current) => ({ ...current, [itemKey]: url })))
+          .then((url) => setScanPhotoUrls((current) => ({ ...current, [compositeKey]: url })))
           .catch((error) => console.error('Unable to upload leftover photo', error))
       }
     } catch (error) {
       console.error('Leftover photo scan failed', error)
       if (error instanceof DishMismatchError) {
-        setScanMismatchDish((current) => ({ ...current, [itemKey]: error.detectedDish }))
-        setScanStatus((current) => ({ ...current, [itemKey]: 'mismatch' }))
+        setScanMismatchDish((current) => ({ ...current, [compositeKey]: error.detectedDish }))
+        setScanStatus((current) => ({ ...current, [compositeKey]: 'mismatch' }))
         return
       }
-      setScanStatus((current) => ({ ...current, [itemKey]: 'error' }))
+      setScanStatus((current) => ({ ...current, [compositeKey]: 'error' }))
     }
   }
 
@@ -240,12 +246,87 @@ export function QuickInput({
     setSubmissionState('success')
   }
 
-  function handleProductionDone() {
+  async function handleProductionDone() {
     const today = new Date()
     const date = today.toISOString().slice(0, 10)
-    const totalBaked = productionItems.reduce((sum, item) => sum + Number(actualBaked[item.key] || 0), 0)
-    const totalLeftover = productionItems.reduce((sum, item) => sum + Number(leftovers[item.key] || 0), 0)
-    const sold = Math.max(0, totalBaked - totalLeftover)
+    setSubmissionState('saving')
+
+    const thisPeriodBaked = productionItems.reduce(
+      (sum, item) => sum + Number(actualBaked[stateKey(item.key, mealPeriod)] || 0),
+      0,
+    )
+    const thisPeriodLeftover = productionItems.reduce(
+      (sum, item) => sum + Number(leftovers[stateKey(item.key, mealPeriod)] || 0),
+      0,
+    )
+
+    // Audit trail for any dish that got a photo scan — doesn't affect the
+    // aggregate save below, purely additive so AI accuracy can be reviewed later.
+    if (businessId) {
+      for (const item of productionItems) {
+        const key = stateKey(item.key, mealPeriod)
+        if (scanStatus[key] !== 'done') continue
+        saveLeftoverScan({
+          businessId,
+          itemKey: item.key,
+          date,
+          mealPeriod,
+          photoUrl: scanPhotoUrls[key] ?? null,
+          predictedQuantity: scanPredictions[key] ?? null,
+          unit: item.unit,
+          confirmedQuantity: Number(leftovers[key] || 0),
+        }).catch((error) => console.error('Unable to save leftover scan', error))
+      }
+    }
+
+    // Real per-dish numbers, written to the same table CSV import uses, so
+    // the AI recommendation engine has genuine per-dish sales history even
+    // for a business that never imports a CSV. item.key is only a real
+    // menu_items.id when productionItems was built from real menuItems (see
+    // buildRealBakeryItems) — the mock-fallback keys aren't valid dish ids,
+    // so skip entirely when there's no real menu to attach numbers to.
+    // Awaited (not fire-and-forget) so the read-back below sees this
+    // period's own just-written rows rather than racing them.
+    if (businessId && menuItems.length > 0) {
+      const operationRows = productionItems.map((item) => {
+        const key = stateKey(item.key, mealPeriod)
+        const prepared = Number(actualBaked[key] || 0)
+        const leftover = Number(leftovers[key] || 0)
+        return {
+          business_id: businessId,
+          menu_item_id: item.key,
+          date,
+          meal_period: mealPeriod,
+          prepared_quantity: prepared,
+          sold_quantity: Math.max(0, prepared - leftover),
+          leftover_quantity: leftover,
+        }
+      })
+      try {
+        await saveDailyOperations(operationRows)
+      } catch (error) {
+        console.error('Unable to save daily operations', error)
+      }
+    }
+
+    // The single whole-day daily_reports aggregate must reflect BOTH meal
+    // periods, not just the one just submitted — otherwise logging Dinner
+    // after Breakfast would silently erase Breakfast's contribution. Read
+    // the other period's already-saved totals fresh from the DB (it may
+    // have been submitted by a different staff member in a different
+    // session entirely, not just earlier in this one).
+    let otherPeriodTotals = { prepared: 0, sold: 0, leftover: 0 }
+    if (businessId) {
+      try {
+        otherPeriodTotals = await fetchDailyOperationTotals(businessId, date, mealPeriod)
+      } catch (error) {
+        console.error('Unable to load other meal period totals', error)
+      }
+    }
+
+    const totalBaked = thisPeriodBaked + otherPeriodTotals.prepared
+    const totalLeftover = thisPeriodLeftover + otherPeriodTotals.leftover
+    const sold = Math.max(0, thisPeriodBaked - thisPeriodLeftover) + otherPeriodTotals.sold
     const foodPrepared = Math.max(1, totalBaked)
     const nextResult = {
       date,
@@ -267,60 +348,27 @@ export function QuickInput({
       promotion: 0,
     })
 
-    // Audit trail for any dish that got a photo scan — doesn't affect the
-    // aggregate save above, purely additive so AI accuracy can be reviewed later.
-    if (businessId) {
-      for (const item of productionItems) {
-        if (scanStatus[item.key] !== 'done') continue
-        saveLeftoverScan({
-          businessId,
-          itemKey: item.key,
-          date,
-          photoUrl: scanPhotoUrls[item.key] ?? null,
-          predictedQuantity: scanPredictions[item.key] ?? null,
-          unit: item.unit,
-          confirmedQuantity: Number(leftovers[item.key] || 0),
-        }).catch((error) => console.error('Unable to save leftover scan', error))
-      }
-    }
-
-    // Real per-dish numbers, written to the same table CSV import uses, so
-    // the AI recommendation engine has genuine per-dish sales history even
-    // for a business that never imports a CSV. item.key is only a real
-    // menu_items.id when productionItems was built from real menuItems (see
-    // buildRealBakeryItems) — the mock-fallback keys aren't valid dish ids,
-    // so skip entirely when there's no real menu to attach numbers to.
-    if (businessId && menuItems.length > 0) {
-      const operationRows = productionItems.map((item) => {
-        const prepared = Number(actualBaked[item.key] || 0)
-        const leftover = Number(leftovers[item.key] || 0)
-        return {
-          business_id: businessId,
-          menu_item_id: item.key,
-          date,
-          prepared_quantity: prepared,
-          sold_quantity: Math.max(0, prepared - leftover),
-          leftover_quantity: leftover,
-        }
-      })
-      saveDailyOperations(operationRows).catch((error) => console.error('Unable to save daily operations', error))
-    }
-
     setResult(nextResult)
-    setSubmissionState('saving')
+    setSubmissionState('success')
   }
 
   if (role === 'staff' && submissionState === 'entry') {
     if (productionItems.length === 0) {
+      // A business with no menu at all needs a different message than one
+      // that has dishes but none tagged for the period currently selected —
+      // the latter isn't "you haven't set up your menu," so reusing that
+      // copy would be misleading.
+      const hasAnyMenu = menuItems.length > 0
       return (
         <main className="wg-page">
           <div className="wg-page-header">
             <p className="wg-eyebrow">{t.beforeClosing}</p>
             <h1 className="wg-page-title">{t.todaysProductionEntry}</h1>
           </div>
-          <div className="rounded-[0.75rem] bg-white p-8 text-center shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
-            <p className="text-sm font-black text-foreground">{t.noMenuItemsYet}</p>
-            <p className="wg-meta mt-1">{t.noMenuItemsYetStaffNote}</p>
+          {hasAnyMenu && <MealPeriodToggle value={mealPeriod} onChange={setMealPeriod} language={language} />}
+          <div className="mt-5 rounded-[0.75rem] bg-white p-8 text-center shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
+            <p className="text-sm font-black text-foreground">{hasAnyMenu ? t.noMenuItemsForPeriod : t.noMenuItemsYet}</p>
+            <p className="wg-meta mt-1">{hasAnyMenu ? t.noMenuItemsForPeriodNote : t.noMenuItemsYetStaffNote}</p>
           </div>
         </main>
       )
@@ -333,18 +381,22 @@ export function QuickInput({
           <h1 className="wg-page-title">{t.todaysProductionEntry}</h1>
         </div>
 
-        <section className="mb-5 overflow-hidden rounded-[0.75rem] bg-white shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
+        <MealPeriodToggle value={mealPeriod} onChange={setMealPeriod} language={language} />
+
+        <section className="mb-5 mt-5 overflow-hidden rounded-[0.75rem] bg-white shadow-[0_14px_35px_rgba(41,91,67,0.08)]">
           {productionItems.map((item) => {
+            const key = stateKey(item.key, mealPeriod)
+
             function adjustBaked(delta: number) {
               setActualBaked((current) => ({
                 ...current,
-                [item.key]: String(Math.max(0, Number(current[item.key] || 0) + delta)),
+                [key]: String(Math.max(0, Number(current[key] || 0) + delta)),
               }))
             }
 
             return (
               <div
-                key={item.key}
+                key={key}
                 className="grid gap-3 border-b border-secondary/80 p-4 last:border-b-0 md:grid-cols-[minmax(0,1.15fr)_minmax(12rem,0.9fr)_minmax(9rem,0.55fr)] md:items-center md:gap-5 md:p-5"
               >
                 <div className="min-w-0">
@@ -366,8 +418,8 @@ export function QuickInput({
                       <Minus className="h-4 w-4" />
                     </button>
                     <Input
-                      value={actualBaked[item.key] ?? ''}
-                      onChange={(event) => setActualBaked((current) => ({ ...current, [item.key]: event.target.value }))}
+                      value={actualBaked[key] ?? ''}
+                      onChange={(event) => setActualBaked((current) => ({ ...current, [key]: event.target.value }))}
                       inputMode="numeric"
                       aria-label={`${item.name} ${t.actualBaked}`}
                       className="h-11 rounded-[0.5rem] border-secondary bg-secondary/45 text-center text-base font-black"
@@ -387,41 +439,41 @@ export function QuickInput({
                   <p className="wg-label mb-2">{t.leftovers}</p>
                   <div className="flex items-center gap-2">
                     <Input
-                      value={leftovers[item.key] ?? ''}
-                      onChange={(event) => setLeftovers((current) => ({ ...current, [item.key]: event.target.value }))}
+                      value={leftovers[key] ?? ''}
+                      onChange={(event) => setLeftovers((current) => ({ ...current, [key]: event.target.value }))}
                       inputMode="numeric"
                       aria-label={`${item.name} ${t.leftovers}`}
                       className="h-11 flex-1 rounded-[0.5rem] border-secondary bg-secondary/45 px-4 text-center text-base font-black"
                     />
                     <button
                       type="button"
-                      onClick={() => handleCameraClick(item.key)}
-                      disabled={scanStatus[item.key] === 'estimating'}
+                      onClick={() => handleCameraClick(key)}
+                      disabled={scanStatus[key] === 'estimating'}
                       className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-secondary text-foreground transition hover:bg-secondary/75 disabled:opacity-50"
                       aria-label={`${t.scanLeftoverPhoto} ${item.name}`}
                     >
-                      {scanStatus[item.key] === 'estimating' ? (
+                      {scanStatus[key] === 'estimating' ? (
                         <LoaderCircle className="h-4 w-4 animate-spin" />
                       ) : (
                         <Camera className="h-4 w-4" />
                       )}
                     </button>
                   </div>
-                  {scanStatus[item.key] === 'estimating' && (
+                  {scanStatus[key] === 'estimating' && (
                     <p className="mt-1 text-xs font-semibold text-muted-foreground">{t.analyzingPhoto}</p>
                   )}
-                  {scanStatus[item.key] === 'done' && (
+                  {scanStatus[key] === 'done' && (
                     <p className="mt-1 text-xs font-semibold text-primary">{t.aiEstimatedTapToAdjust}</p>
                   )}
-                  {scanStatus[item.key] === 'error' && (
+                  {scanStatus[key] === 'error' && (
                     <p className="mt-1 text-xs font-semibold text-destructive">{t.photoScanFailed}</p>
                   )}
-                  {scanStatus[item.key] === 'mismatch' && (
+                  {scanStatus[key] === 'mismatch' && (
                     <p className="mt-1 text-xs font-semibold text-destructive">
-                      {scanMismatchDish[item.key]
+                      {scanMismatchDish[key]
                         ? t.photoScanMismatchWithDish
                             .replace('{expected}', item.name)
-                            .replace('{detected}', scanMismatchDish[item.key] as string)
+                            .replace('{detected}', scanMismatchDish[key] as string)
                         : t.photoScanMismatch.replace('{expected}', item.name)}
                     </p>
                   )}

@@ -7,6 +7,8 @@ export type MenuItemIngredient = {
   unit: string
 }
 
+export type MealPeriod = 'breakfast' | 'dinner' | 'both'
+
 export type BusinessMenuItem = {
   id: string
   name: string
@@ -19,6 +21,9 @@ export type BusinessMenuItem = {
   // closing-time photos against — see components/quick-input.tsx.
   referencePhotoUrl: string | null
   ingredients: MenuItemIngredient[]
+  // Which buffet(s) this dish is served at — filters what the Check tab
+  // shows per meal period.
+  mealPeriod: MealPeriod
 }
 
 export type BusinessSalesHistoryRow = {
@@ -49,6 +54,7 @@ function toMenuItem(row: Record<string, unknown>): BusinessMenuItem {
     sellingPrice: (row.selling_price as number | null) ?? null,
     imageUrl: (row.image_url as string | null) ?? null,
     referencePhotoUrl: (row.reference_photo_url as string | null) ?? null,
+    mealPeriod: (row.meal_period as MealPeriod | null) ?? 'both',
     ingredients: rawIngredients.map((ingredient) => {
       const i = ingredient as Record<string, unknown>
       return {
@@ -60,7 +66,7 @@ function toMenuItem(row: Record<string, unknown>): BusinessMenuItem {
   }
 }
 
-const MENU_ITEM_COLUMNS = 'id, name, category, unit, unit_cost, selling_price, image_url, reference_photo_url, ingredients'
+const MENU_ITEM_COLUMNS = 'id, name, category, unit, unit_cost, selling_price, image_url, reference_photo_url, ingredients, meal_period'
 
 /**
  * Reads back the per-dish history an owner imported during onboarding
@@ -172,6 +178,7 @@ export type MenuItemEditableFields = {
   imageUrl: string | null
   referencePhotoUrl: string | null
   ingredients: MenuItemIngredient[]
+  mealPeriod: MealPeriod
 }
 
 export async function updateMenuItem(id: string, fields: MenuItemEditableFields): Promise<BusinessMenuItem> {
@@ -186,6 +193,7 @@ export async function updateMenuItem(id: string, fields: MenuItemEditableFields)
       image_url: fields.imageUrl,
       reference_photo_url: fields.referencePhotoUrl,
       ingredients: fields.ingredients,
+      meal_period: fields.mealPeriod,
     })
     .eq('id', id)
     .select(MENU_ITEM_COLUMNS)
@@ -197,7 +205,7 @@ export async function updateMenuItem(id: string, fields: MenuItemEditableFields)
 
 export async function createMenuItem(
   businessId: string,
-  fields: Pick<MenuItemEditableFields, 'name' | 'category' | 'unit'>,
+  fields: Pick<MenuItemEditableFields, 'name' | 'category' | 'unit' | 'mealPeriod'>,
 ): Promise<BusinessMenuItem> {
   const { data, error } = await supabase
     .from('menu_items')
@@ -206,6 +214,7 @@ export async function createMenuItem(
       name: fields.name,
       category: fields.category,
       unit: fields.unit,
+      meal_period: fields.mealPeriod,
     })
     .select(MENU_ITEM_COLUMNS)
     .single()
@@ -214,10 +223,13 @@ export async function createMenuItem(
   return toMenuItem(data)
 }
 
+export type StoredMealPeriod = 'breakfast' | 'dinner' | 'unspecified'
+
 export type DailyOperationRow = {
   business_id: string
   menu_item_id: string
   date: string
+  meal_period: StoredMealPeriod
   prepared_quantity: number
   sold_quantity: number
   leftover_quantity: number
@@ -232,9 +244,45 @@ export type DailyOperationRow = {
  */
 export async function saveDailyOperations(rows: DailyOperationRow[]): Promise<void> {
   const { error } = await supabase.from('daily_operations').upsert(rows, {
-    onConflict: 'business_id,menu_item_id,date',
+    onConflict: 'business_id,menu_item_id,date,meal_period',
   })
   if (error) throw new Error(`Unable to save daily operations: ${error.message}`)
+}
+
+export type DailyOperationTotals = { prepared: number; sold: number; leftover: number }
+
+/**
+ * Sums already-saved daily_operations rows for a business/date, optionally
+ * excluding one meal_period — lets the Check tab fold in the OTHER period's
+ * already-saved numbers before upserting the single whole-day daily_reports
+ * total, so submitting Dinner after Breakfast doesn't erase Breakfast.
+ */
+export async function fetchDailyOperationTotals(
+  businessId: string,
+  date: string,
+  excludeMealPeriod?: StoredMealPeriod,
+): Promise<DailyOperationTotals> {
+  let query = supabase
+    .from('daily_operations')
+    .select('prepared_quantity, sold_quantity, leftover_quantity')
+    .eq('business_id', businessId)
+    .eq('date', date)
+
+  if (excludeMealPeriod) {
+    query = query.neq('meal_period', excludeMealPeriod)
+  }
+
+  const { data, error } = await query
+  if (error) throw new Error(`Unable to load daily operations: ${error.message}`)
+
+  return (data ?? []).reduce(
+    (totals, row) => ({
+      prepared: totals.prepared + (row.prepared_quantity ?? 0),
+      sold: totals.sold + (row.sold_quantity ?? 0),
+      leftover: totals.leftover + (row.leftover_quantity ?? 0),
+    }),
+    { prepared: 0, sold: 0, leftover: 0 },
+  )
 }
 
 /** Uploads a dish photo to the public menu-photos bucket and returns its public URL. */

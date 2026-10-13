@@ -144,6 +144,7 @@ export type SaveLeftoverScanInput = {
   businessId: string
   itemKey: string
   date: string
+  mealPeriod: 'breakfast' | 'dinner' | 'unspecified'
   photoUrl: string | null
   predictedQuantity: number | null
   unit: string
@@ -155,6 +156,7 @@ export async function saveLeftoverScan({
   businessId,
   itemKey,
   date,
+  mealPeriod,
   photoUrl,
   predictedQuantity,
   unit,
@@ -165,12 +167,13 @@ export async function saveLeftoverScan({
       business_id: businessId,
       item_key: itemKey,
       date,
+      meal_period: mealPeriod,
       photo_url: photoUrl,
       ai_predicted_quantity: predictedQuantity,
       ai_predicted_unit: unit,
       confirmed_quantity: confirmedQuantity,
     },
-    { onConflict: 'business_id,item_key,date' },
+    { onConflict: 'business_id,item_key,date,meal_period' },
   )
   if (error) throw new Error(`Unable to save leftover scan: ${error.message}`)
 }

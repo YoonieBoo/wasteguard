@@ -87,6 +87,8 @@ export async function importValidatedRows({
         business_id: businessId,
         menu_item_id: menuItemId,
         date: row.normalized.date!,
+        // CSV-imported historical data has no real breakfast/dinner split.
+        meal_period: 'unspecified' as const,
         // Any of these three can be null now — a POS export usually only has
         // sold_quantity, a manual kitchen log usually only has prepared/leftover.
         prepared_quantity: row.normalized.prepared_quantity,
@@ -103,7 +105,7 @@ export async function importValidatedRows({
   for (let i = 0; i < operationBatches.length; i++) {
     const { data, error } = await supabase
       .from('daily_operations')
-      .upsert(operationBatches[i], { onConflict: 'business_id,menu_item_id,date', ignoreDuplicates: true })
+      .upsert(operationBatches[i], { onConflict: 'business_id,menu_item_id,date,meal_period', ignoreDuplicates: true })
       .select('id')
 
     if (error) throw new Error(`Unable to save historical data: ${error.message}`)

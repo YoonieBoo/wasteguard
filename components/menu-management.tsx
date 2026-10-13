@@ -12,6 +12,7 @@ import {
   updateMenuItem,
   uploadMenuItemPhoto,
   type BusinessMenuItem,
+  type MealPeriod,
   type MenuItemIngredient,
 } from '@/lib/menu-data'
 import { normalizeImageFile, uploadReferencePhoto } from '@/lib/leftover-scan'
@@ -160,6 +161,7 @@ function DishEditPanel({
   const [unit, setUnit] = useState(item?.unit ?? '')
   const [unitCost, setUnitCost] = useState(item?.unitCost != null ? String(item.unitCost) : '')
   const [sellingPrice, setSellingPrice] = useState(item?.sellingPrice != null ? String(item.sellingPrice) : '')
+  const [mealPeriod, setMealPeriod] = useState<MealPeriod>(item?.mealPeriod ?? 'both')
   const [imagePreview, setImagePreview] = useState<string | null>(item?.imageUrl ?? null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [referencePhotoPreview, setReferencePhotoPreview] = useState<string | null>(item?.referencePhotoUrl ?? null)
@@ -230,6 +232,7 @@ function DishEditPanel({
           name: name.trim(),
           category: category.trim() || null,
           unit: unit.trim() || null,
+          mealPeriod,
         })
         targetId = created.id
       }
@@ -253,6 +256,7 @@ function DishEditPanel({
         imageUrl,
         referencePhotoUrl,
         ingredients: cleanIngredients,
+        mealPeriod,
       })
 
       onSaved(saved)
@@ -357,6 +361,26 @@ function DishEditPanel({
             <div>
               <label className="wg-label">{t.dishUnit}</label>
               <Input value={unit} onChange={(event) => setUnit(event.target.value)} className="wg-control mt-2 border-secondary bg-white" />
+            </div>
+          </div>
+
+          <div>
+            <label className="wg-label">{t.dishMealPeriodLabel}</label>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {(['breakfast', 'dinner', 'both'] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setMealPeriod(option)}
+                  className={`h-10 rounded-[0.5rem] text-xs font-black transition ${
+                    mealPeriod === option
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary/60 text-muted-foreground hover:bg-secondary'
+                  }`}
+                >
+                  {option === 'breakfast' ? t.mealPeriodBreakfast : option === 'dinner' ? t.mealPeriodDinner : t.mealPeriodBoth}
+                </button>
+              ))}
             </div>
           </div>
 
