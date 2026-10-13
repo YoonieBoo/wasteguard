@@ -314,7 +314,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, anal
               {wasteTrend.map((m, i) =>
                 m.hasData ? (
                   <circle
-                    key={m.label}
+                    key={`point-${i}`}
                     cx={pointX(i)}
                     cy={pointY(m.avg)}
                     r={i === lastDataIndex ? 4 : 3}
@@ -350,7 +350,7 @@ export function EsgDashboard({ dailyInputs, language, recsTotal, recsActed, anal
               )}
 
               {wasteTrend.map((m, i) => (
-                <text key={`label-${m.label}`} x={pointX(i)} y={barH + 14} textAnchor="middle" fontSize={9} fill="#9ca3af" fontFamily="inherit">
+                <text key={`label-${i}`} x={pointX(i)} y={barH + 14} textAnchor="middle" fontSize={9} fill="#9ca3af" fontFamily="inherit">
                   {m.label}
                 </text>
               ))}

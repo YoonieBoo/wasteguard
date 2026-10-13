@@ -324,9 +324,15 @@ export function QuickInput({
       }
     }
 
-    const totalBaked = thisPeriodBaked + otherPeriodTotals.prepared
-    const totalLeftover = thisPeriodLeftover + otherPeriodTotals.leftover
-    const sold = Math.max(0, thisPeriodBaked - thisPeriodLeftover) + otherPeriodTotals.sold
+    // daily_reports' orders/food_prepared/food_sold/leftover columns are
+    // integer — AI leftover-scan estimates (and daily_operations' numeric
+    // columns generally) can be half-units (e.g. "23.5 plates"), which
+    // Postgres rejects outright for an integer column, silently failing
+    // this whole save. Round only here, at the integer-typed aggregate —
+    // daily_operations itself keeps the precise fractional value.
+    const totalBaked = Math.round(thisPeriodBaked + otherPeriodTotals.prepared)
+    const totalLeftover = Math.round(thisPeriodLeftover + otherPeriodTotals.leftover)
+    const sold = Math.round(Math.max(0, thisPeriodBaked - thisPeriodLeftover) + otherPeriodTotals.sold)
     const foodPrepared = Math.max(1, totalBaked)
     const nextResult = {
       date,
