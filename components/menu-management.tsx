@@ -115,7 +115,12 @@ export function MenuManagement({ businessId, language, onMenuItemSaved }: MenuMa
                 )}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-black text-foreground">{item.name}</p>
-                  <p className="wg-meta mt-0.5 truncate">{item.category || '—'}</p>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <p className="wg-meta truncate">{item.category || '—'}</p>
+                    <span className="shrink-0 rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-muted-foreground">
+                      {item.mealPeriod === 'breakfast' ? t.mealPeriodBreakfast : item.mealPeriod === 'dinner' ? t.mealPeriodDinner : t.mealPeriodBoth}
+                    </span>
+                  </div>
                   {item.ingredients.length > 0 && (
                     <p className="mt-0.5 text-[11px] font-bold text-primary">
                       {item.ingredients.length} {item.ingredients.length === 1 ? 'ingredient' : 'ingredients'}
