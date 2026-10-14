@@ -59,6 +59,21 @@ function getAffectedItemLabel(rec: Recommendation, rawFoodPrepItems: FlaskFoodPr
   return null
 }
 
+// A dish tagged Breakfast-only or Dinner-only makes its recommendation
+// unambiguous about which buffet it's for. A "Both" dish's recommended
+// quantity is a combined whole-day number, so no period label is shown —
+// labeling it either way would be misleading.
+function getMealPeriodLabel(
+  rec: Recommendation,
+  menuItems: BusinessMenuItem[],
+  t: ReturnType<typeof getText>,
+): string | null {
+  const menuItem = menuItems.find((item) => item.id === rec.affectedItemFileName)
+  if (menuItem?.mealPeriod === 'breakfast') return t.mealPeriodBreakfast
+  if (menuItem?.mealPeriod === 'dinner') return t.mealPeriodDinner
+  return null
+}
+
 function getIngredientNeeds(
   rec: Recommendation,
   rawFoodPrepItems: FlaskFoodPrepItem[],
@@ -239,6 +254,7 @@ export function RecommendationCenter({
                   : t.confidenceLow
             const ingredientNeeds = getIngredientNeeds(rec, rawFoodPrepItems, menuItems)
             const affectedItemLabel = getAffectedItemLabel(rec, rawFoodPrepItems)
+            const mealPeriodLabel = getMealPeriodLabel(rec, menuItems, t)
 
             return (
               <div
@@ -259,6 +275,11 @@ export function RecommendationCenter({
                       {affectedItemLabel && (
                         <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold text-muted-foreground">
                           {translateItemName(affectedItemLabel, language)}
+                        </span>
+                      )}
+                      {mealPeriodLabel && (
+                        <span className="rounded-full bg-secondary px-3 py-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                          {mealPeriodLabel}
                         </span>
                       )}
                     </div>

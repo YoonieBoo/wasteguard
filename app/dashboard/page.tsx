@@ -708,6 +708,7 @@ export default function DashboardPage() {
         <RecommendationsPreviewModal
           language={language}
           recommendations={pendingRecommendations}
+          menuItems={businessMenuItems}
           onAccept={(id) => handleUpdateRecommendation(id, 'accepted')}
           onIgnore={(id) => handleUpdateRecommendation(id, 'ignored')}
           onModify={handleDismissBriefingAndGoToRecs}

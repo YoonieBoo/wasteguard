@@ -6,10 +6,12 @@ import { ChevronRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getText, type Language } from '@/lib/i18n'
 import type { Recommendation } from '@/lib/recommendations'
+import type { BusinessMenuItem } from '@/lib/menu-data'
 
 interface RecommendationsPreviewModalProps {
   language: Language
   recommendations: Recommendation[]
+  menuItems?: BusinessMenuItem[]
   onAccept: (id: string) => void
   onIgnore: (id: string) => void
   onModify: (id: string) => void
@@ -26,6 +28,7 @@ function getPriority(confidence: number) {
 export function RecommendationsPreviewModal({
   language,
   recommendations,
+  menuItems = [],
   onAccept,
   onIgnore,
   onModify,
@@ -34,6 +37,17 @@ export function RecommendationsPreviewModal({
 }: RecommendationsPreviewModalProps) {
   const t = getText(language)
   const previewItems = recommendations.slice(0, 3)
+
+  // A dish tagged Breakfast-only or Dinner-only makes its recommendation
+  // unambiguous about which buffet it's for. A "Both" dish's recommended
+  // quantity is a combined whole-day number, so no period label is shown —
+  // labeling it either way would be misleading.
+  function mealPeriodLabel(rec: Recommendation) {
+    const menuItem = menuItems.find((item) => item.id === rec.affectedItemFileName)
+    if (menuItem?.mealPeriod === 'breakfast') return t.mealPeriodBreakfast
+    if (menuItem?.mealPeriod === 'dinner') return t.mealPeriodDinner
+    return null
+  }
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => setMounted(true), [])
@@ -71,12 +85,18 @@ export function RecommendationsPreviewModal({
               const priority = getPriority(rec.confidence)
               const title = language === 'th' ? rec.titleTh : rec.title
               const accentBar = priority === 'high' ? 'bg-red-500' : priority === 'medium' ? 'bg-amber-400' : 'bg-secondary'
+              const periodLabel = mealPeriodLabel(rec)
 
               return (
                 <div key={rec.id} className="flex items-center gap-4 bg-white p-5 sm:p-6">
                   <span className={`w-1 shrink-0 self-stretch rounded-full ${accentBar}`} />
 
                   <div className="min-w-0 flex-1">
+                    {periodLabel && (
+                      <span className="mb-1 inline-block rounded-full bg-secondary px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                        {periodLabel}
+                      </span>
+                    )}
                     <h3 className="text-base font-black leading-snug text-foreground sm:text-lg">{title}</h3>
                   </div>
 
